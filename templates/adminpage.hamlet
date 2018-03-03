@@ -1,0 +1,6 @@
+<form .form-horizontal method=post action=@{AdminR}#forms enctype=#{formEnctype}>
+    ^{formWidget}
+
+    <button .btn.btn-primary type="submit">
+        Upload it!
+
