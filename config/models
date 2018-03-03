@@ -16,3 +16,20 @@ Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived
     userId UserId Maybe
     deriving Eq
     deriving Show
+Lifter
+	name Text
+	age Int
+	sex Sex
+	ageclass Ageclass
+	weightclass String
+	weight Double
+	raw Bool 
+	group Int
+	attemptDL1Weight   Double    Maybe 
+	attemptDL1Success  Bool      Maybe 
+	attemptDL2Weight   Double    Maybe
+	attemptDL2Success  Bool      Maybe 
+	attemptDL3Weight   Double    Maybe 
+	attemptDL3Success  Bool      Maybe 
+	
+
