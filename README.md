@@ -1,1 +1,1 @@
-# livescoresheetLive-Scoresheet für Kreuzhebe-LM im AKS
+Live-Scoresheet für Kreuzhebe-LM im AKS
