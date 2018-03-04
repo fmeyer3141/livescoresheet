@@ -4,5 +4,7 @@
     <button .btn.btn-primary type="submit">
         Upload it!
 
+<h1>
+    Database Content so far (Ugly)
 <p>
     #{databaseContent}
