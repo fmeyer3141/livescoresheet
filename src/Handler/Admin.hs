@@ -11,8 +11,9 @@ import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
 
 import Data.CSV.Conduit
 import Data.Text (Text)
+import qualified Data.Text as T
 
-import Data.List
+import Prelude (read)
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
@@ -39,17 +40,27 @@ postAdminR = do
     where
         handleFile :: (Yesod site) => Text ->  Source (ResourceT IO) ByteString -> WidgetT site IO () 
         handleFile typ rawFile |typ=="text/csv" = do
-                                                    table <- liftIO $ parseCSV rawFile
-                                                    let a = show table
-                                                    [whamlet| Test <p> #{a}|]
+                                                    (_:table) <- liftIO $ parseCSV rawFile --remove captions
+                                                    let dataSet = fmap lifterParse table :: [Lifter]
+                                                        b = show dataSet
+                                                        (c:_) = dataSet
+                                                    [whamlet| <p> #{b} |]
+
                                |otherwise       = [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
-
-getColumn :: [Row Text] -> Int -> [Text]
-getColumn rows i = fmap (!! i) rows
 
 parseCSV :: Source (ResourceT IO) ByteString -> IO [Row Text]
 parseCSV rawFile = 
     runResourceT $ rawFile $= 
     intoCSV defCSVSettings $$ --defCSVSettings means , seperator and " to enclose fields
     sinkList
+
+lifterParse :: Row Text -> Lifter
+lifterParse [name,age,sex,aclass,wclass,weight,raw,flight] = 
+    Lifter name (read $ T.unpack age) (read $ T.unpack sex) (read $ T.unpack aclass) (T.unpack wclass) (read $ T.unpack weight)
+        (read $ T.unpack raw) (read $ T.unpack flight) w s w s w s
+    where
+        w = Nothing
+        s = Nothing
+lifterParse input = error ("Somethings wrong with the CSV-file with " ++ show input)
+

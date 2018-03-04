@@ -30,6 +30,7 @@ Lifter
 	attemptDL2Weight   Double    Maybe
 	attemptDL2Success  Bool      Maybe 
 	attemptDL3Weight   Double    Maybe 
-	attemptDL3Success  Bool      Maybe 
+	attemptDL3Success  Bool      Maybe
+        deriving Show
 	
 
