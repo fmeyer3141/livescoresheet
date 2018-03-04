@@ -21,6 +21,8 @@ newtype FileForm = FileForm
 getAdminR :: Handler Html
 getAdminR = do 
     (formWidget, formEnctype) <- generateFormPost csvForm
+    dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter]) 
+    let databaseContent = show dataSet  -- do it but do it pretty
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -34,19 +36,23 @@ postAdminR :: Handler Html
 postAdminR = do
     ((result, _), _) <- runFormPost csvForm
     case result of
-        FormSuccess (FileForm info) ->  defaultLayout $ handleFile (fileContentType info) (fileSource info)
+        FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
         FormFailure (t:_) -> defaultLayout $ [whamlet| #{t}|] 
         _ -> defaultLayout $ [whamlet| Error|]
     where
-        handleFile :: (Yesod site) => Text ->  Source (ResourceT IO) ByteString -> WidgetT site IO () 
+        handleFile :: Text ->  Source (ResourceT IO) ByteString -> Handler Html 
         handleFile typ rawFile |typ=="text/csv" = do
                                                     (_:table) <- liftIO $ parseCSV rawFile --remove captions
                                                     let dataSet = fmap lifterParse table :: [Lifter]
                                                         b = show dataSet
-                                                        (c:_) = dataSet
-                                                    [whamlet| <p> #{b} |]
+                                                    do 
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate table
+                                                        _ <- runDB $ insertMany dataSet -- Insert CSV
+                                                        defaultLayout $ [whamlet| <p> #{b} <p>
+                                                                                              <a href=@{AdminR}> Back |]
 
-                               |otherwise       = [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
+                               |otherwise       = defaultLayout $
+                                                      [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
 
 parseCSV :: Source (ResourceT IO) ByteString -> IO [Row Text]
