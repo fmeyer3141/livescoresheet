@@ -4,10 +4,9 @@
     <button .btn.btn-primary type="submit">
         Upload it!
 
-<h1>
-    Database Content so far (Ugly)
-<p>
-    #{databaseContent}
-
-<form enctype=#{lifterformEnctype}>
+<form enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
      ^{lifterformWidget}
+
+  <p>
+     <button .btn.btn-primary type=submit>
+        Update

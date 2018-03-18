@@ -16,21 +16,25 @@ import Data.CSV.Conduit
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import Prelude (read, foldl)
+import qualified Prelude as P
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
-myLifter :: Lifter
-myLifter = Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing}
 
+
+myLifter :: [Lifter]
+myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing}]
+
+getLiftersFromDB :: Handler [Lifter]
+getLiftersFromDB = do
+    dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
+    return [lifter | (Entity _ lifter) <- dataSet]
 
 getAdminR :: Handler Html
 getAdminR = do
     (formWidget, formEnctype) <- generateFormPost csvForm
-    --(lifterformWidget, lifterformEnctype) <- generateFormPost $ lifterForm myLifter
-    (lifterformWidget, lifterformEnctype) <- generateFormPost $ intsForm' [1,2]
-    dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
-    let databaseContent = show dataSet  -- do it but do it pretty
+    lifters <- getLiftersFromDB
+    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm lifters
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -40,31 +44,8 @@ csvForm :: Form FileForm
 csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
     <$> fileAFormReq "Wählen Sie die Anmeldungsdatei aus."
 
-intForm :: Int -> MForm Handler (FormResult Int, Widget)
-intForm int = do
-    (fRes, fWidget) <- mreq intField "" (Just int)
-    let intRes = fRes
-    let widget = [whamlet| ^{fvInput fWidget}|]
-    return (intRes, widget)
-
-intsForm :: [Int] -> MForm Handler [(FormResult Int, Widget)]
-intsForm intList = forM intList intForm
-
-intsForm' :: [Int] -> Html -> MForm Handler (FormResult [Int], Widget)
-intsForm' list extra = do
-    list' <- intsForm list
-    let reslist = fmap fst list' :: [FormResult Int]
-    let res0 = map formEval reslist :: [Int]
-    let viewList = Import.intersperse [whamlet| <br> |] $ fmap snd list' :: [Widget]
-    let combinedWidgets = foldl (>>) ([whamlet| #{extra} <br>|]) viewList :: Widget
-    return (pure res0, combinedWidgets)
-    where
-        formEval :: FormResult a -> a
-        formEval (FormSuccess s) = s
-        formEval _ = error "Error in Formeval"
-
-lifterForm :: Lifter -> Html -> MForm Handler (FormResult Lifter, Widget)
-lifterForm lifter extra = do
+lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
+lifterForm lifter = do
     (groupRes, groupView) <- mreq intField fieldFormat (Just (lifterGroup lifter))
     (lifterAttemptDL1WeightRes, lifterAttemptDL1WeightView) <- mopt doubleField fieldFormat (Just $ lifterAttemptDL1Weight lifter)
     (lifterAttemptDL1SuccessRes, lifterAttemptDL1SuccessView) <- mreq (selectFieldList succType) "" (Just $ lifterAttemptDL1Success lifter)
@@ -86,7 +67,6 @@ lifterForm lifter extra = do
                                                            <*> lifterAttemptDL3SuccessRes
     let widget =
             [whamlet|
-                #{extra}
                 #{lifterName lifter}
                 ^{fvInput groupView}
                 ^{fvInput lifterAttemptDL1WeightView}
@@ -95,7 +75,7 @@ lifterForm lifter extra = do
                 ^{fvInput lifterAttemptDL2SuccessView}
                 ^{fvInput lifterAttemptDL3WeightView}
                 ^{fvInput lifterAttemptDL3SuccessView}
-            |]
+            |] -- TODO Gruppennummer als class oder so ausgeben für schönere Optik
     return (lifterRes, widget)
     where
         fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
@@ -103,24 +83,49 @@ lifterForm lifter extra = do
         succType = [("ToDo", Nothing), ("Good", Just True), ("Fail", Just False)]
 
 
+liftersForm :: [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget) --TODO lifterList sortieren nach Gruppen und dann Total
+liftersForm lifterList extra = do
+    list <- forM lifterList lifterForm
+    let reslist = fmap fst list :: [FormResult Lifter]
+    let res0 = map formEval reslist :: [Lifter]
+    let viewList = Import.intersperse [whamlet| <br> |] $ fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
+    let combinedWidgets = P.foldl (>>) ([whamlet| #{extra} |]) viewList :: Widget -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
+    return (pure res0, combinedWidgets)
+
+    where
+        formEval :: FormResult a -> a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
+        formEval (FormSuccess s) = s
+        formEval _ = error "Error in Formeval"
+
 postAdminR :: Handler Html
 postAdminR = do
     ((result, _), _) <- runFormPost csvForm
     case result of
         FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
-        FormFailure (t:_) -> defaultLayout $ [whamlet| #{t}|]
-        _ -> defaultLayout $ [whamlet| Error|]
+        _ -> do
+            lifters <- getLiftersFromDB
+            ((res,_),_) <- runFormPost $ liftersForm lifters
+            case res of
+                FormSuccess lifterList -> do
+                    let todo = [runDB $ updateWhere
+                               [LifterName ==. n]
+                               [LifterGroup =. g, LifterAttemptDL1Weight =. d1w, LifterAttemptDL1Success =. d1s, LifterAttemptDL2Weight =. d2w,
+                                LifterAttemptDL2Success =. d2s, LifterAttemptDL3Weight =. d3w, LifterAttemptDL3Success =. d3s]
+                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s)<-lifterList] :: [Handler ()]
+                    sequence_ todo
+                    getAdminR
+                FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
+                _ -> error "Error while submitting Form"
+
     where
         handleFile :: Text ->  Source (ResourceT IO) ByteString -> Handler Html
         handleFile typ rawFile |typ=="text/csv" = do
                                                     (_:table) <- liftIO $ parseCSV rawFile --remove captions
                                                     let dataSet = fmap lifterParse table :: [Lifter]
-                                                        b = show dataSet
                                                     do
                                                         _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate table
                                                         _ <- runDB $ insertMany dataSet -- Insert CSV
-                                                        defaultLayout $ [whamlet| <p> #{b} <p>
-                                                                                              <a href=@{AdminR}> Back |]
+                                                        getAdminR
 
                                |otherwise       = defaultLayout $
                                                       [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
@@ -134,8 +139,8 @@ parseCSV rawFile =
 
 lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight] =
-    Lifter name (read $ T.unpack age) (read $ T.unpack sex) (read $ T.unpack aclass) (T.unpack wclass) (read $ T.unpack weight)
-        (read $ T.unpack raw) (read $ T.unpack flight) w s w s w s
+    Lifter name (P.read $ T.unpack age) (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (T.unpack wclass) (P.read $ T.unpack weight)
+        (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s
     where
         w = Nothing
         s = Nothing
