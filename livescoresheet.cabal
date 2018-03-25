@@ -82,6 +82,7 @@ library
       Settings
       Settings.StaticFiles
       Sex
+      Scoresheetlogic
       Ageclass
   other-modules:
       Paths_livescoresheet

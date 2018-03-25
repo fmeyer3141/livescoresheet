@@ -13,14 +13,14 @@ import Sex
 import Ageclass
 
 import Data.CSV.Conduit
+import Scoresheetlogic
 import Data.Text (Text)
 import qualified Data.Text as T
-
+import qualified Data.List as L
 import qualified Prelude as P
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
-
 
 myLifter :: [Lifter]
 myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing}]
@@ -89,12 +89,18 @@ lifterForm lifter = do
 
 liftersForm :: [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget) --TODO lifterList sortieren nach Gruppen und dann Total
 liftersForm lifterList extra = do
-    list <- forM lifterList lifterForm
+    list <- forM lifterList' lifterForm
     let reslist = fmap fst list :: [FormResult Lifter]
     let res0 = map formEval reslist :: [Lifter]
     let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
+    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
+    let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet| 
+                                                                <div .gruppenBezeichner>
+                                                                    Gruppe #{lifterGroup $ P.fst $ P.head l} 
+                                                              |]) l :: Widget --Gruppe ausgeben 
     let combinedWidgets = P.foldl (>>) ([whamlet| 
-                                        |]) viewList :: Widget -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
+                                        |]) (map combineWidgets1 widgetsAndLifter) :: Widget 
+                                        -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
     let framedFrom = ([whamlet|
                   #{extra} 
                   <div id="lifterForm"> 
@@ -109,6 +115,7 @@ liftersForm lifterList extra = do
     return (pure res0, framedFrom)
 
     where
+        lifterList' = sortBy cmpLifterGroupAndTotal lifterList
         formEval :: FormResult a -> a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
         formEval (FormSuccess s) = s
         formEval _ = error "Error in Formeval"
