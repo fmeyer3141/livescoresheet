@@ -1,3 +1,68 @@
+#lifterForm {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+#lifterFormHeaderRow {
+  display : inline-block;
+}
+
+.lifterFormHeader {
+  font-size: 14pt;
+  background-color: black;
+  color: white;
+}
+
+#lifterNameHeader {
+  float : left;
+	width : 11.5em;
+  padding-left: 0.2em;
+}
+
+#lifterGroupHeader {
+  float : left;
+	width : 6em;
+}
+
+.lifterAttemptHeader {
+  float : left;
+  width : 10.5em;
+}
+
+.lifterAttemptHeaderEnd {
+  float : left;
+  width : 9em;
+}
+
+.lifterRow{
+  padding: 0.3em;
+  width : 78%;
+}
+
+.lifterRow:hover {
+  background-color : #515151;
+}
+
+.lifterName {
+	width : 12em;
+  float : left;
+  background-color : #D6D6D6;
+  padding-bottom : 1.0em;
+  margin-right : 2em;
+}
+
 .tableText {
 	width : 5em;
 }
+
+.attempt {
+  display : inline-block;
+  background-color : #D6D6D6;
+  margin-left: 2em;
+  padding: 0.3em;
+}
+
+
+
+
+

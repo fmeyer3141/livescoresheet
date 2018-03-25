@@ -67,14 +67,18 @@ lifterForm lifter = do
                                                            <*> lifterAttemptDL3SuccessRes
     let widget =
             [whamlet|
-                #{lifterName lifter}
-                ^{fvInput groupView}
-                ^{fvInput lifterAttemptDL1WeightView}
-                ^{fvInput lifterAttemptDL1SuccessView}
-                ^{fvInput lifterAttemptDL2WeightView}
-                ^{fvInput lifterAttemptDL2SuccessView}
-                ^{fvInput lifterAttemptDL3WeightView}
-                ^{fvInput lifterAttemptDL3SuccessView}
+                <div class="lifterRow">
+                  <span class="lifterName"> #{lifterName lifter}
+                  ^{fvInput groupView}
+                  <div class="attempt">
+                    ^{fvInput lifterAttemptDL1WeightView}
+                    ^{fvInput lifterAttemptDL1SuccessView}
+                  <div class="attempt">
+                    ^{fvInput lifterAttemptDL2WeightView}
+                    ^{fvInput lifterAttemptDL2SuccessView}
+                  <div class="attempt">
+                    ^{fvInput lifterAttemptDL3WeightView}
+                    ^{fvInput lifterAttemptDL3SuccessView}
             |] -- TODO Gruppennummer als class oder so ausgeben für schönere Optik
     return (lifterRes, widget)
     where
@@ -88,9 +92,21 @@ liftersForm lifterList extra = do
     list <- forM lifterList lifterForm
     let reslist = fmap fst list :: [FormResult Lifter]
     let res0 = map formEval reslist :: [Lifter]
-    let viewList = Import.intersperse [whamlet| <br> |] $ fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-    let combinedWidgets = P.foldl (>>) ([whamlet| #{extra} |]) viewList :: Widget -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
-    return (pure res0, combinedWidgets)
+    let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
+    let combinedWidgets = P.foldl (>>) ([whamlet| 
+                                        |]) viewList :: Widget -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
+    let framedFrom = ([whamlet|
+                  #{extra} 
+                  <div id="lifterForm"> 
+                    <div id="lifterFormHeaderRow">
+                      <span id="lifterNameHeader" class="lifterFormHeader"> Name
+                      <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe 
+                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1 
+                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2 
+                      <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3 
+                    ^{combinedWidgets}
+                |]) 
+    return (pure res0, framedFrom)
 
     where
         formEval :: FormResult a -> a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
