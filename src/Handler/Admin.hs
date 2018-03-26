@@ -33,7 +33,8 @@ getLiftersFromDB = do
 getCurrGroupNrFromDB :: Handler Int
 getCurrGroupNrFromDB = do
     dataFromDB <- runDB $ selectList ([] :: [Filter CurrGroupNr]) []
-    return $ P.head [groupNr | (Entity _ (CurrGroupNr groupNr))<-dataFromDB]
+    return $ if ((length dataFromDB) > 0) then P.head [groupNr | (Entity _ (CurrGroupNr groupNr))<-dataFromDB]
+    else 0
 
 --groupNrForm :: Int -> AForm Handler Int
 --groupNrForm g = areq intField "GroupNr: " $ Just g
