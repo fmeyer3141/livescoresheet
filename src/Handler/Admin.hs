@@ -35,8 +35,12 @@ getCurrGroupNrFromDB = do
     dataFromDB <- runDB $ selectList ([] :: [Filter CurrGroupNr]) []
     return $ P.head [groupNr | (Entity _ (CurrGroupNr groupNr))<-dataFromDB]
 
-groupNrForm :: Int -> AForm Handler Int
-groupNrForm g = areq intField "GroupNr: " $ Just g
+--groupNrForm :: Int -> AForm Handler Int
+--groupNrForm g = areq intField "GroupNr: " $ Just g
+
+groupNrForm :: Int -> Form Int
+groupNrForm g = renderBootstrap3 BootstrapBasicForm $
+                    areq intField "GroupNr: " (Just g)
 
 getAdminR :: Handler Html
 getAdminR = do
@@ -45,7 +49,7 @@ getAdminR = do
     groupNr <- getCurrGroupNrFromDB
     let lifters' = sortBy (cmpLifterGroupAndTotal groupNr) lifters
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm lifters'
-    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ renderDivs $ groupNrForm groupNr 
+    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm groupNr 
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -102,7 +106,8 @@ liftersForm :: [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget) -
 liftersForm lifterList extra = do
     list <- forM lifterList lifterForm
     let reslist = fmap fst list :: [FormResult Lifter]
-    let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ map formEval reslist) :: [Lifter]
+    let res0' = (map formEval reslist) :: [Maybe Lifter]
+    let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
     let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
     let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList viewList :: [[(Lifter,Widget)]]
     let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet| 
@@ -152,7 +157,7 @@ postAdminR = do
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
                 _ -> do
                     groupNr <- getCurrGroupNrFromDB
-                    ((res',_),_) <- runFormPost $ renderDivs $ groupNrForm groupNr
+                    ((res',_),_) <- runFormPost $ groupNrForm groupNr
                     case res' of
                         FormSuccess gNr -> do
                                               _ <- runDB $ updateWhere ([] :: [Filter CurrGroupNr]) [CurrGroupNrGroupNr =. gNr]
