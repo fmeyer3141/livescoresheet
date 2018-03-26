@@ -18,10 +18,12 @@ getTotalLifter lifter = getHighestLift (lifterAttemptDL1Weight lifter) (lifterAt
         getLiftWeight (Just x) (Just True) = Just x
         getLiftWeight _ _ = Nothing
 
-cmpLifterGroupAndTotal :: Lifter -> Lifter -> Ordering
-cmpLifterGroupAndTotal l1 l2 |(lifterGroup l1 /= lifterGroup l2) = compare (lifterGroup l1) (lifterGroup l2)
-                             |((lifterGroup l1 == lifterGroup l2) && (getTotalLifter l1 /= getTotalLifter l2))
-                               = (flip compare) (getTotalLifter l1) (getTotalLifter l2)
-                             |((lifterGroup l1 == lifterGroup l2) && (getTotalLifter l1 == getTotalLifter l2))
-                               = compare (lifterWeight l1) (lifterWeight l2)
-cmpLifterGroupAndTotal _ _ = EQ
+cmpLifterGroupAndTotal :: Int -> Lifter -> Lifter -> Ordering
+cmpLifterGroupAndTotal g l1 l2 |((lifterGroup l1) == g) = LT
+                               |((lifterGroup l2) == g) = GT
+                               |(lifterGroup l1 /= lifterGroup l2) = compare (lifterGroup l1) (lifterGroup l2)
+                               |((lifterGroup l1 == lifterGroup l2) && (getTotalLifter l1 /= getTotalLifter l2))
+                                 = (flip compare) (getTotalLifter l1) (getTotalLifter l2)
+                               |((lifterGroup l1 == lifterGroup l2) && (getTotalLifter l1 == getTotalLifter l2))
+                                 = compare (lifterWeight l1) (lifterWeight l2)
+cmpLifterGroupAndTotal _ _ _ = EQ

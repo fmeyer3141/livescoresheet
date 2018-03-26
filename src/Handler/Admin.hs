@@ -30,11 +30,22 @@ getLiftersFromDB = do
     dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
     return [lifter | (Entity _ lifter) <- dataSet]
 
+getCurrGroupNrFromDB :: Handler Int
+getCurrGroupNrFromDB = do
+    dataFromDB <- runDB $ selectList ([] :: [Filter CurrGroupNr]) []
+    return $ P.head [groupNr | (Entity _ (CurrGroupNr groupNr))<-dataFromDB]
+
+groupNrForm :: Int -> AForm Handler Int
+groupNrForm g = areq intField "GroupNr: " $ Just g
+
 getAdminR :: Handler Html
 getAdminR = do
     (formWidget, formEnctype) <- generateFormPost csvForm
     lifters <- getLiftersFromDB
-    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm lifters
+    groupNr <- getCurrGroupNrFromDB
+    let lifters' = sortBy (cmpLifterGroupAndTotal groupNr) lifters
+    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm lifters'
+    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ renderDivs $ groupNrForm groupNr 
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -89,11 +100,11 @@ lifterForm lifter = do
 
 liftersForm :: [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget) --TODO lifterList sortieren nach Gruppen und dann Total
 liftersForm lifterList extra = do
-    list <- forM lifterList' lifterForm
+    list <- forM lifterList lifterForm
     let reslist = fmap fst list :: [FormResult Lifter]
-    let res0 = map formEval reslist :: [Lifter]
+    let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ map formEval reslist) :: [Lifter]
     let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
+    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList viewList :: [[(Lifter,Widget)]]
     let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet| 
                                                                 <div .gruppenBezeichner>
                                                                     Gruppe #{lifterGroup $ P.fst $ P.head l} 
@@ -112,13 +123,14 @@ liftersForm lifterList extra = do
                       <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3 
                     ^{combinedWidgets}
                 |]) 
-    return (pure res0, framedFrom)
+    if (elem Nothing (map formEval reslist)) 
+    then return (FormMissing, framedFrom) 
+    else return (pure res0, framedFrom)
 
     where
-        lifterList' = sortBy cmpLifterGroupAndTotal lifterList
-        formEval :: FormResult a -> a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
-        formEval (FormSuccess s) = s
-        formEval _ = error "Error in Formeval"
+        formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
+        formEval (FormSuccess s) = Just s
+        formEval _ = Nothing
 
 postAdminR :: Handler Html
 postAdminR = do
@@ -138,16 +150,27 @@ postAdminR = do
                     sequence_ todo
                     getAdminR
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
-                _ -> error "Error while submitting Form"
+                _ -> do
+                    groupNr <- getCurrGroupNrFromDB
+                    ((res',_),_) <- runFormPost $ renderDivs $ groupNrForm groupNr
+                    case res' of
+                        FormSuccess gNr -> do
+                                              _ <- runDB $ updateWhere ([] :: [Filter CurrGroupNr]) [CurrGroupNrGroupNr =. gNr]
+                                              getAdminR
+                        FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
+                        _ -> error "FormError"
 
     where
         handleFile :: Text ->  Source (ResourceT IO) ByteString -> Handler Html
         handleFile typ rawFile |typ=="text/csv" = do
                                                     (_:table) <- liftIO $ parseCSV rawFile --remove captions
                                                     let dataSet = fmap lifterParse table :: [Lifter]
+                                                    let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
                                                     do
                                                         _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate table
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
                                                         _ <- runDB $ insertMany dataSet -- Insert CSV
+                                                        _ <- runDB $ insert $ CurrGroupNr startGroupNr 
                                                         getAdminR
 
                                |otherwise       = defaultLayout $

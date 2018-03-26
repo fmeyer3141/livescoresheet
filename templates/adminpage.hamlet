@@ -4,6 +4,12 @@
     <button .btn.btn-primary type="submit">
         Upload it!
 
+<form method=post action=@{AdminR}#forms enctype=#{groupNrformEnctype}>
+    ^{groupNrformWidget}
+
+    <button type=submit>
+      Update
+
 <form enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
      ^{lifterformWidget}
 

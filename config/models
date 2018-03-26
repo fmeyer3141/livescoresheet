@@ -31,6 +31,8 @@ Lifter
 	attemptDL2Success  Bool      Maybe 
 	attemptDL3Weight   Double    Maybe 
 	attemptDL3Success  Bool      Maybe
+        deriving Eq
         deriving Show
 	
-
+CurrGroupNr
+    groupNr Int
