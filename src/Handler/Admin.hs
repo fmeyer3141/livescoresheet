@@ -48,9 +48,8 @@ getAdminR = do
     (formWidget, formEnctype) <- generateFormPost csvForm
     lifters <- getLiftersFromDB
     groupNr <- getCurrGroupNrFromDB
-    let lifters' = sortBy (cmpLifterGroupAndTotal groupNr) lifters
-    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm lifters'
-    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm groupNr 
+    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm groupNr lifters
+    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm groupNr
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -103,49 +102,51 @@ lifterForm lifter = do
         succType = [("ToDo", Nothing), ("Good", Just True), ("Fail", Just False)]
 
 
-liftersForm :: [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget) --TODO lifterList sortieren nach Gruppen und dann Total
-liftersForm lifterList extra = do
-    list <- forM lifterList lifterForm
+liftersForm :: Int -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
+liftersForm groupNr lifterList extra = do
+    list <- forM lifterList' lifterForm
     let reslist = fmap fst list :: [FormResult Lifter]
     let res0' = (map formEval reslist) :: [Maybe Lifter]
     let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
     let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList viewList :: [[(Lifter,Widget)]]
-    let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet| 
+    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
+    let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                                 <div .gruppenBezeichner>
-                                                                    Gruppe #{lifterGroup $ P.fst $ P.head l} 
-                                                              |]) l :: Widget --Gruppe ausgeben 
-    let combinedWidgets = P.foldl (>>) ([whamlet| 
-                                        |]) (map combineWidgets1 widgetsAndLifter) :: Widget 
+                                                                    Gruppe #{lifterGroup $ P.fst $ P.head l}
+                                                              |]) l :: Widget --Gruppe ausgeben
+    let combinedWidgets = P.foldl (>>) ([whamlet|
+                                        |]) (map combineWidgets1 widgetsAndLifter) :: Widget
                                         -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
     let framedFrom = ([whamlet|
-                  #{extra} 
-                  <div id="lifterForm"> 
+                  #{extra}
+                  <div id="lifterForm">
                     <div id="lifterFormHeaderRow">
                       <span id="lifterNameHeader" class="lifterFormHeader"> Name
-                      <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe 
-                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1 
-                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2 
-                      <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3 
+                      <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe
+                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1
+                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2
+                      <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3
                     ^{combinedWidgets}
-                |]) 
-    if (elem Nothing (map formEval reslist)) 
-    then return (FormMissing, framedFrom) 
+                |])
+    if (elem Nothing (map formEval reslist))
+    then return (FormMissing, framedFrom)
     else return (pure res0, framedFrom)
 
     where
+        lifterList' = sortBy (cmpLifterGroupAndTotal groupNr) lifterList
         formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
         formEval (FormSuccess s) = Just s
         formEval _ = Nothing
 
 postAdminR :: Handler Html
 postAdminR = do
+    groupNr <- getCurrGroupNrFromDB
     ((result, _), _) <- runFormPost csvForm
     case result of
         FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
         _ -> do
             lifters <- getLiftersFromDB
-            ((res,_),_) <- runFormPost $ liftersForm lifters
+            ((res,_),_) <- runFormPost $ liftersForm groupNr lifters
             case res of
                 FormSuccess lifterList -> do
                     let todo = [runDB $ updateWhere
@@ -157,7 +158,6 @@ postAdminR = do
                     getAdminR
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
                 _ -> do
-                    groupNr <- getCurrGroupNrFromDB
                     ((res',_),_) <- runFormPost $ groupNrForm groupNr
                     case res' of
                         FormSuccess gNr -> do
@@ -176,7 +176,7 @@ postAdminR = do
                                                         _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate table
                                                         _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
                                                         _ <- runDB $ insertMany dataSet -- Insert CSV
-                                                        _ <- runDB $ insert $ CurrGroupNr startGroupNr 
+                                                        _ <- runDB $ insert $ CurrGroupNr startGroupNr
                                                         getAdminR
 
                                |otherwise       = defaultLayout $
