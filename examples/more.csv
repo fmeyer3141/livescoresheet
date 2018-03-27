@@ -1,9 +1,9 @@
 Name,Age,Sex,Ageclass,Weightclass,Weight,Raw,Group
-Sam,23,Male,Open,120,115,True,1
-Otto,19,Male,Open,105,94,True,1
-Hans,30,Male,Open,105,101,True,1
-Gunter,23,Male,Open,105,102,True,1
-Heidi,22,Female,Junior,120,115,True,2
-Bernd,19,Male,Open,105,94,True,2
-Bob,31,Male,Open,105,101,False,2
-Alice,23,Female,Open,120,118,True,2
+Sam,23,Male,Open,120,115,True,1, Aachener Kraftsport
+Otto,19,Male,Open,105,94,True,1, Aachener Kraftsport
+Hans,30,Male,Open,105,101,True,1, KSV Essen
+Gunter,23,Male,Open,105,102,True,1, Kraftsport Colonia
+Heidi,22,Female,Junior,120,115,True,2, Vfb Klötze
+Bernd,19,Male,Open,105,94,True,2, Fitnesskreis Witten
+Bob,31,Male,Open,105,101,False,2, LAUCHhammer
+Alice,23,Female,Open,120,118,True,2, Rühls Fit&Fun

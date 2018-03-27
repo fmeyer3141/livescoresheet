@@ -23,7 +23,7 @@ newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
 myLifter :: [Lifter]
-myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing}]
+myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
 
 getLiftersFromDB :: Handler [Lifter]
 getLiftersFromDB = do
@@ -80,6 +80,7 @@ lifterForm lifter = do
                                                            <*> lifterAttemptDL2SuccessRes
                                                            <*> lifterAttemptDL3WeightRes
                                                            <*> lifterAttemptDL3SuccessRes
+                                                           <*> pure (lifterClub lifter)
     let widget =
             [whamlet|
                 <div class="lifterRow">
@@ -153,7 +154,7 @@ postAdminR = do
                                [LifterName ==. n]
                                [LifterGroup =. g, LifterAttemptDL1Weight =. d1w, LifterAttemptDL1Success =. d1s, LifterAttemptDL2Weight =. d2w,
                                 LifterAttemptDL2Success =. d2s, LifterAttemptDL3Weight =. d3w, LifterAttemptDL3Success =. d3s]
-                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s)<-lifterList] :: [Handler ()]
+                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s _)<-lifterList] :: [Handler ()]
                     sequence_ todo
                     getAdminR
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
@@ -190,9 +191,9 @@ parseCSV rawFile =
     sinkList
 
 lifterParse :: Row Text -> Lifter
-lifterParse [name,age,sex,aclass,wclass,weight,raw,flight] =
+lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
     Lifter name (P.read $ T.unpack age) (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (T.unpack wclass) (P.read $ T.unpack weight)
-        (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s
+        (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s club
     where
         w = Nothing
         s = Nothing
