@@ -6,5 +6,5 @@ import Database.Persist.TH
 import Prelude
 
 data Ageclass = Subjunior | Junior | Open | Master1 | Master2 | Master3 | Master4
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Ord)
 derivePersistField "Ageclass"
