@@ -1,2 +1,12 @@
-<h1>
-  My Frontend
+<h3> Die nächsten Athleten
+<div .divTable .nextLifterTable>
+  <div .divTableHeading>
+    <div .divTableRow>
+      <div .divTableHead>Name
+      <div .divTableHead>Hantelgewicht [KG]
+      <div .divTableHead>Versuch
+  <div .divTableBody>
+    <div .divTableRow .invisible>
+      <div .divTableCell>
+      <div .divTableCell>
+      <div .divTableCell>

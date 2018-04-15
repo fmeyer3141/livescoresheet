@@ -1,18 +1,58 @@
-$(function() {
+getData();
+var lifters = undefined;
+
+/** Ajax Call, holt periodisch neue Daten frisch vom Server */
+function getData() {
     $.ajax({
       url: '@{FrontendR}',
       type: 'GET',
       dataType: 'json',
       success: function (data) {
-        bla = data;
+        lifters = data;
         console.log("success;")
         console.log(data);
+        showNextLifters(data[1])
       },
       error: function (data) {
-        console.log("Error creating comment: " + data);
+        console.log("Error receiving group info: " + data);
       },
     });
-});
+    setTimeout(getData, 5000);
+}
 
-var bla = undefined;
+/** Aktualisiert die Anzeige der naechsten Lifter */
+function showNextLifters(lifterArr) {
 
+  // alle alten Zeilen loeschen
+  $(".lifterRow").remove();
+
+  currentAttempt = 99;
+  
+  lifterArr.forEach(elem => {
+    lifter = getLifterFromArr(elem);
+
+    if (currentAttempt > lifter.AttemptNumber) currentAttempt = lifter.AttemptNumber;
+
+
+    // Neue Zeile hinzufuegen
+    var $newRow = $(".invisible").clone().removeClass("invisible").addClass("lifterRow");
+    $newRow[0].children[0].innerText = lifter.Name; 
+    $newRow[0].children[1].innerText = lifter.AttemptWeight; 
+    $newRow[0].children[2].innerText = lifter.AttemptNumber;
+
+    // Blende die Lifter aus, die im akutellen Durchlauf schon dran waren. 
+    if (lifter.AttemptNumber == currentAttempt) {
+      $newRow.appendTo(".divTableBody");
+    }
+
+  });
+}
+
+/** Erstellt einen JSON-Lifter aus der Array-Darstellung */
+function getLifterFromArr(lifter) {
+  var lifterJson = {};
+  lifterJson.Name = lifter[0];
+  lifterJson.AttemptWeight = lifter[1];
+  lifterJson.AttemptNumber = lifter[2];
+  return lifterJson;
+}
