@@ -3,6 +3,7 @@ div.nextLifterTable {
   width: 100%;
   text-align: left;
   border-collapse: collapse;
+  margin-bottom: 35px;
 }
 .divTable.nextLifterTable .divTableCell, .divTable.nextLifterTable .divTableHead {
   border: 1px solid #000000;
@@ -37,3 +38,13 @@ div.nextLifterTable {
 .divTableBody { display: table-row-group;}
 
 .invisible { display : none;}
+
+/* custom */
+
+.liftGood{
+  background-color: #80ff80;
+}
+
+.liftFail{
+  background-color: #ff8080;
+}

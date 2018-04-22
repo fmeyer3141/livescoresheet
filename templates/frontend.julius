@@ -12,6 +12,7 @@ function getData() {
         console.log("success;")
         console.log(data);
         showNextLifters(data[1])
+        showRanking(data[0])
       },
       error: function (data) {
         console.log("Error receiving group info: " + data);
@@ -19,6 +20,7 @@ function getData() {
     });
     setTimeout(getData, 5000);
 }
+
 
 /** Aktualisiert die Anzeige der naechsten Lifter */
 function showNextLifters(lifterArr) {
@@ -29,30 +31,103 @@ function showNextLifters(lifterArr) {
   currentAttempt = 99;
   
   lifterArr.forEach(elem => {
-    lifter = getLifterFromArr(elem);
+    lifter = getNextLifterJson(elem);
 
     if (currentAttempt > lifter.AttemptNumber) currentAttempt = lifter.AttemptNumber;
 
-
     // Neue Zeile hinzufuegen
-    var $newRow = $(".invisible").clone().removeClass("invisible").addClass("lifterRow");
+    var $newRow = $("#nextLifterRowBase").clone().removeClass("invisible").removeAttr("id").addClass("lifterRow");
     $newRow[0].children[0].innerText = lifter.Name; 
     $newRow[0].children[1].innerText = lifter.AttemptWeight; 
     $newRow[0].children[2].innerText = lifter.AttemptNumber;
 
     // Blende die Lifter aus, die im akutellen Durchlauf schon dran waren. 
     if (lifter.AttemptNumber == currentAttempt) {
-      $newRow.appendTo(".divTableBody");
+      $newRow.appendTo("#nextLifterTableBody");
     }
 
   });
 }
 
 /** Erstellt einen JSON-Lifter aus der Array-Darstellung */
-function getLifterFromArr(lifter) {
+function getNextLifterJson(lifter) {
   var lifterJson = {};
   lifterJson.Name = lifter[0];
   lifterJson.AttemptWeight = lifter[1];
   lifterJson.AttemptNumber = lifter[2];
   return lifterJson;
 }
+
+/** Aufbau des Arrays:
+ * arr[i] -> Gruppe i
+ * arr[i][0] -> Tupel: (isNextLifter, Lifter)
+ */
+function showRanking(arr) {
+
+  $(".generated").remove();
+
+  for(let gi = 0; gi < arr.length; gi++) {
+    let group = arr[gi];
+    if(group.length > 0) printGroupInfo(group[0][1]);
+
+    //lege neue Tabelle an
+    var $newTable = $("#groupTableBase").clone().removeClass("invisible").removeAttr("id").addClass("generated");
+
+    var $rowBase = $("#rowBase").clone().removeClass("invisible").removeAttr("id");
+
+    for(let li = 0; li < group.length; li++) {
+      let isNext = group[li][0];
+      let lifter = group[li][1];
+
+      let $newRow = $rowBase.clone();
+
+      let addRow = cell => cell.addClass("divTableCell").appendTo($newRow)
+      let null2Empty = val => val !== null ? lifter.attemptDL1Weight : ""
+      let colorize = (success, cell) => {
+        if(success == null) return cell;
+        success ? cell.addClass("liftGood") : cell.addClass("liftFail");
+        return cell;
+      };
+
+
+      let rowElements = [
+      $(`<div> ${lifter.name} </div>`),
+      $(`<div> ${lifter.group} </div>`),
+      colorize(lifter.attemptDL1Success, $(`<div>${null2Empty(lifter.attemptDL1Weight)} </div>`)),
+      colorize(lifter.attemptDL2Success, $(`<div>${null2Empty(lifter.attemptDL2Weight)} </div>`)),
+      colorize(lifter.attemptDL3Success, $(`<div>${null2Empty(lifter.attemptDL3Weight)} </div>`)),
+      $(`<div> ${lifter.club} </div>`),
+      ];
+      rowElements.forEach(elem => addRow(elem));
+
+      $newRow.appendTo($newTable);
+    }
+    $("#divGroupOverview").append($newTable);
+  }
+}
+
+/** Extrahiert aus dem ersten Lifter einer Gruppe die Gruppeninfo und gibt
+ * diese als Ueberschrift aus;
+ */
+function printGroupInfo(l) {
+  let sex = l.sex == "Male" ? "Männer" : "Frauen";
+  let raw = l.raw ? "Raw" : "Equipped";
+  let $heading = $(`<h4>${l.ageclass} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");
+  $("#divGroupOverview").append($heading);
+}
+
+// age: 19
+// ageclass: "Open"
+// attemptDL1Success: null
+// attemptDL1Weight: null
+// attemptDL2Success: null
+// attemptDL2Weight: null
+// attemptDL3Success: null
+// attemptDL3Weight: null
+// club: " Fitnesskreis Witten"
+// group: 2
+// name: "Bernd"
+// raw: true
+// sex: "Male"
+// weight: 94
+// weightclass: "105"
