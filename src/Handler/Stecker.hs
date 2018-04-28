@@ -28,5 +28,5 @@ getSteckerR = selectRep $ do
     return $ toJSON $ do
       l <- nextLifter
       nextWeightl <- nextWeight l $ nextAttemptNr l
-      --return (lifterName l, lifterClub l, nextAttemptNr l, nextWeightl, getPlates nextWeightl)
-      return (lifterName l, lifterWeight l, lifterClub l, nextWeightl, test)
+      return (lifterName l, lifterClub l, nextAttemptNr l, nextWeightl, getPlates nextWeightl)
+      --return (lifterName l, lifterWeight l, lifterClub l, nextWeightl, test)
