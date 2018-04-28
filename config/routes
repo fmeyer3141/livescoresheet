@@ -14,3 +14,4 @@
 /profile ProfileR GET
 /admin AdminR GET POST
 /frontend FrontendR GET
+/stecker SteckerR GET

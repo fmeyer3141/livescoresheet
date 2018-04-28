@@ -77,6 +77,7 @@ library
       Handler.Profile
       Handler.Admin
       Handler.Frontend
+      Handler.Stecker
       Import
       Import.NoFoundation
       Model

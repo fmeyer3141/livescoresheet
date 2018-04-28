@@ -1,0 +1,163 @@
+var canvas = document.querySelector('canvas');
+canvas.width = window.innerWidth - 2;
+canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
+
+
+var c = canvas.getContext('2d');
+var fontSize;
+
+function determineFontSize(txt,maxSize) {
+  var size = 15;
+  c.font = size.toString() + "px" + " sans-serif";
+
+  while (c.measureText(txt).width < maxSize) {
+    size++;
+    c.font = size.toString() + "px" + " sans-serif";
+  }
+  size--;
+  c.font = size.toString() + "px" + " sans-serif";
+  fontSize = size;
+}
+
+var head1 = document.querySelector('h1');
+var head2 = document.querySelector('h2');
+head1.align = 'center';
+head2.align = 'center';
+
+c.textBaseline = "middle";
+
+getData();
+
+function drawPlates(plates) {
+  c.clearRect(0,0,canvas.width,canvas.height);
+  //Stange zeichnen
+  c.fillStyle = 'rgb(192,192,192)'; 
+  c.fillRect(0,0.475*canvas.height,0.95*canvas.width,0.05*canvas.height);
+
+  var xoffset = 0.02*canvas.width;
+  //25er Zeichnen
+  var txt="25";
+  determineFontSize(txt,0.06*canvas.width);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[0][1]; i++) {
+    c.fillStyle = 'rgb(255,0,0)';
+    c.fillRect(xoffset,0.1*canvas.height, 0.06*canvas.width, 0.8*canvas.height); 
+    c.fillStyle = 'rgb(255,255,255)';
+    c.fillText(txt,xoffset + (0.06/2)*canvas.width - (width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.08*canvas.width;
+  }
+
+  //20er (ja Schleifen unnötig aber Copy & Paste)
+  var txt="20";
+  var ofontsize = fontSize;
+  determineFontSize(txt,0.05*canvas.width);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[1][1]; i++) {
+    c.fillStyle = 'rgb(0,0,255)';
+    c.fillRect(xoffset,0.1*canvas.height, 0.05*canvas.width, 0.8*canvas.height); 
+    c.fillStyle = 'rgb(255,255,255)';
+    c.fillText(txt,xoffset + (0.05/2)*canvas.width - (width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.07*canvas.width;
+  }
+
+  //15er
+  var txt="15";
+  determineFontSize(txt,0.05*canvas.width);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[2][1]; i++) {
+    c.fillStyle = 'rgb(238,238,0)';
+    c.fillRect(xoffset,0.15*canvas.height, 0.05*canvas.width, 0.7*canvas.height); 
+    c.fillStyle = 'rgb(0,0,255)';
+    c.fillText(txt,xoffset + (0.05/2)*canvas.width - (width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.07*canvas.width;
+  }
+
+  //10er
+  var txt="10";
+  determineFontSize(txt,0.048*canvas.width);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[3][1]; i++) {
+    c.fillStyle = 'rgb(0,120,0)';
+    c.fillRect(xoffset,0.21*canvas.height, 0.048*canvas.width, 0.58*canvas.height); 
+    c.fillStyle = 'rgb(255,255,255)';
+    c.fillText(txt,xoffset + (0.048/2)*canvas.width - (width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.068*canvas.width;
+  }
+
+  //5er
+  var txt="5";
+  determineFontSize(txt,0.048*canvas.width);
+  console.log(fontSize);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[4][1]; i++) {
+    c.fillStyle = 'rgb(255,255,255)';
+    c.fillRect(xoffset,0.295*canvas.height, 0.048*canvas.width, 0.41*canvas.height); 
+    c.fillStyle = 'rgb(0,0,0)';
+    c.fillText(txt,xoffset+(0.048/ 2)*canvas.width-(width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.068*canvas.width;
+  }
+
+  //2.5er
+  var txt="2.5";
+  determineFontSize(txt,0.036*canvas.width);
+  console.log(fontSize);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[5][1]; i++) {
+    c.fillStyle = 'rgb(0,0,0)';
+    c.fillRect(xoffset,0.33*canvas.height, 0.036*canvas.width, 0.34*canvas.height); 
+    c.fillStyle = 'rgb(255,255,255)';
+    c.fillText(txt,xoffset+(0.036/2)*canvas.width-(width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.068*canvas.width;
+  }
+  
+  //1.25er
+  var txt="1.25";
+  determineFontSize(txt,0.036*canvas.width);
+  console.log(fontSize);
+  var width = c.measureText(txt).width;
+  for (var i = 0; i < plates[6][1]; i++) {
+    c.fillStyle = 'rgb(212,221,182)';
+    c.fillRect(xoffset,0.36*canvas.height, 0.036*canvas.width, 0.28*canvas.height); 
+    c.fillStyle = 'rgb(0,0,0)';
+    c.fillText(txt,xoffset+(0.036/2)*canvas.width-(width/2),0.5*canvas.height);
+    xoffset = xoffset + 0.068*canvas.width;
+  }
+
+  // Verschluss zeichnen
+  c.fillStyle = 'rgb(212,212,212)';
+  c.fillRect(xoffset,0.4*canvas.height, 0.1*canvas.width, 0.2*canvas.height);
+  c.fillRect(xoffset + 0.03 * canvas.width, 0.375*canvas.height,
+    0.01*canvas.width, 0.15*canvas.height);
+  c.fillRect(xoffset + 0.015*canvas.width, 0.37*canvas.height,
+    0.065*canvas.width, 0.007*canvas.height);
+}
+
+function showLifter(lifter) {
+  head1.innerHTML = lifter[0];
+  head1.innerHTML += " - ";
+  head1.innerHTML += lifter[3];
+  head1.innerHTML += "Kg - ";
+  head1.innerHTML += lifter[2];
+  head1.innerHTML += ". Versuch";
+  head2.innerHTML = lifter[1]; 
+}
+
+function getData() {
+    $.ajax({
+      url: '@{SteckerR}',
+      type: 'GET',
+      dataType: 'json',
+      success: function (data) {
+        console.log("success;")
+        console.log(data);
+        if (data != null) {
+          drawPlates(data[4]);
+          showLifter(data)
+        }
+      },
+      error: function (data) {
+        console.log("Error receiving group info: " + data);
+      },
+    });
+    setTimeout(getData, 5000);
+}

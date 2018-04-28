@@ -7,6 +7,11 @@ import qualified Prelude as P
 import qualified Data.List as L
 import Ageclass
 
+data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
+
+instance ToJSON Plate where
+  toJSON = toJSON . show
+
 getTotalLifter :: Lifter -> Maybe Double
 getTotalLifter lifter = getHighestLift (lifterAttemptDL1Weight lifter) (lifterAttemptDL1Success lifter)
                              (lifterAttemptDL2Weight lifter) (lifterAttemptDL2Success lifter)
@@ -77,3 +82,35 @@ compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
 
 getClass :: Lifter -> (Ageclass, String)
 getClass l = (lifterAgeclass l, lifterWeightclass l)
+
+getPlates:: Double -> [(Plate, Int)]
+getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen
+  where
+    numplates :: Double -> Double -> (Int, Double)
+    numplates w1 p =
+      let x = floor $ w1/p in (x, w1 - p* fromIntegral x)
+    getPlateHelper :: Plate -> Double -> [(Plate, Int)]
+    getPlateHelper Plate25   w1
+      = let (n, w2) = numplates w1 (2*25) in (Plate25, n) : getPlateHelper Plate20 w2
+    getPlateHelper Plate20   w1
+      = let (n, w2) = numplates w1 (2*20) in (Plate20, n) : getPlateHelper Plate15 w2
+    getPlateHelper Plate15   w1
+      = let (n, w2) = numplates w1 (2*15) in (Plate15, n) : getPlateHelper Plate10 w2
+    getPlateHelper Plate10   w1
+      = let (n, w2) = numplates w1 (2*10) in (Plate10, n) : getPlateHelper Plate5 w2
+    getPlateHelper Plate5    w1
+      = let (n, w2) = numplates w1 (2*5) in (Plate5, n) : getPlateHelper Plate2_5 w2
+    getPlateHelper Plate2_5  w1
+      = let (n, w2) = numplates w1 (2*2.5) in (Plate2_5, n) : getPlateHelper Plate1_25 w2
+    getPlateHelper Plate1_25 w1
+      = let (n, _) = numplates w1 (2*1.25) in pure (Plate1_25, n)
+
+-- LifterListe -> Gruppennr -> Nächster Lifter
+getNextLifterInGroup :: [Lifter] -> Int -> Maybe Lifter
+getNextLifterInGroup lifterlist groupNr = listToMaybe nextLifters
+  where
+    nextLifters = filter (\l -> Nothing /= nextWeight l (nextAttemptNr l))
+                     $ sortBy cmpLifterOrder
+                     $ filter ((==) groupNr . lifterGroup) lifterlist
+
+

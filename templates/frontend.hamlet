@@ -1,26 +1,27 @@
-<h3> Die nächsten Athleten
-<div .divTable .nextLifterTable>
-  <div .divTableHeading>
-    <div .divTableRow>
-      <div .divTableHead>Name
-      <div .divTableHead>Hantelgewicht [KG]
-      <div .divTableHead>Versuch
-  <div #nextLifterTableBody .divTableBody>
-    <div #nextLifterRowBase .divTableRow .invisible>
-      <div .divTableCell>
-      <div .divTableCell>
-      <div .divTableCell>
-
-<h3> Klassenübersicht
-<div #divGroupOverview>
-  <div #groupTableBase .divTable .groupTable .nextLifterTable .invisible>
+<div .container>
+  <h3> Die nächsten Athleten
+  <div .divTable .nextLifterTable>
     <div .divTableHeading>
       <div .divTableRow>
         <div .divTableHead>Name
-        <div .divTableHead>Gruppe
-        <div .divTableHead>Versuch 1
-        <div .divTableHead>Versuch 2
-        <div .divTableHead>Versuch 3
-        <div .divTableHead>Verein
-    <div .divTableBody>
-      <div #rowBase .divTableRow .invisible>
+        <div .divTableHead>Hantelgewicht [KG]
+        <div .divTableHead>Versuch
+    <div #nextLifterTableBody .divTableBody>
+      <div #nextLifterRowBase .divTableRow .invisible>
+        <div .divTableCell>
+        <div .divTableCell>
+        <div .divTableCell>
+
+  <h3> Klassenübersicht
+  <div #divGroupOverview>
+    <div #groupTableBase .divTable .groupTable .nextLifterTable .invisible>
+      <div .divTableHeading>
+        <div .divTableRow>
+          <div .divTableHead>Name
+          <div .divTableHead>Gruppe
+          <div .divTableHead>Versuch 1
+          <div .divTableHead>Versuch 2
+          <div .divTableHead>Versuch 3
+          <div .divTableHead>Verein
+      <div .divTableBody>
+        <div #rowBase .divTableRow .invisible>

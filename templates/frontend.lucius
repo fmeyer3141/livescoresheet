@@ -47,4 +47,5 @@ div.nextLifterTable {
 
 .liftFail{
   background-color: #ff8080;
+  text-decoration: line-through;
 }
