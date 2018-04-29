@@ -8,5 +8,6 @@
 /robots.txt RobotsR GET
 
 /admin AdminR GET POST
+/undo UndoR GET
 / FrontendR GET
 /stecker SteckerR GET

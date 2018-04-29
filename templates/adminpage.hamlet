@@ -1,7 +1,11 @@
 <div .container>
+  Logged in as #{show maid}.
+  <a href=@{AuthR LogoutR}>
+    Logout
+
   <form method=post action=@{AdminR}#forms enctype=#{formEnctype}>
       ^{formWidget}
-  <p>
+
       <button .btn.btn-primary type="submit">
           Upload it!
 
@@ -17,3 +21,6 @@
     <p>
        <button .btn.btn-primary type=submit>
           Update
+
+  <a href=@{UndoR}>
+    Undo!

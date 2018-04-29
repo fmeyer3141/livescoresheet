@@ -30,6 +30,45 @@ getLiftersFromDB = do
     dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
     return [lifter | (Entity _ lifter) <- dataSet]
 
+getLatestBackupVersion :: Handler (Maybe Int)
+getLatestBackupVersion =
+  do
+    versionDB <- runDB $ selectFirst [] [Desc LifterBackupVersion]
+    return $ do
+      entitym <- versionDB
+      let version = lifterBackupVersion $ entityVal entitym
+      return version
+
+backupLifter :: [Lifter] -> Int -> Handler ()
+backupLifter lifterList v = do
+                      let insertList = [LifterBackup v na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl | (Lifter na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl)<-lifterList] :: [LifterBackup]
+                      _ <- runDB $ insertMany insertList
+                      return ()
+
+truncBackupHistory :: Handler ()
+truncBackupHistory = do
+                       backupDB <- runDB $ selectList [] [Desc LifterBackupVersion]
+                       let backupVersions = group $ map (lifterBackupVersion . entityVal) backupDB
+                       case (length backupVersions) >= 10 of
+                         True -> do
+                                   let deleteAfterVersion = P.head $ backupVersions P.!! 10
+                                   runDB $ deleteWhere [LifterBackupVersion <. deleteAfterVersion]
+                         False -> return ()
+
+restoreBackup :: Handler ()
+restoreBackup = do
+                  version <- getLatestBackupVersion
+                  case version of
+                    Nothing -> return ()
+                    Just v -> do
+                              backup <- runDB $ selectList [LifterBackupVersion ==. v] []
+                              _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- truncate table
+                              _ <- runDB $ deleteWhere [LifterBackupVersion ==. v]
+                              -- restore
+                              let insertBack = [Lifter na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl | (LifterBackup _ na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl)<-map entityVal backup]
+                              _ <- runDB $ insertMany insertBack
+                              return ()
+
 getCurrGroupNrFromDB :: Handler Int
 getCurrGroupNrFromDB = do
     dataFromDB <- runDB $ selectList ([] :: [Filter CurrGroupNr]) []
@@ -45,6 +84,7 @@ groupNrForm g = renderBootstrap3 BootstrapBasicForm $
 
 getAdminR :: Handler Html
 getAdminR = do
+    maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
     lifters <- getLiftersFromDB
     groupNr <- getCurrGroupNrFromDB
@@ -150,11 +190,17 @@ postAdminR = do
             ((res,_),_) <- runFormPost $ liftersForm groupNr lifters
             case res of
                 FormSuccess lifterList -> do
+                    backup <- runDB $ selectList ([] :: [Filter Lifter]) []
+                    backVersion <- getLatestBackupVersion
+                    case backVersion of
+                      Nothing -> backupLifter (map entityVal backup) 0
+                      Just x -> backupLifter (map entityVal backup) (x+1)
+                    let filteredLifterList = filter ((==) groupNr . lifterGroup) lifterList
                     let todo = [runDB $ updateWhere
                                [LifterName ==. n]
                                [LifterGroup =. g, LifterAttemptDL1Weight =. d1w, LifterAttemptDL1Success =. d1s, LifterAttemptDL2Weight =. d2w,
                                 LifterAttemptDL2Success =. d2s, LifterAttemptDL3Weight =. d3w, LifterAttemptDL3Success =. d3s]
-                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s _)<-lifterList] :: [Handler ()]
+                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s _)<-filteredLifterList] :: [Handler ()]
                     sequence_ todo
                     getAdminR
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
@@ -174,7 +220,8 @@ postAdminR = do
                                                     let dataSet = fmap lifterParse table :: [Lifter]
                                                     let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
                                                     do
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate table
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
                                                         _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
                                                         _ <- runDB $ insertMany dataSet -- Insert CSV
                                                         _ <- runDB $ insert $ CurrGroupNr startGroupNr
@@ -198,4 +245,9 @@ lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
         w = Nothing
         s = Nothing
 lifterParse input = error ("Somethings wrong with the CSV-file with " ++ show input)
+
+getUndoR :: Handler Html
+getUndoR = do
+             restoreBackup
+             getAdminR
 
