@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -14,15 +15,18 @@ import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
 
--- Used only when in "auth-dummy-login" setting is enabled.
-import Yesod.Auth.Dummy
-
-import Yesod.Auth.OpenId    (authOpenId, IdentifierType (Claimed))
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
+import Yesod.Auth.Hardcoded
 import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
+import Yesod.Auth.Message
+
+username :: Text
+username = "admin"
+password :: Text
+password = "abc123"
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -110,12 +114,12 @@ instance Yesod App where
     authRoute _ = Just $ AuthR LoginR
 
     -- Routes not requiring authentication.
-    -- isAuthorized (AuthR _) _ = return Authorized
-    -- isAuthorized CommentR _ = return Authorized
-    -- isAuthorized HomeR _ = return Authorized
-    -- isAuthorized FaviconR _ = return Authorized
-    -- isAuthorized RobotsR _ = return Authorized
-    -- isAuthorized (StaticR _) _ = return Authorized
+    isAuthorized AdminR _ = do
+                              muid <- maybeAuthId
+                              return $ case muid of
+                                Nothing -> AuthenticationRequired
+                                Just usern -> if usern==username then Authorized
+                                                                 else AuthenticationRequired
     isAuthorized _ _ = return Authorized
 
     -- isAuthorized ProfileR _ = isAuthenticated
@@ -163,40 +167,38 @@ instance YesodPersistRunner App where
     getDBRunner = defaultGetDBRunner appConnPool
 
 instance YesodAuth App where
-    type AuthId App = UserId
+    type AuthId App = Text
 
     -- Where to send a user after successful login
     loginDest _ = AdminR
     -- Where to send a user after logout
     logoutDest _ = FrontendR
-    -- Override the above two destinations when a Referer: header is present
-    redirectToReferer _ = True
 
-    authenticate creds = runDB $ do
-        x <- getBy $ UniqueUser $ credsIdent creds
-        case x of
-            Just (Entity uid _) -> return $ Authenticated uid
-            Nothing -> Authenticated <$> insert User
-                { userIdent = credsIdent creds
-                , userPassword = Nothing
-                }
+    authenticate (Creds credsPlug credsId _)=
+      return
+        (case credsPlug of
+           "hardcoded" ->
+             case credsId == username of
+               False-> UserError InvalidLogin
+               True -> Authenticated (username)
+           _ ->  error "Different Authplugin than hardcoded")
 
-    -- You can add other plugins like Google Email, email or OAuth here
-    authPlugins app = [authOpenId Claimed []] ++ extraAuthPlugins
-        -- Enable authDummy login if enabled.
-        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+    authPlugins _ = [authHardcoded]
 
     authHttpManager = getHttpManager
 
--- | Access function to determine if a user is logged in.
-isAuthenticated :: Handler AuthResult
-isAuthenticated = do
-    muid <- maybeAuthId
-    return $ case muid of
-        Nothing -> Unauthorized "You must login to access this page"
-        Just _ -> Authorized
+instance YesodAuthHardcoded App where
+  validatePassword u = return . (&&) (u == username) . (==) password
+  doesUserNameExist  = return . (==) "admin"
 
-instance YesodAuthPersist App
+
+instance YesodAuthPersist App where
+  type AuthEntity App = Text
+
+  getAuthEntity usern = return $ case usern==username of
+                                           True -> Just $ usern
+                                           False -> Nothing
+
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
