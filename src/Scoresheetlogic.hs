@@ -50,6 +50,13 @@ cmpLifterGroupAndTotal g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g)
                                | otherwise --selbe Gruppe und Total identisch -> BW
                                      = compare (lifterWeight l1) (lifterWeight l2)
 
+cmpLifterTotalAndBw :: Lifter -> Lifter -> Ordering
+cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2 -- l1 und l2 selbe Gruppe ab hier
+                                  = flip compare (getTotalLifter l1) (getTotalLifter l2)
+                            | otherwise --selbe Gruppe und Total identisch -> BW
+                                  = compare (lifterWeight l1) (lifterWeight l2)
+
+
 cmpLifterOrder :: Lifter -> Lifter -> Ordering
 cmpLifterOrder l1 l2
              | nextAttemptNr l1 /= nextAttemptNr l2

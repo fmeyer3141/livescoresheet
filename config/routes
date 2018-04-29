@@ -11,3 +11,4 @@
 /undo UndoR GET
 / FrontendR GET
 /stecker SteckerR GET
+/table.tex TableR GET

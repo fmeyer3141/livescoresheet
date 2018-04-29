@@ -12,12 +12,16 @@ import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
 import Sex
 import Ageclass
 
+import qualified Data.Text as T
+
 import Data.CSV.Conduit
 import Scoresheetlogic
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Prelude as P
+
+latexTemplate :: String
+latexTemplate = "latexexport/template.tex"
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
@@ -252,3 +256,128 @@ getUndoR = do
              restoreBackup
              getAdminR
 
+
+-- LATEX EXPORT
+
+getTemplate :: IO Text
+getTemplate = fmap pack $ P.readFile latexTemplate
+
+-- contentText -> klasse -> lifters -> out
+composeClass :: Text -> Text -> Text -> Text
+composeClass input cl lifters = T.replace "LIFTERS" lifters $ T.replace "KLASSE" cl input
+
+-- START -> END -> input -> Text
+getInnerText :: Text -> Text -> Text -> Text
+getInnerText start end input = T.strip content
+  where
+    content' = let [_,x] = T.splitOn start input in x --anfang cutten
+    content = let (x:_) = T.splitOn end content' in x -- ende cutten
+
+getContentText :: Text -> Text
+getContentText = getInnerText "CONTENTSTART" "CONTENTEND"
+
+getLifterText :: Text -> Text
+getLifterText = getInnerText "LIFTERSTART" "LIFTEREND"
+
+-- Lifter -> lifterText -> place -> output
+createLifter :: Text -> Lifter -> Int -> Text
+createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
+  where
+    actions :: [Text -> Text]
+    actions = map (\(a,b) -> T.replace a b)
+              [("NAME", lifterName l)
+              ,("AGE", pack $ show $ lifterAge l)
+              ,("BW", pack $ show $ lifterWeight l)
+              ,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight l)
+              ,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight l)
+              ,("ATTEMPT3",showAttempt $ lifterAttemptDL2Weight l)
+              ,("GOOD1", goodLift $ lifterAttemptDL1Success l)
+              ,("GOOD2", goodLift $ lifterAttemptDL2Success l)
+              ,("GOOD3", goodLift $ lifterAttemptDL3Success l)
+              ,("WILKS", calcWilks l)
+              ,("PLACE", showPlacing l pl)]
+
+showPlacing :: Lifter -> Int -> Text -- Check if bombout
+showPlacing l pl = case getTotalLifter l of
+                     Just _ -> pack $ show $ pl
+                     Nothing -> "D.Q."
+
+showAttempt :: Maybe Double -> Text
+showAttempt (Just x) = pack $ show $ x
+showAttempt Nothing  = "0"
+
+goodLift :: Maybe Bool -> Text
+goodLift (Just True) = "1"
+goodLift _           = "0"
+
+calcWilks :: Lifter -> Text
+calcWilks l = pack $ show $ ((fromRational $ wilks * total) :: Double)
+  where
+    am :: Rational
+    am = -216.0475144
+    bm :: Rational
+    bm = 16.2606339
+    cm :: Rational
+    cm = -0.002388645
+    dm :: Rational
+    dm = -0.00113732
+    em :: Rational
+    em = 7.01863E-06
+    fm :: Rational
+    fm = -1.291E-08
+    af :: Rational
+    af = 594.31747775582
+    bf :: Rational
+    bf = -27.23842536447
+    cf :: Rational
+    cf = 0.82112226871
+    df :: Rational
+    df = -0.00930733913
+    ef :: Rational
+    ef =47.31582E-06
+    ff :: Rational
+    ff = -9.054E-08
+    total = toRational $ case getTotalLifter l of
+                           Just x -> x
+                           Nothing -> 0
+    bw = toRational $ lifterWeight l
+    wilks = case lifterSex l of
+              Male -> 500/(am + bm*bw + cm*bw^(2::Int) + dm*bw^(3::Int) + em*bw^(4::Int) + fm*bw^(5::Int))
+              Female -> 500/(af + bf*bw + cf*bw^(2::Int) + df*bw^(3::Int) + ef*bw^(4::Int) + ff*bw^(5::Int))
+
+createKlasse :: (Bool, Sex, Ageclass, String) -> Text
+createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,pack $ show aclass, pack $ wclass]
+  where
+    showRaw = case raw of
+                True -> "ohne Ausrüstung"
+                False -> "mit Ausrüstung"
+    showSex = case sex of
+                Male -> "Männlich"
+                Female -> "Weiblich"
+
+
+-- Alles um WEBSTART und WEBEND herum
+getWrapper :: Text -> (Text, Text)
+getWrapper input = let [before,y] = T.splitOn "WEBSTART" input in
+                     let [_,after] = T.splitOn "WEBEND" y in (before,after)
+
+
+getTableR :: Handler TypedContent
+getTableR = do
+              input <- liftIO $ getTemplate
+              let contentText = getContentText input
+              let lifterText = getLifterText input
+              let mkClass = composeClass contentText
+              liftersFromDB <- getLiftersFromDB
+              let liftersSorted = L.sortBy (\l1 l2 -> compare (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1)
+                                          (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersFromDB
+              let liftersGrouped = map ( L.sortBy (cmpLifterTotalAndBw) ) $
+                                          L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
+                                          (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted :: [[Lifter]]
+              let liftersWithPlacings = map (zip [1..]) liftersGrouped :: [[(Int,Lifter)]]
+              let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings :: [Text]
+              let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head) liftersGrouped)
+                                      liftersTexts :: [(Text,Text)] -- [(Klassentext,Liftertext)]
+              let classBlocks = map (\(a,b) -> mkClass a b) classAndLifters :: [Text]
+              --return $ TypedContent "text/plain" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
+              return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter

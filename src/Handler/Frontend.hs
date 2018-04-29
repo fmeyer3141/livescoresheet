@@ -27,7 +27,7 @@ getFrontendR = selectRep $ do
      let c = (lifterAgeclass nextLifter, lifterWeightclass nextLifter)
      let nextLiftersFiltered = filter (\l -> Nothing /= nextWeight l (nextAttemptNr l)) nextLifters
      let nextLiftersOutput = map (\l -> (lifterName l, nextWeight l $ nextAttemptNr l, nextAttemptNr l)) nextLiftersFiltered
-     let liftersGroupedByClass = L.groupBy (\l l' -> getClass l == getClass l') $ sortBy (compareLifterClass c) lifters
+     let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') $ sortBy (compareLifterClass c) lifters
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l)) liftersGroupedByClass:: [[(Bool,Lifter)]]
      -- The Bool indicates if the Lifter is the next
      return $ toJSON (liftersOverview, nextLiftersOutput)

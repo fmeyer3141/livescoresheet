@@ -63,6 +63,7 @@ library
     , yesod-form >=1.4.0 && <1.5
     , yesod-static >=1.4.0.3 && <1.6
     , csv-conduit
+    , split
   if (flag(dev)) || (flag(library-only))
     ghc-options: -Wall -fwarn-tabs -O0
     cpp-options: -DDEVELOPMENT
