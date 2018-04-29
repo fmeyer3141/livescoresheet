@@ -1,10 +1,6 @@
 var canvas = document.querySelector('canvas');
-canvas.width = window.innerWidth - 2;
-canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
-
-
 var c = canvas.getContext('2d');
-var fontSize;
+var plates;
 
 function determineFontSize(txt,maxSize) {
   var size = 15;
@@ -16,17 +12,27 @@ function determineFontSize(txt,maxSize) {
   }
   size--;
   c.font = size.toString() + "px" + " sans-serif";
-  fontSize = size;
 }
 
 var head1 = document.querySelector('h1');
 var head2 = document.querySelector('h2');
-head1.align = 'center';
-head2.align = 'center';
 
 c.textBaseline = "middle";
 
+function init() {
+  canvas.width = window.innerWidth - 2;
+  canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
+
+  head1.align = 'center';
+  head2.align = 'center';
+  
+  if (plates != undefined) 
+    drawPlates(plates);
+}
+
+init();
 getData();
+window.addEventListener('resize', init, false);
 
 function drawPlates(plates) {
   c.clearRect(0,0,canvas.width,canvas.height);
@@ -49,7 +55,6 @@ function drawPlates(plates) {
 
   //20er (ja Schleifen unnötig aber Copy & Paste)
   var txt="20";
-  var ofontsize = fontSize;
   determineFontSize(txt,0.05*canvas.width);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[1][1]; i++) {
@@ -87,7 +92,6 @@ function drawPlates(plates) {
   //5er
   var txt="5";
   determineFontSize(txt,0.048*canvas.width);
-  console.log(fontSize);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[4][1]; i++) {
     c.fillStyle = 'rgb(255,255,255)';
@@ -100,7 +104,6 @@ function drawPlates(plates) {
   //2.5er
   var txt="2.5";
   determineFontSize(txt,0.036*canvas.width);
-  console.log(fontSize);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[5][1]; i++) {
     c.fillStyle = 'rgb(0,0,0)';
@@ -113,7 +116,6 @@ function drawPlates(plates) {
   //1.25er
   var txt="1.25";
   determineFontSize(txt,0.036*canvas.width);
-  console.log(fontSize);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[6][1]; i++) {
     c.fillStyle = 'rgb(212,221,182)';
@@ -151,6 +153,7 @@ function getData() {
         console.log("success;")
         console.log(data);
         if (data != null) {
+          plates = data[4];
           drawPlates(data[4]);
           showLifter(data)
         }
