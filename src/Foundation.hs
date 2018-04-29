@@ -120,6 +120,7 @@ instance Yesod App where
                                 Nothing -> AuthenticationRequired
                                 Just usern -> if usern==username then Authorized
                                                                  else AuthenticationRequired
+    isAuthorized UndoR b = isAuthorized AdminR b
     isAuthorized _ _ = return Authorized
 
     -- isAuthorized ProfileR _ = isAuthenticated
