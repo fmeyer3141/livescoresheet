@@ -202,6 +202,7 @@ postAdminR = do
                                 LifterAttemptDL2Success =. d2s, LifterAttemptDL3Weight =. d3w, LifterAttemptDL3Success =. d3s]
                                 | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s _)<-filteredLifterList] :: [Handler ()]
                     sequence_ todo
+                    truncBackupHistory
                     getAdminR
                 FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
                 _ -> do
