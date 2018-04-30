@@ -296,7 +296,13 @@ createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
               ,("GOOD3", goodLift $ lifterAttemptDL3Success l)
               ,("WILKS", calcWilks l)
               ,("PLACE", showPlacing l pl)
-              ,("CLUB", escapeForLatex $ lifterClub l)]
+              ,("CLUB", escapeForLatex $ lifterClub l)
+              ,("TOTAL", showTotal l)]
+
+showTotal :: Lifter -> Text
+showTotal l = case getTotalLifter l of
+                Just t -> pack $ show t
+                Nothing -> "D.Q."
 
 escapeForLatex :: Text -> Text
 escapeForLatex = T.replace "&" "\\&"
@@ -315,7 +321,9 @@ goodLift (Just True) = "1"
 goodLift _           = "0"
 
 calcWilks :: Lifter -> Text
-calcWilks l = pack $ show $ ((fromRational $ wilks * total) :: Double)
+calcWilks l = pack $ show $ ((flip (/)) 100 :: Double -> Double) $
+                fromIntegral $ (round :: Double -> Int) $
+                (*) 100 $ ((fromRational $ wilks * total) :: Double)
   where
     am :: Rational
     am = -216.0475144
