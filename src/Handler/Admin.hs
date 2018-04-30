@@ -254,7 +254,7 @@ lifterParse input = error ("Somethings wrong with the CSV-file with " ++ show in
 getUndoR :: Handler Html
 getUndoR = do
              restoreBackup
-             getAdminR
+             redirect AdminR
 
 
 -- LATEX EXPORT

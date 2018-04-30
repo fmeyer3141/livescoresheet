@@ -1,16 +1,17 @@
-\documentclass[xcolor=dvipsnames]{scrartcl}
+\documentclass[]{scrartcl}
 \usepackage[a4paper, left=2cm, right=5cm, top=0.5cm,landscape]{geometry}
 \usepackage{fontspec}
 \usepackage{polyglossia}
-\usepackage[table]{xcolor}
+\usepackage[dvipsnames,table]{xcolor}
 \usepackage{booktabs}
 \usepackage{ulem}
+\definecolor{failred}{RGB}{255,60,60}
 
 \newcommand{\renderliftcell}[2]{
   \ifnum #1>0
     \cellcolor{green} #2
   \else
-    \cellcolor{red} \sout{#2}
+    \cellcolor{failred} \sout{#2}
   \fi
 }
 

@@ -17,8 +17,6 @@ function determineFontSize(txt,maxSize) {
 var head1 = document.querySelector('h1');
 var head2 = document.querySelector('h2');
 
-c.textBaseline = "middle";
-
 function init() {
   canvas.width = window.innerWidth - 2;
   canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
@@ -35,6 +33,7 @@ getData();
 window.addEventListener('resize', init, false);
 
 function drawPlates(plates) {
+  c.textBaseline = 'middle';
   c.clearRect(0,0,canvas.width,canvas.height);
   //Stange zeichnen
   c.fillStyle = 'rgb(192,192,192)'; 
