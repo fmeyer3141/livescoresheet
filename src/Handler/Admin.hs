@@ -314,7 +314,7 @@ showPlacing l pl = case getTotalLifter l of
 
 showAttempt :: Maybe Double -> Text
 showAttempt (Just x) = pack $ show $ x
-showAttempt Nothing  = "0"
+showAttempt Nothing  = "0.0"
 
 goodLift :: Maybe Bool -> Text
 goodLift (Just True) = "1"

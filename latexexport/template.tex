@@ -1,19 +1,39 @@
-\documentclass[paper=landscape]{scrartcl}
+\documentclass[xcolor=dvipsnames]{scrartcl}
+\usepackage[a4paper, left=2cm, right=5cm, top=0.5cm,landscape]{geometry}
 \usepackage{fontspec}
 \usepackage{polyglossia}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{ulem}
+
+\newcommand{\renderliftcell}[2]{
+  \ifnum #1>0
+    \cellcolor{green} #2
+  \else
+    \cellcolor{red} \sout{#2}
+  \fi
+}
 
 \begin{document}
+\section*{LM Kreuzheben NRW}
 WEBSTART
 
 CONTENTSTART
-\section{KLASSE}
-\begin{tabular}{llllll}
+\subsection*{KLASSE}
+\begin{tabular}{lp{4cm}p{5cm}llrrrrr}
+  \midrule
+  \textbf{Platz} & \textbf{Name} & \textbf{Verein} & \textbf{Alter} &
+  \textbf{Gewicht} & \textbf{1. Versuch} & \textbf{2. Versuch} & \textbf{3.
+  Versuch} & \textbf{Total} & \textbf{Punkte} \\
+  \midrule
 LIFTERS
 \end{tabular}
 CONTENTEND
 
 LIFTERSTART
-NAME & AGE & BW & ATTEMPT1 & WILKS & PLACE\\
+PLACE & NAME & CLUB & AGE & BW & \renderliftcell{GOOD1}{ATTEMPT1} &
+\renderliftcell{GOOD2}{ATTEMPT2} & \renderliftcell{GOOD3}{ATTEMPT3} & TOTAL & WILKS\\
+\midrule
 LIFTEREND
 
 WEBEND
