@@ -296,7 +296,10 @@ createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
               ,("GOOD3", goodLift $ lifterAttemptDL3Success l)
               ,("WILKS", calcWilks l)
               ,("PLACE", showPlacing l pl)
-              ,("CLUB", lifterClub l)]
+              ,("CLUB", escapeForLatex $ lifterClub l)]
+
+escapeForLatex :: Text -> Text
+escapeForLatex = T.replace "&" "\\&"
 
 showPlacing :: Lifter -> Int -> Text -- Check if bombout
 showPlacing l pl = case getTotalLifter l of
