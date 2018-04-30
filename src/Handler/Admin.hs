@@ -295,7 +295,8 @@ createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
               ,("GOOD2", goodLift $ lifterAttemptDL2Success l)
               ,("GOOD3", goodLift $ lifterAttemptDL3Success l)
               ,("WILKS", calcWilks l)
-              ,("PLACE", showPlacing l pl)]
+              ,("PLACE", showPlacing l pl)
+              ,("CLUB", lifterClub l)]
 
 showPlacing :: Lifter -> Int -> Text -- Check if bombout
 showPlacing l pl = case getTotalLifter l of
