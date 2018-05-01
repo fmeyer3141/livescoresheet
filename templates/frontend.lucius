@@ -38,7 +38,12 @@ div.nextLifterTable {
 .divTableFoot { display: table-footer-group;}
 .divTableBody { display: table-row-group;}
 
+.widthName { width: 25%;}
+.widthNumber { width: 12.5%;}
+
 .invisible { display : none;}
+
+.fontZero { font-size: 0px;}
 
 /* custom */
 

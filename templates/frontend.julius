@@ -18,7 +18,7 @@ function getData() {
         console.log("Error receiving group info: " + data);
       },
     });
-    setTimeout(getData, 5000);
+    //setTimeout(getData, 5000);
 }
 
 
@@ -75,6 +75,7 @@ function showRanking(arr) {
 
     var $rowBase = $("#rowBase").clone().removeClass("invisible").removeAttr("id");
 
+
     for(let li = 0; li < group.length; li++) {
       let isNext = group[li][0];
       let lifter = group[li][1];
@@ -102,6 +103,7 @@ function showRanking(arr) {
 
       $newRow.appendTo($newTable);
     }
+
     $("#divGroupOverview").append($newTable);
   }
 }
@@ -111,7 +113,7 @@ function showRanking(arr) {
  */
 function printGroupInfo(l) {
   let sex = l.sex == "Male" ? "Männer" : "Frauen";
-  let raw = l.raw ? "Raw" : "Equipped";
+  let raw = l.raw ? "Mit Ausrüstung" : "Mit Ausrüstung";
   let $heading = $(`<h4>${l.ageclass} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");
   $("#divGroupOverview").append($heading);
 }
