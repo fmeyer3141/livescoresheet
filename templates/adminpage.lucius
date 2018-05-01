@@ -1,6 +1,4 @@
 #lifterForm {
-  margin-top: 2em;
-  margin-bottom: 2em;
 }
 
 #lifterFormHeaderRow {
@@ -62,7 +60,19 @@
   padding: 0.3em;
 }
 
+.divPart {
+  margin-bottom: 15px;
+  padding: 10px;
+}
 
+.divGroup input, .divGroup label{
+  float: left;
+  margin-right: 5px;
+}
+
+.divLogin {
+  margin-bottom: 30px;
+}
 
 
 

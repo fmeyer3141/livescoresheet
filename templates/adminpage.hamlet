@@ -1,26 +1,29 @@
 <div .container>
-  Logged in as #{show maid}.
-  <a href=@{AuthR LogoutR}>
-    Logout
+  <div .divLogin>
+    Logged in as #{show maid}.
+    <a href=@{AuthR LogoutR}>
+      Logout
 
-  <form method=post action=@{AdminR}#forms enctype=#{formEnctype}>
+  <div .divPart>
+    <form method=post action=@{AdminR}#forms enctype=#{formEnctype}>
       ^{formWidget}
-
-      <button .btn.btn-primary type="submit">
+      <button .btn.btn-primary  .btn-xs type="submit">
           Upload it!
 
-  <form method=post action=@{AdminR}#forms enctype=#{groupNrformEnctype}>
-      ^{groupNrformWidget}
+  <div .divPart .left>
+    <form method=post action=@{AdminR}#forms enctype=#{groupNrformEnctype}>
+     ^{groupNrformWidget}
 
-      <button .btn.btn-primary type=submit>
-        Update
+     <button .btn.btn-primary .btn-xs type=submit>
+       Update
 
-  <form enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
-       ^{lifterformWidget}
+  <div .left>
+    <form enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
+      <span .spanControl>
+        <button .btn.btn-primary .btn-xs type=submit>
+            Update
+        <a href=@{UndoR}>
+          Undo!
 
-    <p>
-       <button .btn.btn-primary type=submit>
-          Update
+      ^{lifterformWidget}
 
-  <a href=@{UndoR}>
-    Undo!
