@@ -17,11 +17,11 @@
     <div #groupTableBase .divTable .groupTable .nextLifterTable .invisible>
       <div .divTableHeading>
         <div .divTableRow>
-          <div .divTableHead>Name
-          <div .divTableHead>Gruppe
-          <div .divTableHead>Versuch 1
-          <div .divTableHead>Versuch 2
-          <div .divTableHead>Versuch 3
-          <div .divTableHead>Verein
+          <div .divTableHead .widthName>Name
+          <div .divTableHead .widthNumber>Gruppe
+          <div .divTableHead .widthNumber>Versuch 1
+          <div .divTableHead .widthNumber>Versuch 2
+          <div .divTableHead .widthNumber>Versuch 3
+          <div .divTableHead .widthName>Verein
       <div .divTableBody>
         <div #rowBase .divTableRow .invisible>

@@ -111,10 +111,22 @@ function showRanking(arr) {
 /** Extrahiert aus dem ersten Lifter einer Gruppe die Gruppeninfo und gibt
  * diese als Ueberschrift aus;
  */
-function printGroupInfo(l) {
+function printGroupInfo(l){ 
   let sex = l.sex == "Male" ? "Männer" : "Frauen";
   let raw = l.raw ? "Mit Ausrüstung" : "Mit Ausrüstung";
-  let $heading = $(`<h4>${l.ageclass} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");
+  let getAgeclass = ageclass => {
+    switch(ageclass) {
+      case "Open": return "Aktive";
+      case "Junior": return "Junioren";
+      case "Subjunior": return "Jugend";
+      case "Master1": return "Senioren 1";
+      case "Master2": return "Senioren 2";
+      case "Master3": return "Senioren 3";
+      case "Master4": return "Senioren 4";
+      default: return ageclass; 
+    }
+  }
+  let $heading = $(`<h4>${getAgeclass(l.ageclass)} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");
   $("#divGroupOverview").append($heading);
 }
 
