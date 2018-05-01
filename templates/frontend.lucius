@@ -4,6 +4,7 @@ div.nextLifterTable {
   text-align: left;
   border-collapse: collapse;
   margin-bottom: 35px;
+  border-collapse: separate;
 }
 .divTable.nextLifterTable .divTableCell, .divTable.nextLifterTable .divTableHead {
   border: 1px solid #000000;
