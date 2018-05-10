@@ -10,7 +10,7 @@ div.nextLifterTable {
   padding: 5px 4px;
 }
 .divTable.nextLifterTable .divTableBody .divTableCell {
-  font-size: 13px;
+  font-size: 15px;
 }
 .divTable.nextLifterTable .divTableHeading {
   background: #CFCFCF;
@@ -20,14 +20,16 @@ div.nextLifterTable {
   border-bottom: 3px solid #000000;
 }
 .divTable.nextLifterTable .divTableHeading .divTableHead {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: bold;
   color: #000000;
   text-align: left;
 }
-.nextLifterTable .tableFootStyle {
-  font-size: 14px;
+
+.divTable.nextLifterTable .firstRow {
+  font-weight: bold;
 }
+
 /* DivTable.com */
 .divTable{ display: table; }
 .divTableRow { display: table-row; }
@@ -37,8 +39,8 @@ div.nextLifterTable {
 .divTableFoot { display: table-footer-group;}
 .divTableBody { display: table-row-group;}
 
-.widthName { width: 25%;}
-.widthNumber { width: 12.5%;}
+.widthName { width: 20%;}
+.widthNumber { width: 10%;}
 
 .invisible { display : none;}
 

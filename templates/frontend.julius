@@ -18,7 +18,7 @@ function getData() {
         console.log("Error receiving group info: " + data);
       },
     });
-    setTimeout(getData, 5000);
+    //setTimeout(getData, 5000);
 }
 
 
@@ -79,6 +79,7 @@ function showRanking(arr) {
     for(let li = 0; li < group.length; li++) {
       let isNext = group[li][0];
       let lifter = group[li][1];
+      let wilks = group[li][2];
 
       let $newRow = $rowBase.clone();
 
@@ -89,14 +90,16 @@ function showRanking(arr) {
         success ? cell.addClass("liftGood") : cell.addClass("liftFail");
         return cell;
       };
+      let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;}; 
 
 
       let rowElements = [
-      $(`<div> ${lifter.name} </div>`),
+      highlightFirst($(`<div> ${lifter.name} </div>`)),
       $(`<div> ${lifter.group} </div>`),
       colorize(lifter.attemptDL1Success, $(`<div>${null2Empty(lifter.attemptDL1Weight)} </div>`)),
       colorize(lifter.attemptDL2Success, $(`<div>${null2Empty(lifter.attemptDL2Weight)} </div>`)),
       colorize(lifter.attemptDL3Success, $(`<div>${null2Empty(lifter.attemptDL3Weight)} </div>`)),
+      $(`<div> ${wilks} </div>`),
       $(`<div> ${lifter.club} </div>`),
       ];
       rowElements.forEach(elem => addRow(elem));

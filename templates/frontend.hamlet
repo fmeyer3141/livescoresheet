@@ -22,6 +22,7 @@
           <div .divTableHead .widthNumber>Versuch 1
           <div .divTableHead .widthNumber>Versuch 2
           <div .divTableHead .widthNumber>Versuch 3
+          <div .divTableHead .widthNumber>Relativwertung
           <div .divTableHead .widthName>Verein
       <div .divTableBody>
         <div #rowBase .divTableRow .invisible>
