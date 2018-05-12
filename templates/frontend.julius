@@ -41,10 +41,7 @@ function showNextLifters(lifterArr) {
     $newRow[0].children[1].innerText = lifter.AttemptWeight; 
     $newRow[0].children[2].innerText = lifter.AttemptNumber;
 
-    // Blende die Lifter aus, die im akutellen Durchlauf schon dran waren. 
-    if (true) { //lifter.AttemptNumber == currentAttempt) {
-      $newRow.appendTo("#nextLifterTableBody");
-    }
+    $newRow.appendTo("#nextLifterTableBody");
 
   });
 }
@@ -84,7 +81,7 @@ function showRanking(arr) {
       let $newRow = $rowBase.clone();
 
       let addRow = cell => cell.addClass("divTableCell").appendTo($newRow)
-      let null2Empty = val => val !== null ? lifter.attemptDL1Weight : ""
+      let null2Empty = val => val !== null ? val : ""
       let colorize = (success, cell) => {
         if(success == null) return cell;
         success ? cell.addClass("liftGood") : cell.addClass("liftFail");

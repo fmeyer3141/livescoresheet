@@ -18,12 +18,14 @@
        Update
 
   <div .left>
-    <form enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
+    <form id="lifterForm" enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
       <span .spanControl>
-        <button .btn.btn-primary .btn-xs type=submit>
+        <span .spanUpdate>
+          <button .btn.btn-primary .btn-xs type=submit>
             Update
-        <a href=@{UndoR}>
-          Undo!
+        <span .spanUndo>
+          <a href=@{UndoR}>
+            &emsp; Undo!
 
       ^{lifterformWidget}
 
