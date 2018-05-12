@@ -27,7 +27,7 @@ newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
 myLifter :: [Lifter]
-myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = 20, lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
+myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = "20", lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
 
 getLiftersFromDB :: Handler [Lifter]
 getLiftersFromDB = do
@@ -244,7 +244,7 @@ parseCSV rawFile =
 
 lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name (P.read $ T.unpack age) (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (T.unpack wclass) (P.read $ T.unpack weight)
+    Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (T.unpack wclass) (P.read $ T.unpack weight)
         (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s club
     where
         w = Nothing

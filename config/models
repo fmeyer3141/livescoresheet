@@ -3,7 +3,7 @@
 
 Lifter
 	name Text
-	age Int
+	age Text
 	sex Sex
 	ageclass Ageclass
 	weightclass String
@@ -26,7 +26,7 @@ CurrGroupNr
 LifterBackup
         version Int
         name Text
-	age Int
+	age Text
 	sex Sex
 	ageclass Ageclass
 	weightclass String
