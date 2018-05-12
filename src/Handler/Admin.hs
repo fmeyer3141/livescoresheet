@@ -317,8 +317,9 @@ showAttempt (Just x) = pack $ show $ x
 showAttempt Nothing  = "0.0"
 
 goodLift :: Maybe Bool -> Text
-goodLift (Just True) = "1"
-goodLift _           = "0"
+goodLift (Just True)  = "1"
+goodLift (Just False) = "-1"
+goodLift _            = "0"
 
 calcWilks :: Lifter -> Text
 calcWilks l = pack $ show $ ((flip (/)) 100 :: Double -> Double) $

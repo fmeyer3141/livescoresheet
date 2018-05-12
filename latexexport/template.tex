@@ -11,7 +11,11 @@
   \ifnum #1>0
     \cellcolor{green} #2
   \else
-    \cellcolor{failred} \sout{#2}
+    \ifnum #1<0
+      \cellcolor{failred} \sout{#2}
+    \else
+      ---
+    \fi
   \fi
 }
 
