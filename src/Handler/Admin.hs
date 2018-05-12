@@ -290,7 +290,7 @@ createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
               ,("BW", pack $ show $ lifterWeight l)
               ,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight l)
               ,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight l)
-              ,("ATTEMPT3",showAttempt $ lifterAttemptDL2Weight l)
+              ,("ATTEMPT3",showAttempt $ lifterAttemptDL3Weight l)
               ,("GOOD1", goodLift $ lifterAttemptDL1Success l)
               ,("GOOD2", goodLift $ lifterAttemptDL2Success l)
               ,("GOOD3", goodLift $ lifterAttemptDL3Success l)

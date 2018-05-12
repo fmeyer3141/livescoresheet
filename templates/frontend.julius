@@ -42,7 +42,7 @@ function showNextLifters(lifterArr) {
     $newRow[0].children[2].innerText = lifter.AttemptNumber;
 
     // Blende die Lifter aus, die im akutellen Durchlauf schon dran waren. 
-    if (lifter.AttemptNumber == currentAttempt) {
+    if (true) { //lifter.AttemptNumber == currentAttempt) {
       $newRow.appendTo("#nextLifterTableBody");
     }
 
