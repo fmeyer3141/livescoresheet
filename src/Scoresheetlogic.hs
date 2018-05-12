@@ -38,24 +38,37 @@ nextWeight l att
             | att == Just 3    = lifterAttemptDL3Weight l
             | otherwise        = Nothing
 
+cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
+cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe
+                             = LT
+                       | (lifterGroup l2 == g) && (lifterGroup l1 /= g) -- nur l2 in prio gruppe
+                             = GT
+                       | lifterGroup l1 /= lifterGroup l2
+                             = compare (lifterGroup l1) (lifterGroup l2) -- keiner in der prio Groupe
+                       | otherwise -- Lifter in der selben nicht prio gruppe
+                             = EQ
+
 cmpLifterGroupAndTotal :: Int -> Lifter -> Lifter -> Ordering
-cmpLifterGroupAndTotal g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g)
-                                     = LT
-                               | (lifterGroup l2 == g) && (lifterGroup l1 /= g)
-                                     = GT
-                               | lifterGroup l1 /= lifterGroup l2
-                                     = compare (lifterGroup l1) (lifterGroup l2) --keiner in der prio gruppe
-                               | getTotalLifter l1 /= getTotalLifter l2 -- l1 und l2 selbe Gruppe ab hier
-                                     = flip compare (getTotalLifter l1) (getTotalLifter l2)
-                               | otherwise --selbe Gruppe und Total identisch -> BW
-                                     = compare (lifterWeight l1) (lifterWeight l2)
+cmpLifterGroupAndTotal g l1 l2 = case cmpLifterGroup g l1 l2 of
+                                   EQ -> if getTotalLifter l1 /= getTotalLifter l2
+                                         then -- sortiere nach total
+                                           compare (lifterWeight l1) (lifterWeight l2)
+                                         else -- dann nach BW
+                                           flip compare (getTotalLifter l1) (getTotalLifter l2)
+
+                                   x  -> x
 
 cmpLifterTotalAndBw :: Lifter -> Lifter -> Ordering
-cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2 -- l1 und l2 selbe Gruppe ab hier
+cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2
                                   = flip compare (getTotalLifter l1) (getTotalLifter l2)
                             | otherwise --selbe Gruppe und Total identisch -> BW
                                   = compare (lifterWeight l1) (lifterWeight l2)
 
+
+cmpLifterGroupAndOrder :: Int -> Lifter -> Lifter -> Ordering
+cmpLifterGroupAndOrder g l1 l2 = case cmpLifterGroup g l1 l2 of
+                                   EQ -> cmpLifterOrder l1 l2
+                                   x -> x
 
 cmpLifterOrder :: Lifter -> Lifter -> Ordering
 cmpLifterOrder l1 l2

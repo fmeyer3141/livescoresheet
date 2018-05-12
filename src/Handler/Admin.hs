@@ -178,7 +178,7 @@ liftersForm groupNr lifterList extra = do
     else return (pure res0, framedFrom)
 
     where
-        lifterList' = sortBy (cmpLifterGroupAndTotal groupNr) lifterList
+        lifterList' = sortBy (cmpLifterGroupAndOrder groupNr) lifterList
         formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
         formEval (FormSuccess s) = Just s
         formEval _ = Nothing
