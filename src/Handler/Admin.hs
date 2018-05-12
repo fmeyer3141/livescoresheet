@@ -286,7 +286,7 @@ createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
     actions :: [Text -> Text]
     actions = map (\(a,b) -> T.replace a b)
               [("NAME", lifterName l)
-              ,("AGE", pack $ show $ lifterAge l)
+              ,("AGE", lifterAge l)
               ,("BW", pack $ show $ lifterWeight l)
               ,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight l)
               ,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight l)
