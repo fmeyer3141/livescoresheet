@@ -322,9 +322,9 @@ goodLift (Just False) = "-1"
 goodLift _            = "0"
 
 calcWilks :: Lifter -> Text
-calcWilks l = pack $ show $ ((flip (/)) 100 :: Double -> Double) $
+calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
                 fromIntegral $ (round :: Double -> Int) $
-                (*) 100 $ ((fromRational $ wilks * total) :: Double)
+                (*) 1000 $ ((fromRational $ wilks * total) :: Double)
   where
     am :: Rational
     am = -216.0475144
