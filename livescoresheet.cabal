@@ -84,6 +84,7 @@ library
       Sex
       Scoresheetlogic
       Ageclass
+      Weightclass
   other-modules:
       Paths_livescoresheet
   default-language: Haskell2010

@@ -6,7 +6,7 @@ Lifter
 	age Text
 	sex Sex
 	ageclass Ageclass
-	weightclass String
+	weightclass Weightclass
 	weight Double
 	raw Bool 
 	group Int
@@ -29,7 +29,7 @@ LifterBackup
 	age Text
 	sex Sex
 	ageclass Ageclass
-	weightclass String
+	weightclass Weightclass
 	weight Double
 	raw Bool 
 	group Int

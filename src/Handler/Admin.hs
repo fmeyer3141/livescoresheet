@@ -11,6 +11,7 @@ import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
 
 import Sex
 import Ageclass
+import Weightclass
 
 import qualified Data.Text as T
 
@@ -27,7 +28,7 @@ newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
 myLifter :: [Lifter]
-myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = "20", lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = "120", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
+myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = "20", lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = P.read "120+", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
 
 getLiftersFromDB :: Handler [Lifter]
 getLiftersFromDB = do
@@ -244,7 +245,7 @@ parseCSV rawFile =
 
 lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (T.unpack wclass) (P.read $ T.unpack weight)
+    Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (P.read $ T.unpack wclass) (P.read $ T.unpack weight)
         (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s club
     where
         w = Nothing
@@ -358,8 +359,8 @@ calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
               Male -> 500/(am + bm*bw + cm*bw^(2::Int) + dm*bw^(3::Int) + em*bw^(4::Int) + fm*bw^(5::Int))
               Female -> 500/(af + bf*bw + cf*bw^(2::Int) + df*bw^(3::Int) + ef*bw^(4::Int) + ff*bw^(5::Int))
 
-createKlasse :: (Bool, Sex, Ageclass, String) -> Text
-createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,pack $ show aclass, pack $ wclass]
+createKlasse :: (Bool, Sex, Ageclass, Weightclass) -> Text
+createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,pack $ show aclass, pack $ show wclass]
   where
     showRaw = case raw of
                 True -> "ohne Ausrüstung"
@@ -382,8 +383,8 @@ getTableR = do
               let lifterText = getLifterText input
               let mkClass = composeClass contentText
               liftersFromDB <- getLiftersFromDB
-              let liftersSorted = L.sortBy (\l1 l2 -> compare (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1)
-                                          (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersFromDB
+              let liftersSorted = L.sortBy (\l1 l2 -> compare (lifterAgeclass l1, lifterSex l1, lifterWeightclass l1, lifterRaw l1)
+                                          (lifterAgeclass l2, lifterSex l2, lifterWeightclass l2, lifterRaw l2)) liftersFromDB
               let liftersGrouped = map ( L.sortBy (cmpLifterTotalAndBw) ) $
                                           L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
                                           (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted :: [[Lifter]]

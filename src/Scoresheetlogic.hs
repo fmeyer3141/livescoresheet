@@ -3,6 +3,7 @@
 module Scoresheetlogic where
 
 import Import
+import Weightclass
 import qualified Prelude as P
 import qualified Data.List as L
 import Ageclass
@@ -88,7 +89,7 @@ cmpLifterOrder l1 l2
         compareMaybe Nothing (Just _)  = GT
         compareMaybe (Just x) (Just y) = compare x y
 
-compareLifterClass :: (Ageclass,String) -> Lifter -> Lifter -> Ordering
+compareLifterClass :: (Ageclass,Weightclass) -> Lifter -> Lifter -> Ordering
 compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
                                  = LT
                            | (getClass l2 == c) && (getClass l1 /= c)
@@ -100,7 +101,7 @@ compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
                            | otherwise
                                  = compare (lifterWeight l1) (lifterWeight l2)
 
-getClass :: Lifter -> (Ageclass, String)
+getClass :: Lifter -> (Ageclass, Weightclass)
 getClass l = (lifterAgeclass l, lifterWeightclass l)
 
 getPlates:: Double -> [(Plate, Int)]
