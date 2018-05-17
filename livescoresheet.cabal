@@ -76,6 +76,7 @@ library
       Handler.Admin
       Handler.Frontend
       Handler.Stecker
+      Handler.Urkunden
       Import
       Import.NoFoundation
       Model

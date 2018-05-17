@@ -43,6 +43,7 @@ import Handler.Common
 import Handler.Admin
 import Handler.Frontend
 import Handler.Stecker
+import Handler.Urkunden
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the

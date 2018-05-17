@@ -12,3 +12,4 @@
 / FrontendR GET
 /stecker SteckerR GET
 /table.tex TableR GET
+/urkunden.csv UrkundenR GET

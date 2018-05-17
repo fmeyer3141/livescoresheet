@@ -375,23 +375,28 @@ getWrapper :: Text -> (Text, Text)
 getWrapper input = let [before,y] = T.splitOn "WEBSTART" input in
                      let [_,after] = T.splitOn "WEBEND" y in (before,after)
 
+liftersWithPlacings :: [Lifter] -> [[(Int,Lifter)]]
+liftersWithPlacings lifters = map (zip [1..]) (liftersGrouped lifters)
+
+liftersGrouped :: [Lifter] -> [[Lifter]]
+liftersGrouped lifters = map (L.sortBy (cmpLifterTotalAndBw)) $
+                             L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
+                        (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted
+  where
+    liftersSorted = L.sortBy (\l1 l2 -> compare (lifterAgeclass l1, lifterSex l1, lifterWeightclass l1, lifterRaw l1)
+                             (lifterAgeclass l2, lifterSex l2, lifterWeightclass l2, lifterRaw l2)) lifters
 
 getTableR :: Handler TypedContent
 getTableR = do
-              input <- liftIO $ getTemplate
+              input <- liftIO getTemplate
               let contentText = getContentText input
               let lifterText = getLifterText input
               let mkClass = composeClass contentText
               liftersFromDB <- getLiftersFromDB
-              let liftersSorted = L.sortBy (\l1 l2 -> compare (lifterAgeclass l1, lifterSex l1, lifterWeightclass l1, lifterRaw l1)
-                                          (lifterAgeclass l2, lifterSex l2, lifterWeightclass l2, lifterRaw l2)) liftersFromDB
-              let liftersGrouped = map ( L.sortBy (cmpLifterTotalAndBw) ) $
-                                          L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
-                                          (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted :: [[Lifter]]
-              let liftersWithPlacings = map (zip [1..]) liftersGrouped :: [[(Int,Lifter)]]
-              let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings :: [Text]
-              let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head) liftersGrouped)
+              let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings liftersFromDB :: [Text]
+              let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head)
+                                     (liftersGrouped liftersFromDB))
                                       liftersTexts :: [(Text,Text)] -- [(Klassentext,Liftertext)]
-              let classBlocks = map (\(a,b) -> mkClass a b) classAndLifters :: [Text]
+              let classBlocks = map (P.uncurry mkClass) classAndLifters :: [Text]
               --return $ TypedContent "text/plain" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
-              return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
+              return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ unlines classBlocks ++ wafter
