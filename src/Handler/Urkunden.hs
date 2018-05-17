@@ -20,4 +20,4 @@ getUrkundenR = do
                                               pack (show $ lifterWeightclass l), showPlacing l pl,
                                               showTotal l, calcWilks l] ++ "\n"))
                                   lifters -- :: Text
-                 return $ TypedContent "text/plain" $ toContent lifterCSV--(T.pack $ show $ lifterCSV)
+                 return $ TypedContent "text/csv" $ toContent lifterCSV--(T.pack $ show $ lifterCSV)
