@@ -9,6 +9,7 @@ import Import
 import Handler.Admin
 import qualified Data.Text as T
 import qualified Prelude as P
+import Ageclass
 
 getUrkundenR :: Handler TypedContent
 getUrkundenR = do
@@ -16,7 +17,7 @@ getUrkundenR = do
                  let lifters = liftersWithPlacings liftersFromDB
                  let lifterCSV =  (++) identifiers $ T.concat $ P.map (T.concat .
                                   map
-                                  (\(pl,l) -> T.intercalate "," [lifterName l, lifterClub l, pack (show $ lifterAgeclass l),
+                                  (\(pl,l) -> T.intercalate "," [lifterName l, lifterClub l, printPrettyAgeclass $ lifterAgeclass l,
                                               pack (show $ lifterWeightclass l), showPlacing l pl,
                                               showTotal l, calcWilks l, pack $ show $ lifterRaw l, pack $ show $ lifterSex l] ++ "\n"))
                                   lifters -- :: Text

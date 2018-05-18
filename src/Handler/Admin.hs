@@ -360,7 +360,7 @@ calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
               Female -> 500/(af + bf*bw + cf*bw^(2::Int) + df*bw^(3::Int) + ef*bw^(4::Int) + ff*bw^(5::Int))
 
 createKlasse :: (Bool, Sex, Ageclass, Weightclass) -> Text
-createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,pack $ show aclass, pack $ show wclass]
+createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,printPrettyAgeclass aclass, pack $ show wclass]
   where
     showRaw = case raw of
                 True -> "ohne Ausrüstung"
