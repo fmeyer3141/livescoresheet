@@ -17,7 +17,7 @@ $newline never
     ^{pageHead pc}
 
     <link rel="icon" type="image/png" href=@{FaviconR} sizes="32x32">
-
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Roboto+Slab:700" rel="stylesheet">
     \<!--[if lt IE 9]>
     \<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     \<![endif]-->
