@@ -1,5 +1,5 @@
 body {
-  background: #23292f url(http://fabian-niklas.de:3000/static/chalk-hero-bg.jpg);
+  background: #23292f url(@{StaticR chalk_hero_bg_jpg});
 }
 
 .container {
