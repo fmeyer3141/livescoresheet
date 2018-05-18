@@ -10,6 +10,7 @@
 
 module Foundation where
 
+import Data.FileEmbed (embedFile)
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
@@ -22,11 +23,12 @@ import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Yesod.Auth.Message
+import qualified Data.Text as T
 
-username :: Text
+username:: Text
 username = "admin"
 password :: Text
-password = "abc123"
+password = (T.init . decodeUtf8) $(embedFile "config/pass") -- Zeilenumbruch entfernen
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -175,7 +177,7 @@ instance YesodAuth App where
     -- Where to send a user after logout
     logoutDest _ = FrontendR
 
-    authenticate (Creds credsPlug credsId _)=
+    authenticate (Creds credsPlug credsId _) = do
       return
         (case credsPlug of
            "hardcoded" ->
@@ -189,16 +191,18 @@ instance YesodAuth App where
     authHttpManager = getHttpManager
 
 instance YesodAuthHardcoded App where
-  validatePassword u = return . (&&) (u == username) . (==) password
+  validatePassword u p = do
+                         return $ u==username && p==password
   doesUserNameExist  = return . (==) "admin"
 
 
 instance YesodAuthPersist App where
   type AuthEntity App = Text
 
-  getAuthEntity usern = return $ case usern==username of
-                                           True -> Just $ usern
-                                           False -> Nothing
+  getAuthEntity usern = do
+                          return $ case usern==username of
+                                     True -> Just $ usern
+                                     False -> Nothing
 
 
 -- This instance is required to use forms. You can modify renderMessage to
