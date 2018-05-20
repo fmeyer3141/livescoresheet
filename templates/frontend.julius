@@ -113,7 +113,7 @@ function showRanking(arr) {
  */
 function printGroupInfo(l){ 
   let sex = l.sex == "Male" ? "Männer" : "Frauen";
-  let raw = l.raw ? "Mit Ausrüstung" : "Mit Ausrüstung";
+  let raw = l.raw ? "Ohne Ausrüstung" : "Mit Ausrüstung";
   let getAgeclass = ageclass => {
     switch(ageclass) {
       case "Open": return "Aktive";

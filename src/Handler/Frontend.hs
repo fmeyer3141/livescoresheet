@@ -13,7 +13,7 @@ import Handler.Admin
 import qualified Data.List as L
 
 getFrontendR :: Handler TypedContent
-getFrontendR = selectRep $ do
+getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ do
   provideRep $
     defaultLayout $ do
       setTitle "Scoresheet"

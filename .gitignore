@@ -1,3 +1,4 @@
+config/pass
 dist*
 static/tmp/
 static/combined/
