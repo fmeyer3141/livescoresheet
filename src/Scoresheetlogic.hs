@@ -7,6 +7,9 @@ import Weightclass
 import qualified Prelude as P
 import qualified Data.List as L
 import Ageclass
+import Sex
+
+type Class = (Ageclass, Sex, Weightclass, Bool)
 
 data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
 
@@ -89,7 +92,7 @@ cmpLifterOrder l1 l2
         compareMaybe Nothing (Just _)  = GT
         compareMaybe (Just x) (Just y) = compare x y
 
-compareLifterClass :: (Ageclass,Weightclass) -> Lifter -> Lifter -> Ordering
+compareLifterClass :: Class -> Lifter -> Lifter -> Ordering
 compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
                                  = LT
                            | (getClass l2 == c) && (getClass l1 /= c)
@@ -101,8 +104,8 @@ compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
                            | otherwise
                                  = compare (lifterWeight l1) (lifterWeight l2)
 
-getClass :: Lifter -> (Ageclass, Weightclass)
-getClass l = (lifterAgeclass l, lifterWeightclass l)
+getClass :: Lifter -> Class
+getClass l = (lifterAgeclass l, lifterSex l, lifterWeightclass l, lifterRaw l)
 
 getPlates:: Double -> [(Plate, Int)]
 getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen

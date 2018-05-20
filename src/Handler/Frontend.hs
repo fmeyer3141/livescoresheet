@@ -24,7 +24,7 @@ getFrontendR = selectRep $ do
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
      let nextLifters = sortBy cmpLifterOrder lifterGroupList
      let nextLifter = Prelude.head nextLifters
-     let c = (lifterAgeclass nextLifter, lifterWeightclass nextLifter)
+     let c = getClass nextLifter
      let nextLiftersFiltered = filter (\l -> Nothing /= nextWeight l (nextAttemptNr l)) nextLifters
      let nextLiftersOutput = map (\l -> (lifterName l, nextWeight l $ nextAttemptNr l, nextAttemptNr l)) nextLiftersFiltered
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') $ sortBy (compareLifterClass c) lifters
