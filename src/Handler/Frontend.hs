@@ -8,8 +8,8 @@ module Handler.Frontend where
 
 import Import
 import Scoresheetlogic
-import Prelude (head)
 import Handler.Admin
+import Data.Maybe (listToMaybe,isJust)
 import qualified Data.List as L
 
 getFrontendR :: Handler TypedContent
@@ -23,11 +23,13 @@ getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ 
      groupNr <- getCurrGroupNrFromDB
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
      let nextLifters = sortBy cmpLifterOrder lifterGroupList
-     let nextLifter = Prelude.head nextLifters
-     let c = getClass nextLifter
-     let nextLiftersFiltered = filter (\l -> Nothing /= nextWeight l (nextAttemptNr l)) nextLifters
+     let mc = getClass <$> listToMaybe nextLifters
+     let nextLiftersFiltered = filter (\l -> isJust $ nextWeight l (nextAttemptNr l)) nextLifters
      let nextLiftersOutput = map (\l -> (lifterName l, nextWeight l $ nextAttemptNr l, nextAttemptNr l)) nextLiftersFiltered
-     let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') $ sortBy (compareLifterClass c) lifters
+     let liftersSortedByClass = case mc of
+                                  (Just c) -> sortBy (cmpLifterClassPrio c) lifters
+                                  Nothing  -> sortBy cmpLifterClass lifters
+     let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
      return $ toJSON (liftersOverview, nextLiftersOutput)

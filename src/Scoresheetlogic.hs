@@ -92,17 +92,22 @@ cmpLifterOrder l1 l2
         compareMaybe Nothing (Just _)  = GT
         compareMaybe (Just x) (Just y) = compare x y
 
-compareLifterClass :: Class -> Lifter -> Lifter -> Ordering
-compareLifterClass c l1 l2 | (c == getClass l1) && (c /= getClass l2)
+cmpLifterClass :: Lifter -> Lifter -> Ordering
+cmpLifterClass l1 l2 | getClass l1 /= getClass l2
+                           = compare (getClass l1) (getClass l2)
+                     | getTotalLifter l1 /= getTotalLifter l2
+                           = compare (getTotalLifter l1) (getTotalLifter l2)
+                     | otherwise
+                           = compare (lifterWeight l1) (lifterWeight l2)
+
+
+cmpLifterClassPrio :: Class -> Lifter -> Lifter -> Ordering
+cmpLifterClassPrio c l1 l2 | (c == getClass l1) && (c /= getClass l2)
                                  = LT
                            | (getClass l2 == c) && (getClass l1 /= c)
                                  = GT
-                           | getClass l1 /= getClass l2
-                                 = compare (getClass l1) (getClass l2)
-                           | getTotalLifter l1 /= getTotalLifter l2
-                                 = compare (getTotalLifter l1) (getTotalLifter l2)
                            | otherwise
-                                 = compare (lifterWeight l1) (lifterWeight l2)
+                                 = cmpLifterClass l1 l2
 
 getClass :: Lifter -> Class
 getClass l = (lifterAgeclass l, lifterSex l, lifterWeightclass l, lifterRaw l)
