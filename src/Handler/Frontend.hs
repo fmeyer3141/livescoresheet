@@ -23,9 +23,9 @@ getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ 
      groupNr <- getCurrGroupNrFromDB
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
      let nextLifters = sortBy cmpLifterOrder lifterGroupList
-     let mc = getClass <$> listToMaybe nextLifters
      let nextLiftersFiltered = filter (\l -> isJust $ nextWeight l (nextAttemptNr l)) nextLifters
      let nextLiftersOutput = map (\l -> (lifterName l, nextWeight l $ nextAttemptNr l, nextAttemptNr l)) nextLiftersFiltered
+     let mc = getClass <$> listToMaybe nextLiftersFiltered
      let liftersSortedByClass = case mc of
                                   (Just c) -> sortBy (cmpLifterClassPrio c) lifters
                                   Nothing  -> sortBy cmpLifterClass lifters
