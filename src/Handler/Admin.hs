@@ -56,7 +56,7 @@ truncBackupHistory = do
                        let backupVersions = group $ map (lifterBackupVersion . entityVal) backupDB
                        case (length backupVersions) >= 10 of
                          True -> do
-                                   let deleteAfterVersion = P.head $ backupVersions P.!! 10
+                                   let deleteAfterVersion = P.head $ backupVersions P.!! 9
                                    runDB $ deleteWhere [LifterBackupVersion <. deleteAfterVersion]
                          False -> return ()
 
