@@ -57,7 +57,7 @@ truncBackupHistory = do
                        case (length backupVersions) >= 10 of
                          True -> do
                                    let deleteAfterVersion = P.head $ backupVersions P.!! 9
-                                   runDB $ deleteWhere [LifterBackupVersion <. deleteAfterVersion]
+                                   runDB $ deleteWhere [LifterBackupVersion >. deleteAfterVersion]
                          False -> return ()
 
 restoreBackup :: Handler ()
