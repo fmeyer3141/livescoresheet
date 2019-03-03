@@ -220,28 +220,31 @@ postAdminR = do
                         _ -> error "FormError"
 
     where
-        handleFile :: Text ->  Source (ResourceT IO) ByteString -> Handler Html
+        handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
         handleFile typ rawFile |typ=="text/csv" = do
-                                                    (_:table) <- liftIO $ parseCSV rawFile --remove captions
-                                                    let dataSet = fmap lifterParse table :: [Lifter]
-                                                    let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
-                                                    do
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
-                                                        _ <- runDB $ insertMany dataSet -- Insert CSV
-                                                        _ <- runDB $ insert $ CurrGroupNr startGroupNr
-                                                        getAdminR
+                                                    csv <- liftIO $ parseCSV rawFile
+
+                                                    case fromNullable csv of
+                                                      Just csvNonEmpty -> do
+                                                        let dataSet = fmap lifterParse (tail csvNonEmpty) :: [Lifter]
+                                                        let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
+                                                        do
+                                                            _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
+                                                            _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
+                                                            _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
+                                                            _ <- runDB $ insertMany dataSet -- Insert CSV
+                                                            _ <- runDB $ insert $ CurrGroupNr startGroupNr
+                                                            getAdminR
+                                                      _ -> error "CSV File empty"
 
                                |otherwise       = defaultLayout $
                                                       [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
 
-parseCSV :: Source (ResourceT IO) ByteString -> IO [Row Text]
+parseCSV :: ConduitT () ByteString (ResourceT IO) () -> IO [Row Text]
 parseCSV rawFile =
-    runResourceT $ rawFile $=
-    intoCSV defCSVSettings $$ --defCSVSettings means , seperator and " to enclose fields
-    sinkList
+    runResourceT $ runConduit $
+    rawFile .| intoCSV defCSVSettings .| sinkList --defCSVSettings means , seperator and " to enclose fields
 
 lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =

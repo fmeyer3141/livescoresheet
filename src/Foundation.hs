@@ -67,7 +67,7 @@ data MenuTypes
 mkYesodData "App" $(parseRoutesFile "config/routes")
 
 -- | A convenient synonym for creating forms.
-type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
+type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
 -- | A convenient synonym for database access functions.
 type DB a = forall (m :: * -> *).
@@ -149,8 +149,8 @@ instance Yesod App where
 
     -- What messages should be logged. The following includes all messages when
     -- in development, and warnings and errors in production.
-    shouldLog app _source level =
-        appShouldLogAll (appSettings app)
+    shouldLogIO app _source level =
+        pure $ appShouldLogAll (appSettings app)
             || level == LevelWarn
             || level == LevelError
 
@@ -188,7 +188,7 @@ instance YesodAuth App where
 
     authPlugins _ = [authHardcoded]
 
-    authHttpManager = getHttpManager
+    -- authHttpManager = getHttpManager
 
 instance YesodAuthHardcoded App where
   validatePassword u p = do
