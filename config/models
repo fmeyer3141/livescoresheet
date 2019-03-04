@@ -2,44 +2,34 @@
 -- Syntax for this file here: https://github.com/yesodweb/persistent/blob/master/docs/Persistent-entity-syntax.md
 
 Lifter
-	name Text
-	age Text
-	sex Sex
-	ageclass Ageclass
-	weightclass Weightclass
-	weight Double
-	raw Bool 
-	group Int
-	attemptDL1Weight   Double    Maybe 
-	attemptDL1Success  Bool      Maybe 
-	attemptDL2Weight   Double    Maybe
-	attemptDL2Success  Bool      Maybe 
-	attemptDL3Weight   Double    Maybe 
-	attemptDL3Success  Bool      Maybe
-  club               Text      
+  name Text
+  age Text
+  sex Sex
+  ageclass Ageclass
+  weightclass Weightclass
+  weight Double
+  raw Bool
+  group Int
+  res Results
+  club               Text
   deriving Eq
   deriving Show
-        	
+
 CurrGroupNr
-    groupNr Int
+  groupNr Int
 
 LifterBackup
-        version Int
-        name Text
-	age Text
-	sex Sex
-	ageclass Ageclass
-	weightclass Weightclass
-	weight Double
-	raw Bool 
-	group Int
-	attemptDL1Weight   Double    Maybe 
-	attemptDL1Success  Bool      Maybe 
-	attemptDL2Weight   Double    Maybe
-	attemptDL2Success  Bool      Maybe 
-	attemptDL3Weight   Double    Maybe 
-	attemptDL3Success  Bool      Maybe
-  club               Text      
+  version Int
+  name Text
+  age Text
+  sex Sex
+  ageclass Ageclass
+  weightclass Weightclass
+  weight Double
+  raw Bool
+  group Int
+  res Results
+  club               Text
   deriving Eq
   deriving Show
-        	
+

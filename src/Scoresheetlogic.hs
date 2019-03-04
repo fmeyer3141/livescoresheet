@@ -1,13 +1,16 @@
 {-# Language NoImplicitPrelude #-}
+{-# Language RecordWildCards #-}
 
 module Scoresheetlogic where
 
 import Import
+import MeetTypes
 import Weightclass
 import qualified Prelude as P
-import qualified Data.List as L
 import Ageclass
 import Sex
+import MeetState
+import Data.Maybe
 
 type Class = (Ageclass, Sex, Weightclass, Bool)
 
@@ -16,31 +19,47 @@ data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_
 instance ToJSON Plate where
   toJSON = toJSON . show
 
+getAttemptWeight :: Attempt -> Maybe Double
+getAttemptWeight (Attempt (Just w) (Just True)) = Just w
+getAttemptWeight _ = Nothing
+
+getBestAttempt :: Discipline -> Maybe Double
+getBestAttempt = P.maximum . fmap getAttemptWeight . attemptsAsList
+
+isDQ :: Lifter -> Bool
+isDQ = or . fmap (and . fmap (\a -> if success a == Just False then True else False) . attemptsAsList) . resultList . lifterRes
+
 getTotalLifter :: Lifter -> Maybe Double
-getTotalLifter lifter = getHighestLift (lifterAttemptDL1Weight lifter) (lifterAttemptDL1Success lifter)
-                             (lifterAttemptDL2Weight lifter) (lifterAttemptDL2Success lifter)
-                             (lifterAttemptDL3Weight lifter) (lifterAttemptDL3Success lifter)
-    where
-        getHighestLift a1 s1 a2 s2 a3 s3 = L.minimumBy (P.flip P.compare)
-                                          [getLiftWeight a1 s1,getLiftWeight a2 s2, getLiftWeight a3 s3]
+getTotalLifter lifter@(Lifter {..}) =
+  case isDQ lifter of
+    True -> Nothing
+    False -> Just . sum . fmap (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
-        getLiftWeight :: Maybe Double -> Maybe Bool -> Maybe Double
-        getLiftWeight (Just x) (Just True) = Just x
-        getLiftWeight _ _ = Nothing
+getDisciplineFromLifter :: MeetState -> Text -> Lifter -> Discipline
+getDisciplineFromLifter s n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
+  where
+    disciplineNames = let MeetType l = meetType s in fmap fst l
 
-nextAttemptNr :: Lifter -> Maybe Int
-nextAttemptNr l
-            | lifterAttemptDL1Success l == Nothing   = Just 1
-            | lifterAttemptDL2Success l == Nothing   = Just 2
-            | lifterAttemptDL3Success l == Nothing   = Just 3
-            | otherwise = Nothing
+nextAttemptNr :: MeetState -> Lifter -> Maybe Int
+nextAttemptNr s l
+  | (success $ att1 d) == Nothing   = Just 1
+  | (success $ att2 d) == Nothing   = Just 2
+  | (success $ att3 d) == Nothing   = Just 3
+  | otherwise = Nothing
 
-nextWeight:: Lifter -> Maybe Int -> Maybe Double
-nextWeight l att
-            | att == Just 1    = lifterAttemptDL1Weight l
-            | att == Just 2    = lifterAttemptDL2Weight l
-            | att == Just 3    = lifterAttemptDL3Weight l
-            | otherwise        = Nothing
+  where
+    d :: Discipline
+    d = getDisciplineFromLifter s (currDiscipline s) l
+
+nextWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
+nextWeight s l att
+  | att == Just 1    = weight $ att1 d
+  | att == Just 2    = weight $ att2 d
+  | att == Just 3    = weight $ att3 d
+  | otherwise        = Nothing
+
+  where
+    d = getDisciplineFromLifter s (currDiscipline s) l
 
 cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
 cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe
@@ -69,18 +88,17 @@ cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2
                                   = compare (lifterWeight l1) (lifterWeight l2)
 
 
-cmpLifterGroupAndOrder :: Int -> Lifter -> Lifter -> Ordering
-cmpLifterGroupAndOrder g l1 l2 = case cmpLifterGroup g l1 l2 of
-                                   EQ -> cmpLifterOrder l1 l2
+cmpLifterGroupAndOrder :: MeetState -> Lifter -> Lifter -> Ordering
+cmpLifterGroupAndOrder s l1 l2 = case cmpLifterGroup (currGroup s) l1 l2 of
+                                   EQ -> cmpLifterOrder s l1 l2
                                    x -> x
 
-cmpLifterOrder :: Lifter -> Lifter -> Ordering
-cmpLifterOrder l1 l2
-             | nextAttemptNr l1 /= nextAttemptNr l2
-                   = compareMaybe (nextAttemptNr l1) (nextAttemptNr l2)
-             | nextWeight l1 (nextAttemptNr l1) /= nextWeight l2 (nextAttemptNr l2)
-                   = compareMaybe (nextWeight l1 $ nextAttemptNr l1)
-                                                            (nextWeight l2 $ nextAttemptNr l2)
+cmpLifterOrder :: MeetState -> Lifter -> Lifter -> Ordering
+cmpLifterOrder s l1 l2
+             | attemptNrl1 /= attemptNrl2
+                   = compareMaybe attemptNrl1 attemptNrl2
+             | weightl1 /= weightl2
+                   = compareMaybe weightl1 weightl2
              | lifterWeight l1 /= lifterWeight l2
                    = compare (lifterWeight l1) (lifterWeight l2)
              | otherwise
@@ -91,6 +109,10 @@ cmpLifterOrder l1 l2
         compareMaybe (Just _) Nothing  = LT
         compareMaybe Nothing (Just _)  = GT
         compareMaybe (Just x) (Just y) = compare x y
+        attemptNrl1 = nextAttemptNr s l1
+        attemptNrl2 = nextAttemptNr s l2
+        weightl1 = nextWeight s l1 $ attemptNrl1
+        weightl2 = nextWeight s l2 $ attemptNrl2
 
 cmpLifterClass :: Lifter -> Lifter -> Ordering
 cmpLifterClass l1 l2 | getClass l1 /= getClass l2
@@ -135,11 +157,11 @@ getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen
       = let (n, _) = numplates w1 (2*1.25) in pure (Plate1_25, n)
 
 -- LifterListe -> Gruppennr -> Nächster Lifter
-getNextLifterInGroup :: [Lifter] -> Int -> Maybe Lifter
-getNextLifterInGroup lifterlist groupNr = listToMaybe nextLifters
+getNextLifterInGroup :: MeetState -> [Lifter] -> Maybe Lifter
+getNextLifterInGroup s lifterlist = listToMaybe nextLifters
   where
-    nextLifters = filter (\l -> Nothing /= nextWeight l (nextAttemptNr l))
-                     $ sortBy cmpLifterOrder
-                     $ filter ((==) groupNr . lifterGroup) lifterlist
+    nextLifters = filter (\l -> Nothing /= nextWeight s l (nextAttemptNr s l))
+                     $ sortBy (cmpLifterOrder s)
+                     $ filter ((==) (currGroup s) . lifterGroup) lifterlist
 
 

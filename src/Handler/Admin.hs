@@ -27,9 +27,6 @@ latexTemplate = "latexexport/template.tex"
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
-myLifter :: [Lifter]
-myLifter = [Lifter {lifterName = "Equipment Chetah", lifterAge = "20", lifterSex = Male, lifterAgeclass = Junior, lifterWeightclass = P.read "120+", lifterWeight = 300.0, lifterRaw = False, lifterGroup = 10, lifterAttemptDL1Weight = Nothing, lifterAttemptDL1Success = Nothing, lifterAttemptDL2Weight = Nothing, lifterAttemptDL2Success = Nothing, lifterAttemptDL3Weight = Nothing, lifterAttemptDL3Success = Nothing, lifterClub = "Aachener Kraftsport e.V."}]
-
 getLiftersFromDB :: Handler [Lifter]
 getLiftersFromDB = do
     dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
@@ -145,7 +142,7 @@ lifterForm lifter = do
     where
         fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
         succType :: [(Text, Maybe Bool)]
-        succType = [("ToDo", Nothing), ("Good", Just True), ("Fail", Just False)]
+        succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
 
 
 liftersForm :: Int -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
