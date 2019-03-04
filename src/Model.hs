@@ -8,6 +8,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TypeFamilies               #-}
+
 module Model where
 
 import ClassyPrelude.Yesod
@@ -15,8 +16,8 @@ import Database.Persist.Quasi
 import Sex
 import Ageclass
 import Weightclass
-import MeetTypes
-import THAppl
+import THApplStage1
+import THApplStage2
 
 -- You can define all of your database entities in the entities file.
 -- You can find more information on persistent and how to declare entities
@@ -35,6 +36,9 @@ instance ToJSON Lifter where
         "weight" .= lifterWeight,
         "raw" .= lifterRaw,
         "group" .= lifterGroup,
-        "results" .= let Results r = lifterRes in toJSON r,
+        "results" .= toJSON lifterRes,
         "club" .= lifterClub
       ]
+
+instance ToJSON Results where
+  toJSON res = toJSON $ (\(n,f) -> (n, f res)) <$> (unpackMeet meetType)

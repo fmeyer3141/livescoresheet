@@ -1,10 +1,13 @@
 {-# Language NoImplicitPrelude #-}
 {-# Language RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Scoresheetlogic where
 
 import Import
-import MeetTypes
+import MeetTypesTH
+import THApplStage1
+import THApplStage2
 import Weightclass
 import qualified Prelude as P
 import Ageclass
@@ -18,6 +21,9 @@ data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_
 
 instance ToJSON Plate where
   toJSON = toJSON . show
+
+resultList :: Results -> [Discipline]
+resultList res = (\(_,f) -> f res) <$> (unpackMeet meetType)
 
 getAttemptWeight :: Attempt -> Maybe Double
 getAttemptWeight (Attempt (Just w) (Just True)) = Just w
@@ -35,10 +41,10 @@ getTotalLifter lifter@(Lifter {..}) =
     True -> Nothing
     False -> Just . sum . fmap (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
-getDisciplineFromLifter :: MeetState -> Text -> Lifter -> Discipline
-getDisciplineFromLifter s n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
+getDisciplineFromLifter :: Text -> Lifter -> Discipline
+getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
   where
-    disciplineNames = let MeetType l = meetType s in fmap fst l
+    disciplineNames = fst <$> (unpackMeet meetType)
 
 nextAttemptNr :: MeetState -> Lifter -> Maybe Int
 nextAttemptNr s l
@@ -49,7 +55,7 @@ nextAttemptNr s l
 
   where
     d :: Discipline
-    d = getDisciplineFromLifter s (currDiscipline s) l
+    d = getDisciplineFromLifter (currDiscipline s) l
 
 nextWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
 nextWeight s l att
@@ -59,7 +65,7 @@ nextWeight s l att
   | otherwise        = Nothing
 
   where
-    d = getDisciplineFromLifter s (currDiscipline s) l
+    d = getDisciplineFromLifter (currDiscipline s) l
 
 cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
 cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe

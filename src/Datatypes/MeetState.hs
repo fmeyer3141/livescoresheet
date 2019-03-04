@@ -2,13 +2,9 @@
 
 module MeetState where
 
-import Data.Text
-import THAppl
-
-import MeetTypes
+import Import
 
 data MeetState = MeetState {
     currDiscipline :: Text,
-    meetType :: MeetType,
     currGroup :: Int
   }
