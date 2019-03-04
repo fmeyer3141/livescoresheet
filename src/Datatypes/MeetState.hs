@@ -3,6 +3,7 @@
 module MeetState where
 
 import Data.Text
+import THAppl
 
 import MeetTypes
 

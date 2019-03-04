@@ -63,6 +63,8 @@ data AppSettings = AppSettings
     -- ^ Indicate if auth dummy login should be enabled.
     }
 
+data MeetSettings = MeetSettings { meetTypeStr :: [Text] }
+
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
         let defaultDev =
@@ -92,6 +94,12 @@ instance FromJSON AppSettings where
         appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= dev
 
         return AppSettings {..}
+
+instance FromJSON MeetSettings where
+    parseJSON = withObject "AppSettings" $ \o -> do
+        meetTypeStr               <- o .: "meet-type-str"
+
+        return MeetSettings {..}
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.

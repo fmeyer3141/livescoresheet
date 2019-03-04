@@ -1,0 +1,5 @@
+# Insert the performed lifts here:
+meet-type-str:
+  - "Squat"
+  - "Bench"
+  - "Deadlift"

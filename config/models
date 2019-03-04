@@ -18,6 +18,9 @@ Lifter
 CurrGroupNr
   groupNr Int
 
+TestField
+  information Int
+
 LifterBackup
   version Int
   name Text
