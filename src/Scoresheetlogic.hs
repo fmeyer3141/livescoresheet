@@ -25,15 +25,11 @@ instance ToJSON Plate where
 resultList :: Results -> [Discipline]
 resultList res = (\(_,f) -> f res) <$> (unpackMeet meetType)
 
-getAttemptWeight :: Attempt -> Maybe Double
-getAttemptWeight (Attempt (Just w) (Just True)) = Just w
-getAttemptWeight _ = Nothing
-
 getBestAttempt :: Discipline -> Maybe Double
-getBestAttempt = P.maximum . fmap getAttemptWeight . attemptsAsList
+getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
 
 isDQ :: Lifter -> Bool
-isDQ = or . fmap (and . fmap (\a -> if success a == Just False then True else False) . attemptsAsList) . resultList . lifterRes
+isDQ = or . fmap (and . fmap (\a -> if attemptFail a then True else False) . attemptsAsList) . resultList . lifterRes
 
 getTotalLifter :: Lifter -> Maybe Double
 getTotalLifter lifter@(Lifter {..}) =
@@ -48,9 +44,9 @@ getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNa
 
 nextAttemptNr :: MeetState -> Lifter -> Maybe Int
 nextAttemptNr s l
-  | (success $ att1 d) == Nothing   = Just 1
-  | (success $ att2 d) == Nothing   = Just 2
-  | (success $ att3 d) == Nothing   = Just 3
+  | (attemptPending $ att1 d)  = Just 1
+  | (attemptPending $ att2 d)  = Just 2
+  | (attemptPending $ att3 d)  = Just 3
   | otherwise = Nothing
 
   where
@@ -59,9 +55,9 @@ nextAttemptNr s l
 
 nextWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
 nextWeight s l att
-  | att == Just 1    = weight $ att1 d
-  | att == Just 2    = weight $ att2 d
-  | att == Just 3    = weight $ att3 d
+  | att == Just 1    = attemptWeight $ att1 d
+  | att == Just 2    = attemptWeight $ att2 d
+  | att == Just 3    = attemptWeight $ att3 d
   | otherwise        = Nothing
 
   where

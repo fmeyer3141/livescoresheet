@@ -11,8 +11,24 @@ import Settings
 import Yesod.Default.Config2
 import Data.Text as T
 
-data Attempt = Attempt { weight :: Maybe Double, success :: Maybe Bool } deriving (Show, Read, Eq)
+type Weight = Double
+data Attempt = Unset | Todo Weight | Success Weight | Fail Weight | Skip deriving (Show, Read, Eq)
 data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt} deriving (Show, Read, Eq)
+
+attemptFail :: Attempt -> Bool
+attemptFail (Fail _) = True
+attemptFail _        = True
+
+attemptWeight :: Attempt -> Maybe Double
+attemptWeight (Todo w)    = Just w
+attemptWeight (Success w) = Just w
+attemptWeight (Fail w)    = Just w
+attemptWeight _           = Nothing
+
+attemptPending :: Attempt -> Bool
+attemptPending Unset     = True
+attemptPending (Todo _ ) = True
+attemptPending _         = False
 
 readMeetSettings :: FilePath -> IO MeetSettings
 readMeetSettings fp = loadYamlSettings [fp] [] useEnv
@@ -24,7 +40,7 @@ meetSettings :: IO MeetSettings
 meetSettings = readMeetSettings meetSettingsFile
 
 instance ToJSON Attempt where
-  toJSON Attempt {..} = object [ "weight" .= show weight, "success" .= show success]
+  toJSON = toJSON . show
 
 instance ToJSON Discipline where
   toJSON Discipline {..} = object [ "att1" .= toJSON att1, "att2" .= toJSON att2, "att3" .= toJSON att3]
