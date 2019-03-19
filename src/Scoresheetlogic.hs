@@ -12,7 +12,6 @@ import Weightclass
 import qualified Prelude as P
 import Ageclass
 import Sex
-import MeetState
 import Data.Maybe
 
 type Class = (Ageclass, Sex, Weightclass, Bool)
@@ -21,12 +20,6 @@ data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_
 
 instance ToJSON Plate where
   toJSON = toJSON . show
-
-resultList :: Results -> [Discipline]
-resultList res = (\(_,f) -> f res) <$> (unpackMeet meetType)
-
-getBestAttempt :: Discipline -> Maybe Double
-getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
 
 isDQ :: Lifter -> Bool
 isDQ = or . fmap (and . fmap (\a -> if attemptFail a then True else False) . attemptsAsList) . resultList . lifterRes
@@ -37,11 +30,6 @@ getTotalLifter lifter@(Lifter {..}) =
     True -> Nothing
     False -> Just . sum . fmap (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
-getDisciplineFromLifter :: Text -> Lifter -> Discipline
-getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
-  where
-    disciplineNames = fst <$> (unpackMeet meetType)
-
 nextAttemptNr :: MeetState -> Lifter -> Maybe Int
 nextAttemptNr s l
   | (attemptPending $ att1 d)  = Just 1
@@ -51,7 +39,7 @@ nextAttemptNr s l
 
   where
     d :: Discipline
-    d = getDisciplineFromLifter (currDiscipline s) l
+    d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
 
 nextWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
 nextWeight s l att
@@ -61,7 +49,7 @@ nextWeight s l att
   | otherwise        = Nothing
 
   where
-    d = getDisciplineFromLifter (currDiscipline s) l
+    d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
 
 cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
 cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe
@@ -91,7 +79,7 @@ cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2
 
 
 cmpLifterGroupAndOrder :: MeetState -> Lifter -> Lifter -> Ordering
-cmpLifterGroupAndOrder s l1 l2 = case cmpLifterGroup (currGroup s) l1 l2 of
+cmpLifterGroupAndOrder s l1 l2 = case cmpLifterGroup (meetStateCurrGroupNr s) l1 l2 of
                                    EQ -> cmpLifterOrder s l1 l2
                                    x -> x
 
@@ -164,6 +152,6 @@ getNextLifterInGroup s lifterlist = listToMaybe nextLifters
   where
     nextLifters = filter (\l -> Nothing /= nextWeight s l (nextAttemptNr s l))
                      $ sortBy (cmpLifterOrder s)
-                     $ filter ((==) (currGroup s) . lifterGroup) lifterlist
+                     $ filter ((==) (meetStateCurrGroupNr s) . lifterGroup) lifterlist
 
 

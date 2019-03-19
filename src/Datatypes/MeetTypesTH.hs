@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoImplicitPrelude #-} {-# LANGUAGE RecordWildCards #-}
 
 module MeetTypesTH where
 
@@ -18,6 +17,12 @@ data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt
 attemptFail :: Attempt -> Bool
 attemptFail (Fail _) = True
 attemptFail _        = True
+
+attemptToMaybeBool :: Attempt -> Maybe Bool
+attemptToMaybeBool Unset       = Nothing
+attemptToMaybeBool (Todo _)    = Nothing
+attemptToMaybeBool (Success _) = Just True
+attemptToMaybeBool (Fail _)    = Just False
 
 attemptWeight :: Attempt -> Maybe Double
 attemptWeight (Todo w)    = Just w
@@ -48,9 +53,18 @@ instance ToJSON Discipline where
 attemptsAsList :: Discipline -> [Attempt]
 attemptsAsList Discipline {..} = [att1,att2,att3]
 
+emptyAttempt :: Attempt
+emptyAttempt = Unset
+
+emptyDiscipline :: Discipline
+emptyDiscipline = Discipline emptyAttempt emptyAttempt emptyAttempt
+
+readDisciplines :: IO [Text]
+readDisciplines = meetTypeStr <$> meetSettings
+
 resultsTypeTH :: Q [Dec]
 resultsTypeTH = do
-    disc <- liftIO $ (meetTypeStr <$> meetSettings)
+    disc <- liftIO readDisciplines
     (pure . pure) $ DataD [] typeName [] Nothing [constr disc] []
 
     where

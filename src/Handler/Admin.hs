@@ -4,6 +4,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Handler.Admin where
 
 import Import
@@ -13,6 +15,10 @@ import Sex
 import Ageclass
 import Weightclass
 
+import MeetTypesTH
+import THApplStage1
+import THApplStage2
+
 import qualified Data.Text as T
 
 import Data.CSV.Conduit
@@ -20,6 +26,9 @@ import Scoresheetlogic
 import Data.Text (Text)
 import qualified Data.List as L
 import qualified Prelude as P
+
+import           Text.RE.Replace
+import           Text.RE.TDFA.Text
 
 latexTemplate :: String
 latexTemplate = "latexexport/template.tex"
@@ -43,7 +52,7 @@ getLatestBackupVersion =
 
 backupLifter :: [Lifter] -> Int -> Handler ()
 backupLifter lifterList v = do
-                      let insertList = [LifterBackup v na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl | (Lifter na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl)<-lifterList] :: [LifterBackup]
+                      let insertList = [LifterBackup v na ag se acl wcl we ra gr res cl | (Lifter na ag se acl wcl we ra gr res cl)<-lifterList] :: [LifterBackup]
                       _ <- runDB $ insertMany insertList
                       return ()
 
@@ -67,15 +76,21 @@ restoreBackup = do
                               _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- truncate table
                               _ <- runDB $ deleteWhere [LifterBackupVersion ==. v]
                               -- restore
-                              let insertBack = [Lifter na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl | (LifterBackup _ na ag se acl wcl we ra gr adl1w adl1s adl2w adl2s adl3w adl3s cl)<-map entityVal backup]
+                              let insertBack = [Lifter na ag se acl wcl we ra gr res cl | (LifterBackup _ na ag se acl wcl we ra gr res cl) <- map entityVal backup]
                               _ <- runDB $ insertMany insertBack
                               return ()
 
+getCurrMeetStateFromDB :: Handler MeetState
+getCurrMeetStateFromDB = do
+    dataFromDB <- runDB $ selectList ([] :: [Filter MeetState]) []
+    return $
+      if ((length dataFromDB) > 0) then
+        P.head [ms | (Entity _ ms)<-dataFromDB]
+      else
+        emptyMeetState
+
 getCurrGroupNrFromDB :: Handler Int
-getCurrGroupNrFromDB = do
-    dataFromDB <- runDB $ selectList ([] :: [Filter CurrGroupNr]) []
-    return $ if ((length dataFromDB) > 0) then P.head [groupNr | (Entity _ (CurrGroupNr groupNr))<-dataFromDB]
-    else 0
+getCurrGroupNrFromDB = meetStateCurrGroupNr <$> getCurrMeetStateFromDB
 
 --groupNrForm :: Int -> AForm Handler Int
 --groupNrForm g = areq intField "GroupNr: " $ Just g
@@ -89,9 +104,9 @@ getAdminR = do
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
     lifters <- getLiftersFromDB
-    groupNr <- getCurrGroupNrFromDB
-    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm groupNr lifters
-    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm groupNr
+    meetState <- getCurrMeetStateFromDB
+    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState lifters
+    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm $ meetStateCurrGroupNr meetState
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -101,141 +116,156 @@ csvForm :: Form FileForm
 csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
     <$> fileAFormReq "Wählen Sie die Anmeldungsdatei aus."
 
+attemptForm :: Attempt -> MForm Handler (FormResult Attempt, Widget)
+attemptForm att = do
+  (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
+  (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToMaybeBool att)
+  undefined
+  -- weight <- weightRes
+  -- succ <- succ
+  -- case (weight, succ) of
+  --   (Just w, Just True) -> Success w
+  --   (Just w, Just False) -> Fail w
+  --   (Just w, Nothing) -> Todo w
+  --   (Nothing, Nothing) -> Unset
+  --   (Nothing, _) -> FormFailure ["Not a valid attempt"]
+
+  where
+    fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
+    succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
+
+disciplineForm :: Discipline -> MForm Handler (FormResult Discipline, Widget)
+disciplineForm Discipline { .. } = undefined
+-- do
+--   (att1f, att1View) <- attemptForm att1
+--   (att2f, att2View) <- attemptForm att2
+--   (att3f, att3View) <- attemptForm att3
+--   let widget = [whamlet| TODO |]
+--   return (Discipline att1f att2f att3f, widget)
+
+resForm :: Results -> MForm Handler (FormResult Results, Widget)
+resForm = undefined
+
 lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
-lifterForm lifter = do
-    (groupRes, groupView) <- mreq intField fieldFormat (Just (lifterGroup lifter))
-    (lifterAttemptDL1WeightRes, lifterAttemptDL1WeightView) <- mopt doubleField fieldFormat (Just $ lifterAttemptDL1Weight lifter)
-    (lifterAttemptDL1SuccessRes, lifterAttemptDL1SuccessView) <- mreq (selectFieldList succType) "" (Just $ lifterAttemptDL1Success lifter)
-    (lifterAttemptDL2WeightRes, lifterAttemptDL2WeightView) <- mopt doubleField fieldFormat (Just $ lifterAttemptDL2Weight lifter)
-    (lifterAttemptDL2SuccessRes, lifterAttemptDL2SuccessView) <- mreq (selectFieldList succType) "" (Just $ lifterAttemptDL2Success lifter)
-    (lifterAttemptDL3WeightRes, lifterAttemptDL3WeightView) <- mopt doubleField fieldFormat (Just $ lifterAttemptDL3Weight lifter)
-    (lifterAttemptDL3SuccessRes, lifterAttemptDL3SuccessView) <- mreq (selectFieldList succType) "" (Just $ lifterAttemptDL3Success lifter)
-    let lifterRes = Lifter (lifterName lifter)
-                           (lifterAge lifter)
-                           (lifterSex lifter)
-                           (lifterAgeclass lifter)
-                           (lifterWeightclass lifter)
-                           (lifterWeight lifter)
-                           (lifterRaw lifter) <$> groupRes <*> lifterAttemptDL1WeightRes
-                                                           <*> lifterAttemptDL1SuccessRes
-                                                           <*> lifterAttemptDL2WeightRes
-                                                           <*> lifterAttemptDL2SuccessRes
-                                                           <*> lifterAttemptDL3WeightRes
-                                                           <*> lifterAttemptDL3SuccessRes
-                                                           <*> pure (lifterClub lifter)
-    let widget =
-            [whamlet|
-                <div class="lifterRow">
-                  <span class="lifterName"> #{lifterName lifter}
-                  ^{fvInput groupView}
-                  <div class="attempt">
-                    ^{fvInput lifterAttemptDL1WeightView}
-                    ^{fvInput lifterAttemptDL1SuccessView}
-                  <div class="attempt">
-                    ^{fvInput lifterAttemptDL2WeightView}
-                    ^{fvInput lifterAttemptDL2SuccessView}
-                  <div class="attempt">
-                    ^{fvInput lifterAttemptDL3WeightView}
-                    ^{fvInput lifterAttemptDL3SuccessView}
-            |] -- TODO Gruppennummer als class oder so ausgeben für schönere Optik
-    return (lifterRes, widget)
-    where
-        fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
-        succType :: [(Text, Maybe Bool)]
-        succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
+lifterForm Lifter {..} = do
+  (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
+  (resRes, resView) <- resForm lifterRes
+  let lifterRes = Lifter lifterName lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
+                         lifterRaw <$> groupRes <*> resRes <*> pure lifterClub
+  let widget = undefined
+--            [whamlet|
+--                <div class="lifterRow">
+--                  <span class="lifterName"> #{lifterName lifter}
+--                  ^{fvInput groupView}
+--                  <div class="attempt">
+--                    ^{fvInput lifterAttemptDL1WeightView}
+--                    ^{fvInput lifterAttemptDL1SuccessView}
+--                  <div class="attempt">
+--                    ^{fvInput lifterAttemptDL2WeightView}
+--                    ^{fvInput lifterAttemptDL2SuccessView}
+--                  <div class="attempt">
+--                    ^{fvInput lifterAttemptDL3WeightView}
+--                    ^{fvInput lifterAttemptDL3SuccessView}
+--            |] -- TODO Gruppennummer als class oder so ausgeben für schönere Optik
+  return (lifterRes, widget)
+  where
+      fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
+      succType :: [(Text, Maybe Bool)]
+      succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
 
 
-liftersForm :: Int -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
-liftersForm groupNr lifterList extra = do
-    list <- forM lifterList' lifterForm
-    let reslist = fmap fst list :: [FormResult Lifter]
-    let res0' = (map formEval reslist) :: [Maybe Lifter]
-    let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
-    let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-    let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
-    let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
-                                                                <div .gruppenBezeichner>
-                                                                    Gruppe #{lifterGroup $ P.fst $ P.head l}
-                                                              |]) l :: Widget --Gruppe ausgeben
-    let combinedWidgets = P.foldl (>>) ([whamlet|
-                                        |]) (map combineWidgets1 widgetsAndLifter) :: Widget
-                                        -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
-    let framedFrom = ([whamlet|
-                  #{extra}
-                  <div id="lifterForm">
-                    <div id="lifterFormHeaderRow">
-                      <span id="lifterNameHeader" class="lifterFormHeader"> Name
-                      <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe
-                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1
-                      <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2
-                      <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3
-                    ^{combinedWidgets}
-                |])
-    if (elem Nothing (map formEval reslist))
-    then return (FormMissing, framedFrom)
-    else return (pure res0, framedFrom)
+liftersForm :: MeetState -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
+liftersForm meetState lifterList extra = do
+  list <- forM lifterList' lifterForm
+  let reslist = fmap fst list :: [FormResult Lifter]
+  let res0' = (map formEval reslist) :: [Maybe Lifter]
+  let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
+  let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
+  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
+  let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
+                                                              <div .gruppenBezeichner>
+                                                                  Gruppe #{lifterGroup $ P.fst $ P.head l}
+                                                            |]) l :: Widget --Gruppe ausgeben
+  let combinedWidgets = P.foldl (>>) ([whamlet|
+                                      |]) (map combineWidgets1 widgetsAndLifter) :: Widget
+                                      -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
+  let framedFrom = ([whamlet|
+                #{extra}
+                <div id="lifterForm">
+                  <div id="lifterFormHeaderRow">
+                    <span id="lifterNameHeader" class="lifterFormHeader"> Name
+                    <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe
+                    <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1
+                    <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2
+                    <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3
+                  ^{combinedWidgets}
+              |])
+  if (elem Nothing (map formEval reslist))
+  then return (FormMissing, framedFrom)
+  else return (pure res0, framedFrom)
 
-    where
-        lifterList' = sortBy (cmpLifterGroupAndOrder groupNr) lifterList
-        formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
-        formEval (FormSuccess s) = Just s
-        formEval _ = Nothing
+  where
+    lifterList' = sortBy (cmpLifterGroupAndOrder meetState) lifterList
+    formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
+    formEval (FormSuccess s) = Just s
+    formEval _ = Nothing
 
 postAdminR :: Handler Html
 postAdminR = do
-    groupNr <- getCurrGroupNrFromDB
-    ((result, _), _) <- runFormPost csvForm
-    case result of
-        FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
-        _ -> do
-            lifters <- getLiftersFromDB
-            ((res,_),_) <- runFormPost $ liftersForm groupNr lifters
-            case res of
-                FormSuccess lifterList -> do
-                    backup <- runDB $ selectList ([] :: [Filter Lifter]) []
-                    backVersion <- getLatestBackupVersion
-                    case backVersion of
-                      Nothing -> backupLifter (map entityVal backup) 0
-                      Just x -> backupLifter (map entityVal backup) (x+1)
-                    let filteredLifterList = filter ((==) groupNr . lifterGroup) lifterList
-                    let todo = [runDB $ updateWhere
-                               [LifterName ==. n]
-                               [LifterGroup =. g, LifterAttemptDL1Weight =. d1w, LifterAttemptDL1Success =. d1s, LifterAttemptDL2Weight =. d2w,
-                                LifterAttemptDL2Success =. d2s, LifterAttemptDL3Weight =. d3w, LifterAttemptDL3Success =. d3s]
-                                | (Lifter n _ _ _ _ _ _ g d1w d1s d2w d2s d3w d3s _)<-filteredLifterList] :: [Handler ()]
-                    sequence_ todo
-                    truncBackupHistory
-                    getAdminR
-                FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
-                _ -> do
-                    ((res',_),_) <- runFormPost $ groupNrForm groupNr
-                    case res' of
-                        FormSuccess gNr -> do
-                                              _ <- runDB $ updateWhere ([] :: [Filter CurrGroupNr]) [CurrGroupNrGroupNr =. gNr]
-                                              getAdminR
-                        FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
-                        _ -> error "FormError"
+  meetState <- getCurrMeetStateFromDB
+  let groupNr = meetStateCurrGroupNr meetState
+  ((result, _), _) <- runFormPost csvForm
+  case result of
+      FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
+      _ -> do
+          lifters <- getLiftersFromDB
+          ((res,_),_) <- runFormPost $ liftersForm meetState lifters
+          case res of
+              FormSuccess lifterList -> do
+                  backup <- runDB $ selectList ([] :: [Filter Lifter]) []
+                  backVersion <- getLatestBackupVersion
+                  case backVersion of
+                    Nothing -> backupLifter (map entityVal backup) 0
+                    Just x -> backupLifter (map entityVal backup) (x+1)
+                  let filteredLifterList = filter ((==) groupNr . lifterGroup) lifterList
+                  let todo = [runDB $ updateWhere
+                             [LifterName ==. n]
+                             [LifterGroup =. g, LifterRes =. res]
+                              | (Lifter n _ _ _ _ _ _ g res _)<-filteredLifterList] :: [Handler ()]
+                  sequence_ todo
+                  truncBackupHistory
+                  getAdminR
+              FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
+              _ -> do
+                  ((res',_),_) <- runFormPost $ groupNrForm groupNr
+                  case res' of
+                      FormSuccess gNr -> do
+                                            _ <- runDB $ updateWhere ([] :: [Filter MeetState]) [MeetStateCurrGroupNr =. gNr]
+                                            getAdminR
+                      FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
+                      _ -> error "FormError"
 
-    where
-        handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
-        handleFile typ rawFile |typ=="text/csv" = do
-                                                    csv <- liftIO $ parseCSV rawFile
+  where
+    handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
+    handleFile typ rawFile |typ=="text/csv" = do
+                                                csv <- liftIO $ parseCSV rawFile
 
-                                                    case fromNullable csv of
-                                                      Just csvNonEmpty -> do
-                                                        let dataSet = fmap lifterParse (tail csvNonEmpty) :: [Lifter]
-                                                        let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
-                                                        do
-                                                            _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
-                                                            _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
-                                                            _ <- runDB $ deleteWhere ([] :: [Filter CurrGroupNr])
-                                                            _ <- runDB $ insertMany dataSet -- Insert CSV
-                                                            _ <- runDB $ insert $ CurrGroupNr startGroupNr
-                                                            getAdminR
-                                                      _ -> error "CSV File empty"
+                                                case fromNullable csv of
+                                                  Just csvNonEmpty -> do
+                                                    let dataSet = fmap lifterParse (tail csvNonEmpty) :: [Lifter]
+                                                    let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
+                                                    do
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
+                                                        _ <- runDB $ deleteWhere ([] :: [Filter MeetState])
+                                                        _ <- runDB $ insertMany dataSet -- Insert CSV
+                                                        _ <- runDB $ insert $
+                                                             emptyMeetState { meetStateCurrGroupNr = startGroupNr }
+                                                        getAdminR
+                                                  _ -> error "CSV File empty"
 
-                               |otherwise       = defaultLayout $
-                                                      [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
+                           |otherwise       = defaultLayout $
+                                                  [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
 
 parseCSV :: ConduitT () ByteString (ResourceT IO) () -> IO [Row Text]
@@ -246,7 +276,7 @@ parseCSV rawFile =
 lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
     Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (P.read $ T.unpack wclass) (P.read $ T.unpack weight)
-        (P.read $ T.unpack raw) (P.read $ T.unpack flight) w s w s w s club
+        (P.read $ T.unpack raw) (P.read $ T.unpack flight) emptyResults club
     where
         w = Nothing
         s = Nothing
@@ -260,8 +290,8 @@ getUndoR = do
 
 -- LATEX EXPORT
 
-getTemplate :: IO Text
-getTemplate = fmap pack $ P.readFile latexTemplate
+getLatexTemplate :: IO Text
+getLatexTemplate = fmap pack $ P.readFile latexTemplate
 
 -- contentText -> klasse -> lifters -> out
 composeClass :: Text -> Text -> Text -> Text
@@ -282,23 +312,39 @@ getLifterText = getInnerText "LIFTERSTART" "LIFTEREND"
 
 -- Lifter -> lifterText -> place -> output
 createLifter :: Text -> Lifter -> Int -> Text
-createLifter inp l pl = P.foldl (P.flip (P.$)) inp actions
+createLifter inp l@(Lifter {..}) pl = P.foldl (P.flip (P.$)) inp actions
   where
     actions :: [Text -> Text]
-    actions = map (\(a,b) -> T.replace a b)
-              [("NAME", lifterName l)
-              ,("AGE", lifterAge l)
-              ,("BW", pack $ show $ lifterWeight l)
-              ,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight l)
-              ,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight l)
-              ,("ATTEMPT3",showAttempt $ lifterAttemptDL3Weight l)
-              ,("GOOD1", goodLift $ lifterAttemptDL1Success l)
-              ,("GOOD2", goodLift $ lifterAttemptDL2Success l)
-              ,("GOOD3", goodLift $ lifterAttemptDL3Success l)
-              ,("WILKS", calcWilks l)
-              ,("PLACE", showPlacing l pl)
-              ,("CLUB", escapeForLatex $ lifterClub l)
-              ,("TOTAL", showTotal l)]
+    actions = [ \src -> replaceAllCaptures TOP replWeight $ src *=~ attemptRegex
+              , \src -> replaceAllCaptures TOP replGood $ src *=~ goodRegex] ++
+              (map (\(a,b) -> T.replace a b)
+                [("NAME", lifterName )
+                ,("AGE", lifterAge )
+                ,("BW", pack $ show $ lifterWeight )
+                --,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight )
+                --,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight )
+                --,("ATTEMPT3",showAttempt $ lifterAttemptDL3Weight )
+                --,("GOOD1", goodLift $ lifterAttemptDL1Success )
+                --,("GOOD2", goodLift $ lifterAttemptDL2Success )
+                --,("GOOD3", goodLift $ lifterAttemptDL3Success )
+                ,("WILKS", calcWilks l)
+                ,("PLACE", showPlacing l pl)
+                ,("CLUB", escapeForLatex $ lifterClub )
+                ,("TOTAL", showTotal l)])
+    attemptRegex                   = [re|ATTEMPT_${d}([A-Za-z0-9]*)_${n}([1-3]{1})|]
+    goodRegex                      = [re|GOOD_${d}([A-Za-z0-9]*)_${n}([1-3]{1})|]
+    captureID                      = IsCaptureName . CaptureName
+    replWeight                     = replaceFunc showAttemptWeight
+    replGood                       = replaceFunc showGoodLift
+    replaceFunc f m _ _            = do
+      discName <- captureTextMaybe (captureID "d") m
+      attNr    <- captureTextMaybe (captureID "n") m
+      let disc = getDisciplineFromLifter discName l
+      case attNr of
+        "1" -> Just $ f $ att1 disc
+        "2" -> Just $ f $ att2 disc
+        "3" -> Just $ f $ att3 disc
+        _ -> Nothing
 
 showTotal :: Lifter -> Text
 showTotal l = case getTotalLifter l of
@@ -313,14 +359,18 @@ showPlacing l pl = case getTotalLifter l of
                      Just _ -> pack $ show $ pl
                      Nothing -> "D.Q."
 
-showAttempt :: Maybe Double -> Text
-showAttempt (Just x) = pack $ show $ x
-showAttempt Nothing  = "0.0"
+displ = pack . show
 
-goodLift :: Maybe Bool -> Text
-goodLift (Just True)  = "1"
-goodLift (Just False) = "-1"
-goodLift _            = "0"
+showAttemptWeight :: Attempt -> Text
+showAttemptWeight (Success w) = displ w
+showAttemptWeight (Fail w)    = displ w
+showAttemptWeight (Todo w)    = displ w
+showAttemptWeight _           = ""
+
+showGoodLift :: Attempt -> Text
+showGoodLift (Success _) = "1"
+showGoodLift (Fail _)    = "-1"
+showGoodLift _           = "0"
 
 calcWilks :: Lifter -> Text
 calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
@@ -388,7 +438,7 @@ liftersGrouped lifters = map (L.sortBy (cmpLifterTotalAndBw)) $
 
 getTableR :: Handler TypedContent
 getTableR = do
-              input <- liftIO getTemplate
+              input <- liftIO getLatexTemplate
               let contentText = getContentText input
               let lifterText = getLifterText input
               let mkClass = composeClass contentText

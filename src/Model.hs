@@ -18,12 +18,31 @@ import Ageclass
 import Weightclass
 import THApplStage1
 import THApplStage2
+import MeetTypesTH
+import Data.Maybe
+import qualified Prelude as P
 
 -- You can define all of your database entities in the entities file.
 -- You can find more information on persistent and how to declare entities
 -- at:
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
+
+resultList :: Results -> [Discipline]
+resultList res = (\(_,f) -> f res) <$> (unpackMeet meetType)
+
+getBestAttempt :: Discipline -> Maybe Double
+getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
+
+getDisciplineFromLifter :: Text -> Lifter -> Discipline
+getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
+  where
+    disciplineNames = fst <$> (unpackMeet meetType)
+
+emptyMeetState =
+  MeetState { meetStateCurrDiscipline = fst . P.head $ unpackMeet meetType
+            , meetStateCurrGroupNr = 0
+            }
 
 instance ToJSON Lifter where
   toJSON Lifter {..} =
