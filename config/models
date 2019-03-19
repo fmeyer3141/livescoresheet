@@ -15,11 +15,9 @@ Lifter
   deriving Eq
   deriving Show
 
-CurrGroupNr
-  groupNr Int
-
-TestField
-  information Int
+MeetState
+  currDiscipline Text
+  currGroupNr Int
 
 LifterBackup
   version Int

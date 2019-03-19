@@ -45,6 +45,7 @@ library
     , persistent >=2.0
     , persistent-sqlite >=2.6.2
     , persistent-template >=2.0
+    , regex
     , safe
     , shakespeare >=2.0
     , template-haskell
@@ -56,7 +57,7 @@ library
     , wai-extra >=3.0
     , wai-logger >=2.2
     , warp >=3.0 && <3.3
-    , yaml >=0.8 
+    , yaml >=0.8
     , yesod >=1.4.3
     , yesod-auth >=1.4.0
     , yesod-core >=1.4.30
@@ -96,45 +97,45 @@ executable livescoresheet
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=0.6 
-    , base >=4.9.1.0 
-    , bytestring >=0.9 
+      aeson >=0.6
+    , base >=4.9.1.0
+    , bytestring >=0.9
     , case-insensitive
     , classy-prelude >=0.10.2
     , classy-prelude-conduit >=0.10.2
     , classy-prelude-yesod >=1.1
-    , conduit >=1.0 
+    , conduit >=1.0
     , containers
     , data-default
-    , directory >=1.1 
-    , fast-logger >=2.2 
+    , directory >=1.1
+    , fast-logger >=2.2
     , file-embed
     , foreign-store
-    , hjsmin >=0.1 
-    , http-conduit >=2.1 
+    , hjsmin >=0.1
+    , http-conduit >=2.1
     , livescoresheet
-    , monad-control >=0.3 
-    , monad-logger >=0.3 
-    , persistent >=2.0 
-    , persistent-sqlite >=2.6.2 
-    , persistent-template >=2.0 
+    , monad-control >=0.3
+    , monad-logger >=0.3
+    , persistent >=2.0
+    , persistent-sqlite >=2.6.2
+    , persistent-template >=2.0
     , safe
-    , shakespeare >=2.0 
+    , shakespeare >=2.0
     , template-haskell
-    , text >=0.11 
+    , text >=0.11
     , time
     , unordered-containers
     , vector
     , wai
-    , wai-extra >=3.0 
-    , wai-logger >=2.2 
-    , warp >=3.0 
+    , wai-extra >=3.0
+    , wai-logger >=2.2
+    , warp >=3.0
     , yaml >=0.8
-    , yesod >=1.4.3 
-    , yesod-auth >=1.4.0 
+    , yesod >=1.4.3
+    , yesod-auth >=1.4.0
     , yesod-core >=1.4.30
     , yesod-form >=1.4.0
-    , yesod-static >=1.4.0.3 
+    , yesod-static >=1.4.0.3
   if flag(library-only)
     buildable: False
   other-modules:
