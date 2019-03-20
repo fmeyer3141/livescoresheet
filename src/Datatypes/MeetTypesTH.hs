@@ -12,17 +12,19 @@ import Data.Text as T
 
 type Weight = Double
 data Attempt = Unset | Todo Weight | Success Weight | Fail Weight | Skip deriving (Show, Read, Eq)
+data LiftModifier = MTodo | MGood | MFail | MSkip deriving Eq
 data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt} deriving (Show, Read, Eq)
 
 attemptFail :: Attempt -> Bool
 attemptFail (Fail _) = True
 attemptFail _        = True
 
-attemptToMaybeBool :: Attempt -> Maybe Bool
-attemptToMaybeBool Unset       = Nothing
-attemptToMaybeBool (Todo _)    = Nothing
-attemptToMaybeBool (Success _) = Just True
-attemptToMaybeBool (Fail _)    = Just False
+attemptToModifier :: Attempt -> LiftModifier
+attemptToModifier Unset       = MTodo
+attemptToModifier (Todo _)    = MTodo
+attemptToModifier (Success _) = MGood
+attemptToModifier (Fail _)    = MFail
+attemptToModifier Skip        = MSkip
 
 attemptWeight :: Attempt -> Maybe Double
 attemptWeight (Todo w)    = Just w
@@ -69,6 +71,6 @@ resultsTypeTH = do
 
     where
       typeName = mkName "Results"
-      constr disc = RecC typeName [(mkName ("disc" ++ T.unpack name), defBang, attType) | name<-disc]
+      constr disc = RecC typeName [(mkName ("_disc" ++ T.unpack name), defBang, attType) | name<-disc]
       defBang = Bang NoSourceUnpackedness NoSourceStrictness
       attType = ConT ''Discipline

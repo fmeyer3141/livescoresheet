@@ -20,11 +20,13 @@ getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ 
       $(widgetFile "frontend")
   provideRep $ do
      lifters <- getLiftersFromDB
-     groupNr <- getCurrGroupNrFromDB
+     meetState <- getCurrMeetStateFromDB
+     let groupNr = meetStateCurrGroupNr meetState
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
-     let nextLifters = sortBy cmpLifterOrder lifterGroupList
-     let nextLiftersFiltered = filter (\l -> isJust $ nextWeight l (nextAttemptNr l)) nextLifters
-     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight l $ nextAttemptNr l, nextAttemptNr l)) nextLiftersFiltered
+     let nextLifters = sortBy (cmpLifterOrder meetState) lifterGroupList
+     let nextLiftersFiltered = filter (\l -> isJust $ (nextWeight meetState l) (nextAttemptNr meetState l)) nextLifters
+     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight meetState l $ nextAttemptNr meetState l, nextAttemptNr meetState l))
+                                 nextLiftersFiltered
      let mc = getClass <$> listToMaybe nextLiftersFiltered
      let liftersSortedByClass = case mc of
                                   (Just c) -> sortBy (cmpLifterClassPrio c) lifters

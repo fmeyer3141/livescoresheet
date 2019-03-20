@@ -23,10 +23,10 @@ getSteckerR = selectRep $ do
 
   provideRep $ do
     lifters <- getLiftersFromDB
-    groupNr <- getCurrGroupNrFromDB
-    let nextLifter = getNextLifterInGroup lifters groupNr
+    meetState <- getCurrMeetStateFromDB
+    let nextLifter = getNextLifterInGroup meetState lifters
     return $ toJSON $ do
       l <- nextLifter
-      nextWeightl <- nextWeight l $ nextAttemptNr l
-      return (lifterName l, lifterClub l, nextAttemptNr l, nextWeightl, getPlates nextWeightl)
+      nextWeightl <- nextWeight meetState l $ nextAttemptNr meetState l
+      return (lifterName l, lifterClub l, nextAttemptNr meetState l, nextWeightl, getPlates nextWeightl)
       --return (lifterName l, lifterWeight l, lifterClub l, nextWeightl, test)

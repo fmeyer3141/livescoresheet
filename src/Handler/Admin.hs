@@ -25,6 +25,7 @@ import Data.CSV.Conduit
 import Scoresheetlogic
 import Data.Text (Text)
 import qualified Data.List as L
+import qualified Data.Foldable as F
 import qualified Prelude as P
 
 import           Text.RE.Replace
@@ -119,32 +120,51 @@ csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 attemptForm :: Attempt -> MForm Handler (FormResult Attempt, Widget)
 attemptForm att = do
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
-  (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToMaybeBool att)
-  undefined
-  -- weight <- weightRes
-  -- succ <- succ
-  -- case (weight, succ) of
-  --   (Just w, Just True) -> Success w
-  --   (Just w, Just False) -> Fail w
-  --   (Just w, Nothing) -> Todo w
-  --   (Nothing, Nothing) -> Unset
-  --   (Nothing, _) -> FormFailure ["Not a valid attempt"]
+  (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
+  let attRes = createAttempt <$> weightRes <*> succRes
+  return (attRes, [whamlet| ^{fvInput weightView} ^{fvInput succView}|])
 
   where
     fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
-    succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
+    succType :: [(Text,LiftModifier)]
+    succType = [("Todo", MTodo), ("Good", MGood), ("Fail", MFail), ("Skip", MSkip)]
+    createAttempt weight succ =
+      case (weight, succ) of
+        (Just w, MGood) -> Success w
+        (Just w, MFail) -> Fail w
+        (Just w, MTodo) -> Todo w
+        (_, MSkip)      -> Skip
+        (_, _)          -> Unset
 
-disciplineForm :: Discipline -> MForm Handler (FormResult Discipline, Widget)
-disciplineForm Discipline { .. } = undefined
--- do
---   (att1f, att1View) <- attemptForm att1
---   (att2f, att2View) <- attemptForm att2
---   (att3f, att3View) <- attemptForm att3
---   let widget = [whamlet| TODO |]
---   return (Discipline att1f att2f att3f, widget)
+disciplineForm :: Text -> Discipline -> MForm Handler (FormResult Discipline, Widget)
+disciplineForm descr Discipline { .. } =
+  do
+    (att1f, att1View) <- attemptForm att1
+    (att2f, att2View) <- attemptForm att2
+    (att3f, att3View) <- attemptForm att3
+    let widget = [whamlet| ^{att1View} ^{att2View} ^{att3View}|]
+    let disciplineRes = Discipline <$> att1f <*> att2f <*> att3f
+    return (disciplineRes, widget)
 
 resForm :: Results -> MForm Handler (FormResult Results, Widget)
-resForm = undefined
+resForm res =
+  do
+    let meet = unpackMeet meetType
+    discForms <- forM meet (\(n, v, m) -> disciplineForm n (v res))
+    let formResults = fmap fst discForms
+    let widgets = fmap snd discForms
+
+    let discWidgets = F.foldl' (>>) [whamlet| |] widgets
+    let resChanges = (zipWith (resChangesf) formResults meet) :: [Maybe Results -> Maybe Results]
+    let resRes = F.foldl' (\r f -> f r) (Just $ res) resChanges
+    return $ case resRes of
+      Just r -> (pure r, discWidgets)
+      _      -> (FormFailure ["Error parsing results form"], discWidgets)
+
+    where
+      resChangesf :: FormResult Discipline -> (Text, ViewFunc, OverFunc) -> Maybe Results -> Maybe Results
+      resChangesf (FormSuccess d) (_,_,m) = fmap $ m (const d)
+      resChangesf _ _                     = id
 
 lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
 lifterForm Lifter {..} = do
@@ -182,11 +202,11 @@ liftersForm meetState lifterList extra = do
   let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
   let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
   let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
-  let combineWidgets1 l = P.foldl (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
+  let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
                                                                   Gruppe #{lifterGroup $ P.fst $ P.head l}
                                                             |]) l :: Widget --Gruppe ausgeben
-  let combinedWidgets = P.foldl (>>) ([whamlet|
+  let combinedWidgets = F.foldl' (>>) ([whamlet|
                                       |]) (map combineWidgets1 widgetsAndLifter) :: Widget
                                       -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
   let framedFrom = ([whamlet|
@@ -312,7 +332,7 @@ getLifterText = getInnerText "LIFTERSTART" "LIFTEREND"
 
 -- Lifter -> lifterText -> place -> output
 createLifter :: Text -> Lifter -> Int -> Text
-createLifter inp l@(Lifter {..}) pl = P.foldl (P.flip (P.$)) inp actions
+createLifter inp l@(Lifter {..}) pl = F.foldl' (P.flip (P.$)) inp actions
   where
     actions :: [Text -> Text]
     actions = [ \src -> replaceAllCaptures TOP replWeight $ src *=~ attemptRegex

@@ -28,8 +28,11 @@ import qualified Prelude as P
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
 
+fst3 :: (a,b,c) -> a
+fst3 (a,_,_) = a
+
 resultList :: Results -> [Discipline]
-resultList res = (\(_,f) -> f res) <$> (unpackMeet meetType)
+resultList res = (\(_,v,_) -> v res) <$> (unpackMeet meetType)
 
 getBestAttempt :: Discipline -> Maybe Double
 getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
@@ -37,10 +40,10 @@ getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
 getDisciplineFromLifter :: Text -> Lifter -> Discipline
 getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
   where
-    disciplineNames = fst <$> (unpackMeet meetType)
+    disciplineNames = fst3 <$> (unpackMeet meetType)
 
 emptyMeetState =
-  MeetState { meetStateCurrDiscipline = fst . P.head $ unpackMeet meetType
+  MeetState { meetStateCurrDiscipline = fst3 . P.head $ unpackMeet meetType
             , meetStateCurrGroupNr = 0
             }
 
@@ -60,4 +63,4 @@ instance ToJSON Lifter where
       ]
 
 instance ToJSON Results where
-  toJSON res = toJSON $ (\(n,f) -> (n, f res)) <$> (unpackMeet meetType)
+  toJSON res = toJSON $ (\(n,v,_) -> (n, v res)) <$> (unpackMeet meetType)
