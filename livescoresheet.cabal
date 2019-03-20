@@ -114,6 +114,7 @@ executable livescoresheet
     , hjsmin >=0.1
     , http-conduit >=2.1
     , livescoresheet
+    , lens
     , monad-control >=0.3
     , monad-logger >=0.3
     , persistent >=2.0
@@ -169,6 +170,7 @@ test-suite test
     , http-conduit >=2.1
     , livescoresheet
     , microlens
+    , lens
     , monad-control >=0.3
     , monad-logger >=0.3
     , persistent >=2.0
