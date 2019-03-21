@@ -93,12 +93,14 @@ getCurrMeetStateFromDB = do
 getCurrGroupNrFromDB :: Handler Int
 getCurrGroupNrFromDB = meetStateCurrGroupNr <$> getCurrMeetStateFromDB
 
---groupNrForm :: Int -> AForm Handler Int
---groupNrForm g = areq intField "GroupNr: " $ Just g
-
-groupNrForm :: Int -> Form Int
-groupNrForm g = renderBootstrap3 BootstrapBasicForm $
-                    areq intField "GroupNr: " (Just g)
+meetStateForm :: MeetState -> Html -> MForm Handler (FormResult MeetState, Widget)
+meetStateForm MeetState {..} = renderDivs $
+                               MeetState <$> areq (selectFieldList list) "CurrDiscipline" (Just meetStateCurrDiscipline)
+                                         <*> areq intField "GroupNr: " (Just meetStateCurrGroupNr)
+  where
+    double a = (a,a)
+    list :: [(Text,Text)]
+    list = map (double . fst3) $ unpackMeet meetType
 
 getAdminR :: Handler Html
 getAdminR = do
@@ -107,7 +109,7 @@ getAdminR = do
     lifters <- getLiftersFromDB
     meetState <- getCurrMeetStateFromDB
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState lifters
-    (groupNrformWidget, groupNrformEnctype) <- generateFormPost $ groupNrForm $ meetStateCurrGroupNr meetState
+    (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -246,12 +248,15 @@ postAdminR = do
                   getAdminR
               FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
               _ -> do
-                  ((res',_),_) <- runFormPost $ groupNrForm groupNr
+                  ((res',_),_) <- runFormPost $ meetStateForm meetState
                   case res' of
-                      FormSuccess gNr -> do
-                                            _ <- runDB $ updateWhere ([] :: [Filter MeetState]) [MeetStateCurrGroupNr =. gNr]
-                                            getAdminR
+                      FormSuccess MeetState {..} -> do
+                        runDB $ updateWhere ([] :: [Filter MeetState]) [ MeetStateCurrGroupNr =. meetStateCurrGroupNr
+                                                                       , MeetStateCurrDiscipline =. meetStateCurrDiscipline]
+                        getAdminR
+
                       FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
+
                       _ -> error "FormError"
 
   where

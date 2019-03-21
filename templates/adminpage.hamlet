@@ -11,8 +11,8 @@
           Upload it!
 
   <div .divPart .left>
-    <form method=post action=@{AdminR}#forms enctype=#{groupNrformEnctype}>
-     ^{groupNrformWidget}
+    <form method=post action=@{AdminR}#forms enctype=#{meetStateEnctype}>
+     ^{meetStateFormWidget}
 
      <button .btn.btn-primary .btn-xs type=submit>
        Update
