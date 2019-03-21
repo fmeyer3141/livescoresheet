@@ -6,13 +6,9 @@ module Scoresheetlogic where
 
 import Import
 import MeetTypesTH
-import THApplStage1
-import THApplStage2
 import Weightclass
-import qualified Prelude as P
 import Ageclass
 import Sex
-import Data.Maybe
 
 type Class = (Ageclass, Sex, Weightclass, Bool)
 

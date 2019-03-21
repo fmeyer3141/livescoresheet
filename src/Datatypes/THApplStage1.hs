@@ -12,7 +12,6 @@ import qualified Data.Foldable as F
 import ClassyPrelude.Yesod
 import Language.Haskell.TH
 import MeetTypesTH
-import Settings
 import Control.Lens
 
 $(resultsTypeTH)
@@ -20,7 +19,6 @@ $([d| deriving instance Show Results |])
 $([d| deriving instance Read Results |])
 $([d| deriving instance Eq Results |])
 derivePersistField ("Results")
-
 makeLenses ''Results
 
 type ViewFunc = Results -> Discipline
@@ -31,11 +29,13 @@ meetTypeTH :: Q [Dec]
 meetTypeTH = do
     discs <- liftIO readDisciplines
     let meetTypeName = mkName "meetType"
-    pure . pure $
-      ValD (VarP meetTypeName) (NormalB (AppE (ConE $ mkName "MeetType") (ListE (tuples $ T.unpack <$> discs))) ) []
+    let conName      = mkName "MeetType"
+    pure $
+      [ SigD meetTypeName (ConT conName)
+      , ValD (VarP meetTypeName) (NormalB (AppE (ConE $ mkName "MeetType") (ListE (tuples $ T.unpack <$> discs))) ) [] ]
 
     where
-      genTuple discName = TupE [LitE (StringL discName), AppE (VarE $ mkName "view") $ VarE (mkName ("disc" ++ discName))
+      genTuple discName = TupE [ LitE (StringL discName), AppE (VarE $ mkName "view") $ VarE (mkName ("disc" ++ discName))
                                , AppE (VarE $ mkName "over") $ VarE (mkName ("disc" ++ discName))]
       tuples discs = map genTuple discs
 
@@ -46,9 +46,6 @@ emptyResultsTH = do
     let emptyDisciplineName = mkName "emptyDiscipline"
     let resultsName         = mkName "Results"
     let apps = F.foldl' (\a n -> AppE a n) (ConE resultsName) $ P.replicate (length discs) (VarE emptyDisciplineName)
-    pure . pure $
-      ValD (VarP emptyResultsName) (NormalB apps) []
-
-    where
-      genTuple discName = TupE [LitE (StringL discName), VarE (mkName ("_disc" ++ discName)) ]
-      tuples discs = map genTuple discs
+    pure $
+      [ SigD emptyResultsName (ConT resultsName)
+      , ValD (VarP emptyResultsName) (NormalB apps) []]

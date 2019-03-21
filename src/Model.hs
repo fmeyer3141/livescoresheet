@@ -42,6 +42,7 @@ getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNa
   where
     disciplineNames = fst3 <$> (unpackMeet meetType)
 
+emptyMeetState :: MeetState
 emptyMeetState =
   MeetState { meetStateCurrDiscipline = fst3 . P.head $ unpackMeet meetType
             , meetStateCurrGroupNr = 0

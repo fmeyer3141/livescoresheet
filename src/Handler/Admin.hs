@@ -128,8 +128,8 @@ attemptForm att = do
     fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
     succType :: [(Text,LiftModifier)]
     succType = [("Todo", MTodo), ("Good", MGood), ("Fail", MFail), ("Skip", MSkip)]
-    createAttempt weight succ =
-      case (weight, succ) of
+    createAttempt weight suc =
+      case (weight, suc) of
         (Just w, MGood) -> Success w
         (Just w, MFail) -> Fail w
         (Just w, MTodo) -> Todo w
@@ -150,7 +150,7 @@ resForm :: Results -> MForm Handler (FormResult Results, Widget)
 resForm res =
   do
     let meet = unpackMeet meetType
-    discForms <- forM meet (\(n, v, m) -> disciplineForm n (v res))
+    discForms <- forM meet (\(n, v, _) -> disciplineForm n (v res))
     let formResults = fmap fst discForms
     let widgets = fmap snd discForms
 
@@ -170,28 +170,17 @@ lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
 lifterForm Lifter {..} = do
   (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
   (resRes, resView) <- resForm lifterRes
-  let lifterRes = Lifter lifterName lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
-                         lifterRaw <$> groupRes <*> resRes <*> pure lifterClub
-  let widget = undefined
---            [whamlet|
---                <div class="lifterRow">
---                  <span class="lifterName"> #{lifterName lifter}
---                  ^{fvInput groupView}
---                  <div class="attempt">
---                    ^{fvInput lifterAttemptDL1WeightView}
---                    ^{fvInput lifterAttemptDL1SuccessView}
---                  <div class="attempt">
---                    ^{fvInput lifterAttemptDL2WeightView}
---                    ^{fvInput lifterAttemptDL2SuccessView}
---                  <div class="attempt">
---                    ^{fvInput lifterAttemptDL3WeightView}
---                    ^{fvInput lifterAttemptDL3SuccessView}
---            |] -- TODO Gruppennummer als class oder so ausgeben für schönere Optik
-  return (lifterRes, widget)
+  let lifterResulting = Lifter lifterName lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
+                               lifterRaw <$> groupRes <*> resRes <*> pure lifterClub
+  let widget = [whamlet|
+         <div class="lifterRow">
+           <span class="lifterName"> #{lifterName}
+           ^{fvInput groupView}
+           ^{resView}
+  |]
+  return (lifterResulting, widget)
   where
       fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
-      succType :: [(Text, Maybe Bool)]
-      succType = [("Todo", Nothing), ("Good", Just True), ("Fail", Just False)]
 
 
 liftersForm :: MeetState -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
@@ -250,8 +239,8 @@ postAdminR = do
                   let filteredLifterList = filter ((==) groupNr . lifterGroup) lifterList
                   let todo = [runDB $ updateWhere
                              [LifterName ==. n]
-                             [LifterGroup =. g, LifterRes =. res]
-                              | (Lifter n _ _ _ _ _ _ g res _)<-filteredLifterList] :: [Handler ()]
+                             [LifterGroup =. g, LifterRes =. results]
+                              | (Lifter n _ _ _ _ _ _ g results _)<-filteredLifterList] :: [Handler ()]
                   sequence_ todo
                   truncBackupHistory
                   getAdminR
@@ -297,9 +286,6 @@ lifterParse :: Row Text -> Lifter
 lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
     Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (P.read $ T.unpack wclass) (P.read $ T.unpack weight)
         (P.read $ T.unpack raw) (P.read $ T.unpack flight) emptyResults club
-    where
-        w = Nothing
-        s = Nothing
 lifterParse input = error ("Somethings wrong with the CSV-file with " ++ show input)
 
 getUndoR :: Handler Html
@@ -379,6 +365,7 @@ showPlacing l pl = case getTotalLifter l of
                      Just _ -> pack $ show $ pl
                      Nothing -> "D.Q."
 
+displ :: Weight -> Text
 displ = pack . show
 
 showAttemptWeight :: Attempt -> Text
