@@ -157,7 +157,6 @@ disciplineForm descr Discipline { .. } =
 resForm :: Results -> MForm Handler (FormResult Results, Widget)
 resForm res =
   do
-    --let meet = meetType :: forall f. Functor f => [(Text, (Discipline -> f Discipline) -> (Results -> f Results))]
     discForms <- forM meetType (\(n, l) -> disciplineForm n ((view l) res))
     let widgets = fmap snd discForms
 
