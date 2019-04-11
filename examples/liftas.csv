@@ -1,3 +1,2 @@
 Name,Age,Sex,Ageclass,Weightclass,Weight,Raw,Group
-Equipment Chetah,20,Male,Junior,120,300,False,10
-Ms. Test,1,Female,Open,84,80,True,1
+Equipment Chetah,20,Male,Junior,+120,300,False,10,AKS

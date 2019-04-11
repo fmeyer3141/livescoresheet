@@ -12,6 +12,7 @@
 module Model ( module MeetTypesTH
              , module THApplStage1
              , module THApplStage2
+             , module ApplEither
              , module Model)
   where
 
@@ -19,6 +20,7 @@ import ClassyPrelude.Yesod
 import Database.Persist.Quasi
 import Sex
 import Ageclass
+import ApplEither
 import Weightclass
 import THApplStage1
 import THApplStage2

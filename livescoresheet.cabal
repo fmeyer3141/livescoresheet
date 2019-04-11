@@ -35,6 +35,7 @@ library
     , containers
     , data-default
     , directory >=1.1
+    , extra
     , fast-logger >=2.2
     , file-embed
     , foreign-store
@@ -90,6 +91,7 @@ library
       Sex
       Scoresheetlogic
       Ageclass
+      ApplEither
       Weightclass
   other-modules:
       Paths_livescoresheet
@@ -112,6 +114,7 @@ executable livescoresheet
     , containers
     , data-default
     , directory >=1.1
+    , extra
     , fast-logger >=2.2
     , file-embed
     , foreign-store

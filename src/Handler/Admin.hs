@@ -37,10 +37,16 @@ latexTemplate = "latexexport/template.tex"
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
+resetDB :: Handler ()
+resetDB = do
+  runDB $ deleteWhere ([] :: [Filter Lifter])
+  runDB $ deleteWhere ([] :: [Filter LifterBackup])
+  runDB $ deleteWhere ([] :: [Filter MeetState])
+
 getLiftersFromDB :: Handler [Lifter]
 getLiftersFromDB = do
-    dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
-    return [lifter | (Entity _ lifter) <- dataSet]
+  dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
+  return [lifter | (Entity _ lifter) <- dataSet]
 
 getLatestBackupVersion :: Handler (Maybe Int)
 getLatestBackupVersion =
@@ -262,19 +268,22 @@ postAdminR = do
     handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
     handleFile typ rawFile |typ=="text/csv" = do
                                                 csv <- liftIO $ parseCSV rawFile
-
                                                 case fromNullable csv of
-                                                  Just csvNonEmpty -> do
-                                                    let dataSet = fmap lifterParse (tail csvNonEmpty) :: [Lifter]
-                                                    let startGroupNr = P.head $ sort $ fmap lifterGroup dataSet :: Int
-                                                    do
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- Truncate tables
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter LifterBackup])
-                                                        _ <- runDB $ deleteWhere ([] :: [Filter MeetState])
-                                                        _ <- runDB $ insertMany dataSet -- Insert CSV
-                                                        _ <- runDB $ insert $
-                                                             emptyMeetState { meetStateCurrGroupNr = startGroupNr }
-                                                        getAdminR
+                                                  Just csvNonEmpty ->
+                                                    let dataSet = sequenceA $ lifterParse <$> tail csvNonEmpty in
+                                                    case dataSet of
+                                                      (ARight datas) ->
+                                                        do
+                                                          let startGroupNr = P.head $ sort $ fmap lifterGroup datas
+                                                          resetDB
+                                                          _ <- runDB $ insertMany datas -- Insert CSV
+                                                          _ <- runDB $ insert $
+                                                               emptyMeetState { meetStateCurrGroupNr = startGroupNr }
+                                                          getAdminR
+
+                                                      (ALeft es) ->
+                                                        invalidArgs es
+
                                                   _ -> error "CSV File empty"
 
                            |otherwise       = defaultLayout $
@@ -286,11 +295,19 @@ parseCSV rawFile =
     runResourceT $ runConduit $
     rawFile .| intoCSV defCSVSettings .| sinkList --defCSVSettings means , seperator and " to enclose fields
 
-lifterParse :: Row Text -> Lifter
-lifterParse [name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name age (P.read $ T.unpack sex) (P.read $ T.unpack aclass) (P.read $ T.unpack wclass) (P.read $ T.unpack weight)
-        (P.read $ T.unpack raw) (P.read $ T.unpack flight) emptyResults club
-lifterParse input = error ("Somethings wrong with the CSV-file with " ++ show input)
+lifterParse :: Row Text -> ApplEither [Text] Lifter
+lifterParse r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
+    Lifter name age <$> safeRead sex      <*> safeRead aclass <*> safeRead wclass
+                    <*> safeRead weight   <*> safeRead raw    <*> safeRead flight
+                    <*> pure emptyResults <*> pure club
+  where
+    safeRead :: (Read a, Show a) => Text -> ApplEither [Text] a
+    safeRead s = case P.reads $ T.unpack s of
+                   [(t, "")] -> pure t
+                   t         -> ALeft . pure $ "Error reading " ++ s ++ " in str " ++ T.intercalate ", " r
+                                            ++ " result: "  ++ (T.pack $  show t)
+
+lifterParse input = error ("Wrong number of entries in: " ++ show input)
 
 getUndoR :: Handler Html
 getUndoR = do
