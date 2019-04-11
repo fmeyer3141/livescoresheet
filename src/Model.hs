@@ -9,7 +9,11 @@
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Model where
+module Model ( module MeetTypesTH
+             , module THApplStage1
+             , module THApplStage2
+             , module Model)
+  where
 
 import ClassyPrelude.Yesod
 import Database.Persist.Quasi
@@ -21,6 +25,7 @@ import THApplStage2
 import MeetTypesTH
 import Data.Maybe
 import qualified Prelude as P
+import Control.Lens (view)
 
 -- You can define all of your database entities in the entities file.
 -- You can find more information on persistent and how to declare entities
@@ -28,11 +33,8 @@ import qualified Prelude as P
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
 
-fst3 :: (a,b,c) -> a
-fst3 (a,_,_) = a
-
 resultList :: Results -> [Discipline]
-resultList res = (\(_,v,_) -> v res) <$> (unpackMeet meetType)
+resultList res = (\(_,l) -> (view l) res) <$> meetType
 
 getBestAttempt :: Discipline -> Maybe Double
 getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
@@ -40,11 +42,11 @@ getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
 getDisciplineFromLifter :: Text -> Lifter -> Discipline
 getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
   where
-    disciplineNames = fst3 <$> (unpackMeet meetType)
+    disciplineNames = fstMeetType <$> meetType
 
 emptyMeetState :: MeetState
 emptyMeetState =
-  MeetState { meetStateCurrDiscipline = fst3 . P.head $ unpackMeet meetType
+  MeetState { meetStateCurrDiscipline = fstMeetType . P.head $ meetType
             , meetStateCurrGroupNr = 0
             }
 
@@ -64,4 +66,4 @@ instance ToJSON Lifter where
       ]
 
 instance ToJSON Results where
-  toJSON res = toJSON $ (\(n,v,_) -> (n, v res)) <$> (unpackMeet meetType)
+  toJSON res = toJSON $ (\(n,l) -> (n, (view l) res)) <$> meetType

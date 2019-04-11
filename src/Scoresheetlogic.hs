@@ -5,7 +5,6 @@
 module Scoresheetlogic where
 
 import Import
-import MeetTypesTH
 import Weightclass
 import Ageclass
 import Sex

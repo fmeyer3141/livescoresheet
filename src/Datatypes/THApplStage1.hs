@@ -2,8 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 
 module THApplStage1 where
 import qualified Data.Text as T
@@ -21,9 +20,12 @@ $([d| deriving instance Eq Results |])
 derivePersistField ("Results")
 makeLenses ''Results
 
-type ViewFunc = Results -> Discipline
-type OverFunc = (Discipline -> Discipline) -> Results -> Results
-data MeetType = MeetType { unpackMeet :: [(Text, ViewFunc, OverFunc)] }
+-- (DisciplineName, Lens' )
+type MeetTypeEntry = forall f. Functor f => (Text, (Discipline -> (f Discipline)) -> Results -> (f Results))
+type MeetType = forall f. Functor f => [(Text, (Discipline -> (f Discipline)) -> Results -> (f Results))]
+
+fstMeetType :: (Text, (Discipline -> (Identity Discipline)) -> Results -> (Identity Results)) -> Text
+fstMeetType = fst
 
 meetTypeTH :: Q [Dec]
 meetTypeTH = do
@@ -32,11 +34,10 @@ meetTypeTH = do
     let conName      = mkName "MeetType"
     pure $
       [ SigD meetTypeName (ConT conName)
-      , ValD (VarP meetTypeName) (NormalB (AppE (ConE $ mkName "MeetType") (ListE (tuples $ T.unpack <$> discs))) ) [] ]
+      , ValD (VarP meetTypeName) (NormalB (ListE (tuples $ T.unpack <$> discs)) ) [] ]
 
     where
-      genTuple discName = TupE [ LitE (StringL discName), AppE (VarE $ mkName "view") $ VarE (mkName ("disc" ++ discName))
-                               , AppE (VarE $ mkName "over") $ VarE (mkName ("disc" ++ discName))]
+      genTuple discName = TupE [ LitE (StringL discName),VarE (mkName ("disc" ++ discName)) ]
       tuples discs = map genTuple discs
 
 emptyResultsTH :: Q [Dec]

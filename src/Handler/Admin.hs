@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE Rank2Types #-}
 
 module Handler.Admin where
 
@@ -14,10 +15,6 @@ import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
 import Sex
 import Ageclass
 import Weightclass
-
-import MeetTypesTH
-import THApplStage1
-import THApplStage2
 
 import qualified Data.Text as T
 
@@ -30,6 +27,9 @@ import qualified Prelude as P
 
 import           Text.RE.Replace
 import           Text.RE.TDFA.Text
+
+import Control.Lens (view, set)
+import Control.Lens.Setter
 
 latexTemplate :: String
 latexTemplate = "latexexport/template.tex"
@@ -100,7 +100,7 @@ meetStateForm MeetState {..} = renderDivs $
   where
     double a = (a,a)
     list :: [(Text,Text)]
-    list = map (double . fst3) $ unpackMeet meetType
+    list = map (double . fstMeetType) meetType
 
 getAdminR :: Handler Html
 getAdminR = do
@@ -151,22 +151,21 @@ disciplineForm descr Discipline { .. } =
 resForm :: Results -> MForm Handler (FormResult Results, Widget)
 resForm res =
   do
-    let meet = unpackMeet meetType
-    discForms <- forM meet (\(n, v, _) -> disciplineForm n (v res))
-    let formResults = fmap fst discForms
+    --let meet = meetType :: forall f. Functor f => [(Text, (Discipline -> f Discipline) -> (Results -> f Results))]
+    discForms <- forM meetType (\(n, l) -> disciplineForm n ((view l) res))
     let widgets = fmap snd discForms
 
     let discWidgets = F.foldl' (>>) [whamlet| |] widgets
-    let resChanges = (zipWith (resChangesf) formResults meet) :: [Maybe Results -> Maybe Results]
+    let resChanges =  (zipWith resChangesf (fst <$> discForms) meetType) :: [Maybe Results -> Maybe Results]
     let resRes = F.foldl' (\r f -> f r) (Just $ res) resChanges
     return $ case resRes of
       Just r -> (pure r, discWidgets)
       _      -> (FormFailure ["Error parsing results form"], discWidgets)
 
     where
-      resChangesf :: FormResult Discipline -> (Text, ViewFunc, OverFunc) -> Maybe Results -> Maybe Results
-      resChangesf (FormSuccess d) (_,_,m) = fmap $ m (const d)
-      resChangesf _ _                     = id
+      resChangesf :: FormResult Discipline -> (Text, ASetter' Results Discipline) -> Maybe Results -> Maybe Results
+      resChangesf (FormSuccess d) (_,l) = fmap $ set l d
+      resChangesf _               _     = id
 
 lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
 lifterForm Lifter {..} = do
