@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UnicodeSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -21,8 +22,8 @@ derivePersistField ("Results")
 makeLenses ''Results
 
 -- (DisciplineName, Lens' )
-type MeetTypeEntry = forall f. Functor f => (Text, (Discipline -> (f Discipline)) -> Results -> (f Results))
-type MeetType = forall f. Functor f => [(Text, (Discipline -> (f Discipline)) -> Results -> (f Results))]
+type MeetTypeEntry = ∀ f. Functor f => (Text, (Discipline -> (f Discipline)) -> Results -> (f Results))
+type MeetType      = ∀ f. Functor f => [(Text, (Discipline -> (f Discipline)) -> Results -> (f Results))]
 
 fstMeetType :: (Text, (Discipline -> (Identity Discipline)) -> Results -> (Identity Results)) -> Text
 fstMeetType = fst
