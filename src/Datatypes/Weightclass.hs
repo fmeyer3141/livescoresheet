@@ -31,5 +31,3 @@ instance Read Weightclass where
                           _                   -> []
 
                       _    -> []
-  readsPrec _ _ = error "Weightclass Format"
-

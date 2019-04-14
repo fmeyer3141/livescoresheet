@@ -7,26 +7,29 @@
 module Handler.Stecker where
 
 import Import
+import Yesod.WebSockets
+
 import Scoresheetlogic
-import Handler.Admin
+import Misc
 import qualified Prelude as P
 
-test :: [(Plate,Int)] -- Jede Scheibe einmal und zwei 25er
+test :: [(Plate,Int)] -- Jede Scheibe einmal und zwei 25er zum Layout testen
 test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 
-getSteckerR :: Handler TypedContent
-getSteckerR = selectRep $ do
-  provideRep $
+computeSteckerData :: (MeetState, [Lifter]) -> Value
+computeSteckerData (ms, lifters) =
+  let nextLifter = getNextLifterInGroup ms lifters in
+  toJSON $ do
+    l <- nextLifter
+    nextWeightl <- nextWeight ms l $ nextAttemptNr ms l
+    return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
+           , meetStateCurrGroupNr ms, nextAttemptNr ms l, nextWeightl, getPlates nextWeightl)
+    -- return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
+    --        , meetStateCurrGroupNr ms, nextAttemptNr ms l, nextWeightl, test )
+
+getSteckerR :: Handler Html
+getSteckerR = do
+    webSockets $ dataSocket computeSteckerData
     defaultLayout $ do
       setTitle "Steckeranzeige"
       $(widgetFile "stecker")
-
-  provideRep $ do
-    lifters <- getLiftersFromDB
-    meetState <- getCurrMeetStateFromDB
-    let nextLifter = getNextLifterInGroup meetState lifters
-    return $ toJSON $ do
-      l <- nextLifter
-      nextWeightl <- nextWeight meetState l $ nextAttemptNr meetState l
-      return (lifterName l, lifterClub l, nextAttemptNr meetState l, nextWeightl, getPlates nextWeightl)
-      --return (lifterName l, lifterWeight l, lifterClub l, nextWeightl, test)

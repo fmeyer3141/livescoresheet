@@ -1,6 +1,11 @@
 var canvas = document.querySelector('canvas');
 var c = canvas.getContext('2d');
-var plates;
+var plates = undefined;
+var head1 = document.querySelector('h1');
+var head2 = document.querySelector('h2');
+var url = document.URL;
+url = url.replace("http:", "ws:").replace("https:", "wss:");
+var socket = undefined;
 
 function determineFontSize(txt,maxSize) {
   var size = 15;
@@ -14,29 +19,24 @@ function determineFontSize(txt,maxSize) {
   c.font = size.toString() + "px" + " sans-serif";
 }
 
-var head1 = document.querySelector('h1');
-var head2 = document.querySelector('h2');
-
-function init() {
+function initCanvas() {
   canvas.width = window.innerWidth - 2;
   canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
 
   head1.align = 'center';
   head2.align = 'center';
-  
-  if (plates != undefined) 
+
+  if (plates != undefined)
     drawPlates(plates);
 }
 
-init();
-getData();
-window.addEventListener('resize', init, false);
+window.addEventListener('resize', initCanvas, false);
 
 function drawPlates(plates) {
   c.textBaseline = 'middle';
   c.clearRect(0,0,canvas.width,canvas.height);
   //Stange zeichnen
-  c.fillStyle = 'rgb(192,192,192)'; 
+  c.fillStyle = 'rgb(192,192,192)';
   c.fillRect(0,0.475*canvas.height,0.95*canvas.width,0.05*canvas.height);
 
   var xoffset = 0.02*canvas.width;
@@ -46,7 +46,7 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[0][1]; i++) {
     c.fillStyle = 'rgb(255,0,0)';
-    c.fillRect(xoffset,0.1*canvas.height, 0.06*canvas.width, 0.8*canvas.height); 
+    c.fillRect(xoffset,0.1*canvas.height, 0.06*canvas.width, 0.8*canvas.height);
     c.fillStyle = 'rgb(255,255,255)';
     c.fillText(txt,xoffset + (0.06/2)*canvas.width - (width/2),0.5*canvas.height);
     xoffset = xoffset + 0.08*canvas.width;
@@ -58,7 +58,7 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[1][1]; i++) {
     c.fillStyle = 'rgb(0,0,255)';
-    c.fillRect(xoffset,0.1*canvas.height, 0.05*canvas.width, 0.8*canvas.height); 
+    c.fillRect(xoffset,0.1*canvas.height, 0.05*canvas.width, 0.8*canvas.height);
     c.fillStyle = 'rgb(255,255,255)';
     c.fillText(txt,xoffset + (0.05/2)*canvas.width - (width/2),0.5*canvas.height);
     xoffset = xoffset + 0.07*canvas.width;
@@ -70,7 +70,7 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[2][1]; i++) {
     c.fillStyle = 'rgb(238,238,0)';
-    c.fillRect(xoffset,0.15*canvas.height, 0.05*canvas.width, 0.7*canvas.height); 
+    c.fillRect(xoffset,0.15*canvas.height, 0.05*canvas.width, 0.7*canvas.height);
     c.fillStyle = 'rgb(0,0,255)';
     c.fillText(txt,xoffset + (0.05/2)*canvas.width - (width/2),0.5*canvas.height);
     xoffset = xoffset + 0.07*canvas.width;
@@ -82,7 +82,7 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[3][1]; i++) {
     c.fillStyle = 'rgb(0,120,0)';
-    c.fillRect(xoffset,0.21*canvas.height, 0.048*canvas.width, 0.58*canvas.height); 
+    c.fillRect(xoffset,0.21*canvas.height, 0.048*canvas.width, 0.58*canvas.height);
     c.fillStyle = 'rgb(255,255,255)';
     c.fillText(txt,xoffset + (0.048/2)*canvas.width - (width/2),0.5*canvas.height);
     xoffset = xoffset + 0.068*canvas.width;
@@ -94,7 +94,7 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[4][1]; i++) {
     c.fillStyle = 'rgb(255,255,255)';
-    c.fillRect(xoffset,0.295*canvas.height, 0.048*canvas.width, 0.41*canvas.height); 
+    c.fillRect(xoffset,0.295*canvas.height, 0.048*canvas.width, 0.41*canvas.height);
     c.fillStyle = 'rgb(0,0,0)';
     c.fillText(txt,xoffset+(0.048/ 2)*canvas.width-(width/2),0.5*canvas.height);
     xoffset = xoffset + 0.068*canvas.width;
@@ -106,19 +106,19 @@ function drawPlates(plates) {
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[5][1]; i++) {
     c.fillStyle = 'rgb(0,0,0)';
-    c.fillRect(xoffset,0.33*canvas.height, 0.036*canvas.width, 0.34*canvas.height); 
+    c.fillRect(xoffset,0.33*canvas.height, 0.036*canvas.width, 0.34*canvas.height);
     c.fillStyle = 'rgb(255,255,255)';
     c.fillText(txt,xoffset+(0.036/2)*canvas.width-(width/2),0.5*canvas.height);
     xoffset = xoffset + 0.068*canvas.width;
   }
-  
+
   //1.25er
   var txt="1.25";
   determineFontSize(txt,0.036*canvas.width);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[6][1]; i++) {
     c.fillStyle = 'rgb(212,221,182)';
-    c.fillRect(xoffset,0.36*canvas.height, 0.036*canvas.width, 0.28*canvas.height); 
+    c.fillRect(xoffset,0.36*canvas.height, 0.036*canvas.width, 0.28*canvas.height);
     c.fillStyle = 'rgb(0,0,0)';
     c.fillText(txt,xoffset+(0.036/2)*canvas.width-(width/2),0.5*canvas.height);
     xoffset = xoffset + 0.068*canvas.width;
@@ -134,32 +134,38 @@ function drawPlates(plates) {
 }
 
 function showLifter(lifter) {
-  head1.innerHTML = lifter[0];
+  head1.innerHTML = lifter[0]; //Name
   head1.innerHTML += " - ";
-  head1.innerHTML += lifter[3];
+  head1.innerHTML += lifter[5]; //Gewicht
   head1.innerHTML += "Kg - ";
-  head1.innerHTML += lifter[2];
+  head1.innerHTML += lifter[2] + " "; //Disziplin
+  head1.innerHTML += lifter[4]; //Versuch
   head1.innerHTML += ". Versuch";
-  head2.innerHTML = lifter[1]; 
+  head2.innerHTML = lifter[1]; //Verein
 }
 
-function getData() {
-    $.ajax({
-      url: '@{SteckerR}',
-      type: 'GET',
-      dataType: 'json',
-      success: function (data) {
-        console.log("success;")
-        console.log(data);
-        if (data != null) {
-          plates = data[4];
-          drawPlates(data[4]);
-          showLifter(data)
-        }
-      },
-      error: function (data) {
-        console.log("Error receiving group info: " + data);
-      },
-    });
-    setTimeout(getData, 5000);
+function init() {
+  console.log("init");
+  socket = new WebSocket(url);
+  socket.onmessage = function(e) {
+      var data = JSON.parse(e.data);
+      console.log("onmessage");
+      console.log(data);
+      plates = data[6];
+      drawPlates(plates);
+      showLifter(data);
+  };
+
+  socket.onerror = function(e) {
+    console.log("WebSocket Error: "+e);
+  };
+
+  socket.onclose = function() {
+    console.log("socket closed");
+    console.log("try to restart socket soon");
+    setTimeout(init,3000);
+  }
 }
+
+init();
+initCanvas();

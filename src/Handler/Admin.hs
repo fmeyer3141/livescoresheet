@@ -48,6 +48,19 @@ getLiftersFromDB = do
   dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
   return [lifter | (Entity _ lifter) <- dataSet]
 
+getCurrMeetStateFromDB :: Handler MeetState
+getCurrMeetStateFromDB = do
+    dataFromDB <- runDB $ selectList ([] :: [Filter MeetState]) []
+    return $
+      if ((length dataFromDB) > 0) then
+        P.head [ms | (Entity _ ms)<-dataFromDB]
+      else
+        emptyMeetState
+
+getDataFromDB :: Handler (MeetState, [Lifter])
+getDataFromDB =
+  (,) <$> getCurrMeetStateFromDB <*> getLiftersFromDB
+
 getLatestBackupVersion :: Handler (Maybe Int)
 getLatestBackupVersion =
   do
@@ -73,6 +86,11 @@ truncBackupHistory = do
                                    runDB $ deleteWhere [LifterBackupVersion >. deleteAfterVersion]
                          False -> return ()
 
+pushDataToChannel :: (MeetState, [Lifter]) -> Handler ()
+pushDataToChannel (ms, lifters) = do
+  wChan <- appFrontendChannel <$> getYesod
+  atomically $ writeTChan wChan (ms, lifters)
+
 restoreBackup :: Handler ()
 restoreBackup = do
                   version <- getLatestBackupVersion
@@ -87,18 +105,6 @@ restoreBackup = do
                               _ <- runDB $ insertMany insertBack
                               return ()
 
-getCurrMeetStateFromDB :: Handler MeetState
-getCurrMeetStateFromDB = do
-    dataFromDB <- runDB $ selectList ([] :: [Filter MeetState]) []
-    return $
-      if ((length dataFromDB) > 0) then
-        P.head [ms | (Entity _ ms)<-dataFromDB]
-      else
-        emptyMeetState
-
-getCurrGroupNrFromDB :: Handler Int
-getCurrGroupNrFromDB = meetStateCurrGroupNr <$> getCurrMeetStateFromDB
-
 meetStateForm :: MeetState -> Html -> MForm Handler (FormResult MeetState, Widget)
 meetStateForm MeetState {..} = renderDivs $
                                MeetState <$> areq (selectFieldList list) "CurrDiscipline" (Just meetStateCurrDiscipline)
@@ -112,8 +118,7 @@ getAdminR :: Handler Html
 getAdminR = do
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
-    lifters <- getLiftersFromDB
-    meetState <- getCurrMeetStateFromDB
+    (meetState, lifters) <- getDataFromDB
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState lifters
     (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
 
@@ -249,14 +254,17 @@ postAdminR = do
                               | (Lifter n _ _ _ _ _ _ g results _)<-filteredLifterList] :: [Handler ()]
                   sequence_ todo
                   truncBackupHistory
+                  -- update Frontends
+                  pushDataToChannel (meetState, lifterList)
                   getAdminR
               FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
               _ -> do
                   ((res',_),_) <- runFormPost $ meetStateForm meetState
                   case res' of
-                      FormSuccess MeetState {..} -> do
+                      FormSuccess ms@(MeetState {..}) -> do
                         runDB $ updateWhere ([] :: [Filter MeetState]) [ MeetStateCurrGroupNr =. meetStateCurrGroupNr
                                                                        , MeetStateCurrDiscipline =. meetStateCurrDiscipline]
+                        pushDataToChannel (ms, lifters)
                         getAdminR
 
                       FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]

@@ -1,26 +1,31 @@
-getData();
+init();
 var lifters = undefined;
+var socket = undefined;
 
-/** Ajax Call, holt periodisch neue Daten frisch vom Server */
-function getData() {
-    $.ajax({
-      url: '@{FrontendR}',
-      type: 'GET',
-      dataType: 'json',
-      success: function (data) {
-        lifters = data;
-        console.log("success;")
-        console.log(data);
-        showNextLifters(data[1])
-        showRanking(data[0])
-      },
-      error: function (data) {
-        console.log("Error receiving group info: " + data);
-      },
-    });
-    setTimeout(getData, 5000);
+function init() {
+  var url = document.URL;
+  url = url.replace("http:", "ws:").replace("https:", "wss:");
+  var socket = new WebSocket(url);
+
+  socket.onmessage = function (e) {
+    var data = JSON.parse(e.data);
+    lifters = data;
+    console.log("success;");
+    console.log(data);
+    showNextLifters(data[1]);
+    showRanking(data[0]);
+  };
+
+  socket.onerror = function (e) {
+    console.log("WebSocket Error: " + error);
+  };
+
+  socket.onclose = function() {
+    console.log("socket closed");
+    console.log("try to restart socket soon");
+    setTimeout(init,3000);
+  };
 }
-
 
 /** Aktualisiert die Anzeige der naechsten Lifter */
 function showNextLifters(lifterArr) {
@@ -29,7 +34,7 @@ function showNextLifters(lifterArr) {
   $(".lifterRow").remove();
 
   currentAttempt = 99;
-  
+
   lifterArr.forEach(elem => {
     lifter = getNextLifterJson(elem);
 
@@ -37,8 +42,8 @@ function showNextLifters(lifterArr) {
 
     // Neue Zeile hinzufuegen
     var $newRow = $("#nextLifterRowBase").clone().removeClass("invisible").removeAttr("id").addClass("lifterRow");
-    $newRow[0].children[0].innerText = lifter.Name; 
-    $newRow[0].children[1].innerText = lifter.AttemptWeight; 
+    $newRow[0].children[0].innerText = lifter.Name;
+    $newRow[0].children[1].innerText = lifter.AttemptWeight;
     $newRow[0].children[2].innerText = lifter.AttemptNumber;
 
     $newRow.appendTo("#nextLifterTableBody");
@@ -87,7 +92,7 @@ function showRanking(arr) {
         success ? cell.addClass("liftGood") : cell.addClass("liftFail");
         return cell;
       };
-      let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;}; 
+      let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;};
 
 
       let rowElements = [
@@ -111,7 +116,7 @@ function showRanking(arr) {
 /** Extrahiert aus dem ersten Lifter einer Gruppe die Gruppeninfo und gibt
  * diese als Ueberschrift aus;
  */
-function printGroupInfo(l){ 
+function printGroupInfo(l){
   let sex = l.sex == "Male" ? "Männer" : "Frauen";
   let raw = l.raw ? "Ohne Ausrüstung" : "Mit Ausrüstung";
   let getAgeclass = ageclass => {
@@ -123,7 +128,7 @@ function printGroupInfo(l){
       case "Master2": return "Senioren 2";
       case "Master3": return "Senioren 3";
       case "Master4": return "Senioren 4";
-      default: return ageclass; 
+      default: return ageclass;
     }
   }
   let $heading = $(`<h4>${getAgeclass(l.ageclass)} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");

@@ -11,7 +11,7 @@ deriving instance (Show g, Show b) => Show (ApplEither g b)
 
 instance Functor (ApplEither g) where
   fmap f (ARight a) = ARight $ f a
-  fmap f (ALeft e)  = ALeft e
+  fmap _ (ALeft e)  = ALeft e
 
 instance Applicative (ApplEither g) where
   pure                  = ARight

@@ -7,25 +7,23 @@
 module Handler.Frontend where
 
 import Import
-import Scoresheetlogic
-import Handler.Admin
+import Yesod.WebSockets
+
 import Data.Maybe (listToMaybe,isJust)
 import qualified Data.List as L
 
-getFrontendR :: Handler TypedContent
-getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ do
-  provideRep $
-    defaultLayout $ do
-      setTitle "Scoresheet"
-      $(widgetFile "frontend")
-  provideRep $ do
-     lifters <- getLiftersFromDB
-     meetState <- getCurrMeetStateFromDB
-     let groupNr = meetStateCurrGroupNr meetState
+import Scoresheetlogic
+import Handler.Admin
+import Misc
+
+computeFrontendData :: (MeetState, [Lifter]) -> Value
+computeFrontendData (ms, lifters) =
+  do
+     let groupNr = meetStateCurrGroupNr ms
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
-     let nextLifters = sortBy (cmpLifterOrder meetState) lifterGroupList
-     let nextLiftersFiltered = filter (\l -> isJust $ (nextWeight meetState l) (nextAttemptNr meetState l)) nextLifters
-     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight meetState l $ nextAttemptNr meetState l, nextAttemptNr meetState l))
+     let nextLifters = sortBy (cmpLifterOrder ms) lifterGroupList
+     let nextLiftersFiltered = filter (\l -> isJust $ (nextWeight ms l) (nextAttemptNr ms l)) nextLifters
+     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight ms l $ nextAttemptNr ms l, nextAttemptNr ms l))
                                  nextLiftersFiltered
      let mc = getClass <$> listToMaybe nextLiftersFiltered
      let liftersSortedByClass = case mc of
@@ -34,9 +32,16 @@ getFrontendR = (>>) (addHeader "Access-Control-Allow-Origin" "*") $ selectRep $ 
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
-     return $ toJSON (liftersOverview, nextLiftersOutput)
+     toJSON (liftersOverview, nextLiftersOutput)
      where
         isNext :: Maybe Lifter -> Lifter -> Bool
         isNext (Just l') l = l == l'
         isNext _ _         = False
 
+getFrontendR :: Handler Html
+getFrontendR = do
+    addHeader "Access-Control-Allow-Origin" "*"
+    webSockets $ dataSocket computeFrontendData
+    defaultLayout $ do
+      setTitle "Scoresheet"
+      $(widgetFile "frontend")

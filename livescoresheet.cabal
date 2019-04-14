@@ -50,6 +50,7 @@ library
     , regex
     , safe
     , shakespeare >=2.0
+    , stm
     , template-haskell
     , text >=0.11
     , time
@@ -59,12 +60,14 @@ library
     , wai-extra >=3.0
     , wai-logger >=2.2
     , warp >=3.0 && <3.3
+    , websockets
     , yaml >=0.8
     , yesod >=1.4.3
     , yesod-auth >=1.4.0
     , yesod-core >=1.4.30
     , yesod-form >=1.4.0
     , yesod-static >=1.4.0.3
+    , yesod-websockets
     , csv-conduit == 0.7.0.0
     , split
   if (flag(dev)) || (flag(library-only))
@@ -86,6 +89,7 @@ library
       THApplStage1
       THApplStage2
       Model
+      Misc
       Settings
       Settings.StaticFiles
       Sex
@@ -129,6 +133,7 @@ executable livescoresheet
     , persistent-template >=2.0
     , safe
     , shakespeare >=2.0
+    , stm
     , template-haskell
     , text >=0.11
     , time
@@ -138,12 +143,14 @@ executable livescoresheet
     , wai-extra >=3.0
     , wai-logger >=2.2
     , warp >=3.0
+    , websockets
     , yaml >=0.8
     , yesod >=1.4.3
     , yesod-auth >=1.4.0
     , yesod-core >=1.4.30
     , yesod-form >=1.4.0
     , yesod-static >=1.4.0.3
+    , yesod-websockets
   if flag(library-only)
     buildable: False
   other-modules:
