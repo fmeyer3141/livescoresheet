@@ -36,8 +36,8 @@ nextAttemptNr s l
     d :: Discipline
     d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
 
-nextWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
-nextWeight s l att
+attWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
+attWeight s l att
   | att == Just 1    = attemptWeight $ att1 d
   | att == Just 2    = attemptWeight $ att2 d
   | att == Just 3    = attemptWeight $ att3 d
@@ -45,6 +45,9 @@ nextWeight s l att
 
   where
     d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
+
+nextWeight :: MeetState -> Lifter -> Maybe Double
+nextWeight ms l = attWeight ms l $ nextAttemptNr ms l
 
 cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
 cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe
@@ -96,8 +99,8 @@ cmpLifterOrder s l1 l2
         compareMaybe (Just x) (Just y) = compare x y
         attemptNrl1 = nextAttemptNr s l1
         attemptNrl2 = nextAttemptNr s l2
-        weightl1 = nextWeight s l1 $ attemptNrl1
-        weightl2 = nextWeight s l2 $ attemptNrl2
+        weightl1 = nextWeight s l1
+        weightl2 = nextWeight s l2
 
 cmpLifterClass :: Lifter -> Lifter -> Ordering
 cmpLifterClass l1 l2 | getClass l1 /= getClass l2
@@ -141,12 +144,22 @@ getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen
     getPlateHelper Plate1_25 w1
       = let (n, _) = numplates w1 (2*1.25) in pure (Plate1_25, n)
 
+(!!) :: [a] -> Int -> Maybe a
+(!!) (x:xs) i =
+  case compare i 0 of
+    LT -> Nothing
+    EQ -> Just x
+    GT -> xs !! (i-1)
+(!!) []     _ = Nothing
+
+getNextLifters :: MeetState -> [Lifter] -> [Lifter]
+getNextLifters s lifterList = filter (\l -> Nothing /= nextWeight s l)
+                              $ sortBy (cmpLifterOrder s)
+                              $ filter ((==) (meetStateCurrGroupNr s) . lifterGroup) lifterList
+
 -- LifterListe -> Gruppennr -> Nächster Lifter
 getNextLifterInGroup :: MeetState -> [Lifter] -> Maybe Lifter
-getNextLifterInGroup s lifterlist = listToMaybe nextLifters
-  where
-    nextLifters = filter (\l -> Nothing /= nextWeight s l (nextAttemptNr s l))
-                     $ sortBy (cmpLifterOrder s)
-                     $ filter ((==) (meetStateCurrGroupNr s) . lifterGroup) lifterlist
+getNextLifterInGroup ms l = (getNextLifters ms l) !! 0
 
-
+getNext2LiftersInGroup :: MeetState -> [Lifter] -> (Maybe Lifter, Maybe Lifter)
+getNext2LiftersInGroup ms l = let n = getNextLifters ms l in (n !! 0, n !! 1)

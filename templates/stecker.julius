@@ -1,13 +1,18 @@
-var canvas = document.querySelector('canvas');
-var c = canvas.getContext('2d');
-var plates = undefined;
-var head1 = document.querySelector('h1');
-var head2 = document.querySelector('h2');
+var canvas1 = document.querySelectorAll('canvas')[0];
+var canvas2 = document.querySelectorAll('canvas')[1];
+var c1 = canvas1.getContext('2d');
+var c2 = canvas2.getContext('2d');
+var plates1 = undefined;
+var plates2 = undefined;
+var head11 = document.querySelectorAll('h1')[0];
+var head21 = document.querySelectorAll('h2')[0];
+var head12 = document.querySelectorAll('h1')[1];
+var head22 = document.querySelectorAll('h2')[1];
 var url = document.URL;
 url = url.replace("http:", "ws:").replace("https:", "wss:");
 var socket = undefined;
 
-function determineFontSize(txt,maxSize) {
+function determineFontSize(txt,maxSize,c) {
   var size = 15;
   c.font = size.toString() + "px" + " sans-serif";
 
@@ -20,19 +25,33 @@ function determineFontSize(txt,maxSize) {
 }
 
 function initCanvas() {
-  canvas.width = window.innerWidth - 2;
-  canvas.height =  window.innerHeight - canvas.getBoundingClientRect().top - 7;
+  var height = window.innerHeight;
+  var descrHeight = canvas1.getBoundingClientRect().top;
+  var canvasHeight = (height - 2*descrHeight)/2 - 7;
+  canvas1.width = window.innerWidth - 2;
+  canvas1.height =  canvasHeight;
+  canvas2.width = window.innerWidth - 2;
+  canvas2.height = canvasHeight;
 
-  head1.align = 'center';
-  head2.align = 'center';
+  head11.align = 'center';
+  head21.align = 'center';
+  head12.align = 'center';
+  head22.align = 'center';
 
-  if (plates != undefined)
-    drawPlates(plates);
+  if (plates1 != undefined) {
+    drawPlates(plates1,canvas1,c1);
+  }
+  if (plates2 != undefined) {
+    drawPlates(plates2,canvas2,c2);
+  }
 }
 
 window.addEventListener('resize', initCanvas, false);
 
-function drawPlates(plates) {
+function drawPlates(plates, canvas, c) {
+  if (plates == undefined)
+    return;
+
   c.textBaseline = 'middle';
   c.clearRect(0,0,canvas.width,canvas.height);
   //Stange zeichnen
@@ -42,7 +61,8 @@ function drawPlates(plates) {
   var xoffset = 0.02*canvas.width;
   //25er Zeichnen
   var txt="25";
-  determineFontSize(txt,0.06*canvas.width);
+  determineFontSize(txt,0.06*canvas.width,c);
+  determineFontSize(txt,0.06*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[0][1]; i++) {
     c.fillStyle = 'rgb(255,0,0)';
@@ -54,7 +74,7 @@ function drawPlates(plates) {
 
   //20er (ja Schleifen unnötig aber Copy & Paste)
   var txt="20";
-  determineFontSize(txt,0.05*canvas.width);
+  determineFontSize(txt,0.05*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[1][1]; i++) {
     c.fillStyle = 'rgb(0,0,255)';
@@ -66,7 +86,7 @@ function drawPlates(plates) {
 
   //15er
   var txt="15";
-  determineFontSize(txt,0.05*canvas.width);
+  determineFontSize(txt,0.05*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[2][1]; i++) {
     c.fillStyle = 'rgb(238,238,0)';
@@ -78,7 +98,7 @@ function drawPlates(plates) {
 
   //10er
   var txt="10";
-  determineFontSize(txt,0.048*canvas.width);
+  determineFontSize(txt,0.048*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[3][1]; i++) {
     c.fillStyle = 'rgb(0,120,0)';
@@ -90,7 +110,7 @@ function drawPlates(plates) {
 
   //5er
   var txt="5";
-  determineFontSize(txt,0.048*canvas.width);
+  determineFontSize(txt,0.048*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[4][1]; i++) {
     c.fillStyle = 'rgb(255,255,255)';
@@ -102,7 +122,7 @@ function drawPlates(plates) {
 
   //2.5er
   var txt="2.5";
-  determineFontSize(txt,0.036*canvas.width);
+  determineFontSize(txt,0.036*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[5][1]; i++) {
     c.fillStyle = 'rgb(0,0,0)';
@@ -114,7 +134,7 @@ function drawPlates(plates) {
 
   //1.25er
   var txt="1.25";
-  determineFontSize(txt,0.036*canvas.width);
+  determineFontSize(txt,0.036*canvas.width,c);
   var width = c.measureText(txt).width;
   for (var i = 0; i < plates[6][1]; i++) {
     c.fillStyle = 'rgb(212,221,182)';
@@ -133,7 +153,12 @@ function drawPlates(plates) {
     0.065*canvas.width, 0.007*canvas.height);
 }
 
-function showLifter(lifter) {
+function showLifter(lifter, head1, head2) {
+  if (lifter == undefined)
+    return;
+
+  console.log("show lifter");
+  console.log(lifter);
   head1.innerHTML = lifter[0]; //Name
   head1.innerHTML += " - ";
   head1.innerHTML += lifter[5]; //Gewicht
@@ -150,10 +175,21 @@ function init() {
   socket.onmessage = function(e) {
       var data = JSON.parse(e.data);
       console.log("onmessage");
-      console.log(data);
-      plates = data[6];
-      drawPlates(plates);
-      showLifter(data);
+      // console.log(data);
+      if (data[0] == null)
+        plates1 = undefined;
+      else
+        plates1 = data[0][6];
+
+      if (data[1] == null)
+        plates2 = undefined;
+      else
+        plates2 = data[1][6];
+
+      drawPlates(plates1, canvas1, c1);
+      drawPlates(plates2, canvas2, c2);
+      showLifter(data[0],head11,head21);
+      showLifter(data[1],head12,head22);
   };
 
   socket.onerror = function(e) {

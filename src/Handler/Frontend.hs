@@ -22,8 +22,8 @@ computeFrontendData (ms, lifters) =
      let groupNr = meetStateCurrGroupNr ms
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
      let nextLifters = sortBy (cmpLifterOrder ms) lifterGroupList
-     let nextLiftersFiltered = filter (\l -> isJust $ (nextWeight ms l) (nextAttemptNr ms l)) nextLifters
-     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight ms l $ nextAttemptNr ms l, nextAttemptNr ms l))
+     let nextLiftersFiltered = filter (\l -> isJust $ nextWeight ms l) nextLifters
+     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight ms l, nextAttemptNr ms l))
                                  nextLiftersFiltered
      let mc = getClass <$> listToMaybe nextLiftersFiltered
      let liftersSortedByClass = case mc of

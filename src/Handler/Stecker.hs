@@ -18,15 +18,15 @@ test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 
 computeSteckerData :: (MeetState, [Lifter]) -> Value
 computeSteckerData (ms, lifters) =
-  let nextLifter = getNextLifterInGroup ms lifters in
-  toJSON $ do
-    l <- nextLifter
-    nextWeightl <- nextWeight ms l $ nextAttemptNr ms l
-    return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
-           , meetStateCurrGroupNr ms, nextAttemptNr ms l, nextWeightl, getPlates nextWeightl)
-    -- return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
-    --        , meetStateCurrGroupNr ms, nextAttemptNr ms l, nextWeightl, test )
+  toJSON $ doubleMap getLifterInfo $ getNext2LiftersInGroup ms lifters
 
+  where
+    getLifterInfo ml =
+      do
+        l <- ml
+        w <- nextWeight ms l
+        return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
+               , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
 getSteckerR :: Handler Html
 getSteckerR = do
     webSockets $ dataSocket computeSteckerData

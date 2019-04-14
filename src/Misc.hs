@@ -12,6 +12,9 @@ import Data.Text as T
 
 import Handler.Admin
 
+doubleMap :: (a -> b) -> (a,a) -> (b,b)
+doubleMap f = bimap f f
+
 connectionError :: ConnectionException -> WebSocketsT Handler ()
 connectionError (ParseException s)   = liftIO $ putStrLn $ "ParseException " ++ T.pack s
 connectionError (UnicodeException s) = liftIO $ putStrLn $ "UnicodeException " ++ T.pack s
