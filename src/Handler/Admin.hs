@@ -96,7 +96,7 @@ truncBackupHistory = do
 pushDataToChannel :: (MeetState, [Lifter]) -> Handler ()
 pushDataToChannel (ms, lifters) = do
   wChan <- appFrontendChannel <$> getYesod
-  atomically $ writeTChan wChan (ms, lifters)
+  atomically $ writeTChan wChan $ LifterUpdate (ms, lifters)
 
 restoreBackup :: Handler ()
 restoreBackup = do

@@ -16,8 +16,8 @@ import Scoresheetlogic
 import Handler.Admin
 import Misc
 
-computeFrontendData :: (MeetState, [Lifter]) -> Value
-computeFrontendData (ms, lifters) =
+computeFrontendData :: FrontendMessage -> Maybe Value
+computeFrontendData (LifterUpdate (ms, lifters)) =
   do
      let groupNr = meetStateCurrGroupNr ms
      let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
@@ -32,7 +32,7 @@ computeFrontendData (ms, lifters) =
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
-     toJSON (liftersOverview, nextLiftersOutput)
+     Just $ toJSON (liftersOverview, nextLiftersOutput)
      where
         isNext :: Maybe Lifter -> Lifter -> Bool
         isNext (Just l') l = l == l'

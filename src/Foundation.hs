@@ -31,6 +31,8 @@ username = "admin"
 password :: Text
 password = (T.init . decodeUtf8) $(embedFile "config/pass") -- Zeilenumbruch entfernen
 
+data FrontendMessage = LifterUpdate (MeetState, [Lifter])
+
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
@@ -41,7 +43,7 @@ data App = App
     , appConnPool        :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager     :: Manager
     , appLogger          :: Logger
-    , appFrontendChannel :: TChan (MeetState, [Lifter])
+    , appFrontendChannel :: TChan FrontendMessage
     }
 
 data MenuItem = MenuItem

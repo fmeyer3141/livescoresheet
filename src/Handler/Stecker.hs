@@ -16,9 +16,9 @@ import qualified Prelude as P
 test :: [(Plate,Int)] -- Jede Scheibe einmal und zwei 25er zum Layout testen
 test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 
-computeSteckerData :: (MeetState, [Lifter]) -> Value
-computeSteckerData (ms, lifters) =
-  toJSON $ doubleMap getLifterInfo $ getNext2LiftersInGroup ms lifters
+computeSteckerData :: FrontendMessage -> Maybe Value
+computeSteckerData (LifterUpdate (ms, lifters)) =
+  Just $ toJSON $ doubleMap getLifterInfo $ getNext2LiftersInGroup ms lifters
 
   where
     getLifterInfo ml =

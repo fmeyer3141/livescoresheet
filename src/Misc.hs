@@ -20,11 +20,12 @@ connectionError (ParseException s)   = liftIO $ putStrLn $ "ParseException " ++ 
 connectionError (UnicodeException s) = liftIO $ putStrLn $ "UnicodeException " ++ T.pack s
 connectionError _                    = pure () -- Connection closed
 
-dataSocket :: ((MeetState, [Lifter]) -> Value) -> WebSocketsT Handler ()
+dataSocket :: (FrontendMessage -> Maybe Value) -> WebSocketsT Handler ()
 dataSocket computeData = do
   c <- appFrontendChannel <$> getYesod
+  -- send current state for Frontend
   dbData <- lift getDataFromDB
-  sendJSON dbData
+  sendJSON $ LifterUpdate dbData
   rChan <- Import.atomically $ dupTChan c
   catch
     (race_
@@ -33,7 +34,10 @@ dataSocket computeData = do
     connectionError
 
   where
-    sendJSON :: (MeetState, [Lifter]) -> WebSocketsT Handler ()
-    sendJSON d = sendTextData (encode $ computeData d)
+    sendJSON :: FrontendMessage -> WebSocketsT Handler ()
+    sendJSON d =
+      case computeData d of
+        Nothing     -> pure ()
+        Just toSend -> sendTextData (encode toSend)
     discardRes :: ByteString -> WebSocketsT Handler ()
     discardRes _ = pure ()
