@@ -206,11 +206,13 @@ lifterForm (Entity lId Lifter {..}) = do
 
 liftersForm :: MeetState -> [Entity Lifter] -> Html -> MForm Handler (FormResult [Entity Lifter], Widget)
 liftersForm meetState eLifterList extra = do
-  list <- forM eLifterList lifterForm
+  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (fromEntity l) (fromEntity l')) eLifterList
+  list <- forM sortedList lifterForm
   let reslist = fmap fst list :: [FormResult (Entity Lifter)]
   let res0 = (catMaybes $ map formEval reslist) :: [Entity Lifter]
   let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList viewList :: [[(Lifter,Widget)]]
+  -- Combine Widgets and Lifters and then group by liftergroups
+  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (fromEntities sortedList) viewList :: [[(Lifter,Widget)]]
   let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
                                                                   Gruppe #{lifterGroup $ P.fst $ P.head l}
@@ -234,10 +236,9 @@ liftersForm meetState eLifterList extra = do
   else return (pure res0, framedFrom)
 
   where
-    lifterList = sortBy (cmpLifterGroupAndOrder meetState) $ map (\(Entity _ l) -> l) eLifterList
     formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
     formEval (FormSuccess s) = Just s
-    formEval _ = Nothing
+    formEval _               = Nothing
 
 postAdminR :: Handler Html
 postAdminR = do
