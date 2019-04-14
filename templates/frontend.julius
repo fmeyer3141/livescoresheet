@@ -1,6 +1,18 @@
+var autoReload = true;
+
 init();
 var lifters = undefined;
-var socket = undefined;
+
+function toggleAutoReload () {
+  if (autoReload) {
+    autoReload = false;
+  } else {
+    autoReload = true;
+    // update the ui to show all missed updates
+    showNextLifters(lifters[1]);
+    showRanking(lifters[0]);
+  }
+}
 
 function init() {
   var url = document.URL;
@@ -10,10 +22,12 @@ function init() {
   socket.onmessage = function (e) {
     var data = JSON.parse(e.data);
     lifters = data;
-    console.log("success;");
-    console.log(data);
-    showNextLifters(data[1]);
-    showRanking(data[0]);
+    if (autoReload) {
+      console.log("success;");
+      console.log(data);
+      showNextLifters(data[1]);
+      showRanking(data[0]);
+    }
   };
 
   socket.onerror = function (e) {
