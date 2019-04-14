@@ -43,10 +43,17 @@ resetDB = do
   runDB $ deleteWhere ([] :: [Filter LifterBackup])
   runDB $ deleteWhere ([] :: [Filter MeetState])
 
+getELiftersFromDB :: Handler [Entity Lifter]
+getELiftersFromDB = runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
+
+fromEntity :: Entity a -> a
+fromEntity (Entity _ x) = x
+
+fromEntities :: [Entity a] -> [a]
+fromEntities = map fromEntity
+
 getLiftersFromDB :: Handler [Lifter]
-getLiftersFromDB = do
-  dataSet <- runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
-  return [lifter | (Entity _ lifter) <- dataSet]
+getLiftersFromDB = fromEntities <$> getELiftersFromDB
 
 getCurrMeetStateFromDB :: Handler MeetState
 getCurrMeetStateFromDB = do
@@ -118,8 +125,9 @@ getAdminR :: Handler Html
 getAdminR = do
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
-    (meetState, lifters) <- getDataFromDB
-    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState lifters
+    meetState <- getCurrMeetStateFromDB
+    eLifters <- getELiftersFromDB
+    (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState eLifters
     (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
 
     defaultLayout $ do
@@ -177,8 +185,9 @@ resForm res =
       resChangesf (FormSuccess d) (_,l) = fmap $ set l d
       resChangesf _               _     = id
 
-lifterForm :: Lifter -> MForm Handler (FormResult Lifter, Widget)
-lifterForm Lifter {..} = do
+lifterForm :: Entity Lifter -> MForm Handler (FormResult (Entity Lifter), Widget)
+lifterForm (Entity lId Lifter {..}) = do
+  (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
   (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
   (resRes, resView) <- resForm lifterRes
   let lifterResulting = Lifter lifterName lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
@@ -186,22 +195,22 @@ lifterForm Lifter {..} = do
   let widget = [whamlet|
          <div class="lifterRow">
            <span class="lifterName"> #{lifterName}
+           ^{fvInput idView}
            ^{fvInput groupView}
            ^{resView}
   |]
-  return (lifterResulting, widget)
+  return (Entity <$> idRes <*> lifterResulting, widget)
   where
       fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
 
 
-liftersForm :: MeetState -> [Lifter] -> Html -> MForm Handler (FormResult [Lifter], Widget)
-liftersForm meetState lifterList extra = do
-  list <- forM lifterList' lifterForm
-  let reslist = fmap fst list :: [FormResult Lifter]
-  let res0' = (map formEval reslist) :: [Maybe Lifter]
-  let res0 = (map (\(Just x) -> x) $ filter (/= Nothing) $ res0') :: [Lifter]
+liftersForm :: MeetState -> [Entity Lifter] -> Html -> MForm Handler (FormResult [Entity Lifter], Widget)
+liftersForm meetState eLifterList extra = do
+  list <- forM eLifterList lifterForm
+  let reslist = fmap fst list :: [FormResult (Entity Lifter)]
+  let res0 = (catMaybes $ map formEval reslist) :: [Entity Lifter]
   let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
-  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList' viewList :: [[(Lifter,Widget)]]
+  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip lifterList viewList :: [[(Lifter,Widget)]]
   let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
                                                                   Gruppe #{lifterGroup $ P.fst $ P.head l}
@@ -225,7 +234,7 @@ liftersForm meetState lifterList extra = do
   else return (pure res0, framedFrom)
 
   where
-    lifterList' = sortBy (cmpLifterGroupAndOrder meetState) lifterList
+    lifterList = sortBy (cmpLifterGroupAndOrder meetState) $ map (\(Entity _ l) -> l) eLifterList
     formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
     formEval (FormSuccess s) = Just s
     formEval _ = Nothing
@@ -238,7 +247,7 @@ postAdminR = do
   case result of
       FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
       _ -> do
-          lifters <- getLiftersFromDB
+          lifters <- getELiftersFromDB
           ((res,_),_) <- runFormPost $ liftersForm meetState lifters
           case res of
               FormSuccess lifterList -> do
@@ -247,15 +256,13 @@ postAdminR = do
                   case backVersion of
                     Nothing -> backupLifter (map entityVal backup) 0
                     Just x -> backupLifter (map entityVal backup) (x+1)
-                  let filteredLifterList = filter ((==) groupNr . lifterGroup) lifterList
-                  let todo = [runDB $ updateWhere
-                             [LifterName ==. n]
-                             [LifterGroup =. g, LifterRes =. results]
-                              | (Lifter n _ _ _ _ _ _ g results _)<-filteredLifterList] :: [Handler ()]
+                  let filteredLifterList = filter ((==) groupNr . lifterGroup . fromEntity) lifterList
+                  let todo = [runDB $ updateWhere [LifterId ==. lId] [LifterGroup =. lifterGroup, LifterRes =. lifterRes]
+                              | (Entity lId Lifter {..}) <-filteredLifterList] :: [Handler ()]
                   sequence_ todo
                   truncBackupHistory
                   -- update Frontends
-                  pushDataToChannel (meetState, lifterList)
+                  pushDataToChannel (meetState, fromEntities lifterList)
                   getAdminR
               FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
               _ -> do
@@ -264,7 +271,7 @@ postAdminR = do
                       FormSuccess ms@(MeetState {..}) -> do
                         runDB $ updateWhere ([] :: [Filter MeetState]) [ MeetStateCurrGroupNr =. meetStateCurrGroupNr
                                                                        , MeetStateCurrDiscipline =. meetStateCurrDiscipline]
-                        pushDataToChannel (ms, lifters)
+                        pushDataToChannel (ms, fromEntities lifters)
                         getAdminR
 
                       FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
