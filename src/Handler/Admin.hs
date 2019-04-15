@@ -311,8 +311,9 @@ postAdminR = do
                   let filteredLifterList = filter ((==) groupNr . lifterGroup . fromEntity) lifterList
                   updateLiftersInDB filteredLifterList
                   truncBackupHistory
-                  -- update Frontends
-                  pushDataToChannel (meetState, fromEntities lifterList)
+                  -- update Frontends from DB in order to send consistent information
+                  -- (e.g. were the attempts up-to-date and therefore stored?)
+                  pushDataFromDBToChannel
                   getAdminR
               FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
               _ -> do
