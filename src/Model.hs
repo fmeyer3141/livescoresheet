@@ -53,7 +53,7 @@ instance ToJSON RefereeDecision where
   toJSON RefereeDecision {..} = toJSON (red,blue,yellow)
 
 instance Show RefereeDecision where
-  show (RefereeDecision r b y) = show . filter snd $ zip ["r","b","y"] [r,b,y]
+  show (RefereeDecision r b y) = show . filter snd $ zip (["r","b","y"] :: [[Char]]) [r,b,y]
 
 data RefereeResult = RefereeResult { refereeLeft  :: Maybe RefereeDecision
                                    , refereeMain  :: Maybe RefereeDecision

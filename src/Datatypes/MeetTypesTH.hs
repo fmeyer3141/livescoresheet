@@ -35,7 +35,7 @@ inValidateAttempt (Todo w t) = Just $ Fail w t
 inValidateAttempt _          = Nothing
 
 attSetChangedDate :: UTCTime -> Attempt -> Attempt
-attSetChangedDate t' (Unset t)     = Unset t'
+attSetChangedDate t' (Unset _)     = Unset t'
 attSetChangedDate t' (Todo w _)    = Todo w t'
 attSetChangedDate t' (Success w _) = Success w t'
 attSetChangedDate t' (Fail w _)    = Fail w t'
