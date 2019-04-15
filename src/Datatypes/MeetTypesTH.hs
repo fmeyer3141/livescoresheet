@@ -9,7 +9,6 @@ import Language.Haskell.TH
 import Settings
 import Yesod.Default.Config2
 import Data.Text as T
-import Data.Time
 
 type Weight = Double
 data Attempt = Unset UTCTime

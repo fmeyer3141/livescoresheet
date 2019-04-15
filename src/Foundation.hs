@@ -26,10 +26,17 @@ import qualified Data.Text.Encoding as TE
 import Yesod.Auth.Message
 import qualified Data.Text as T
 
-username:: Text
-username = "admin"
-password :: Text
-password = (T.init . decodeUtf8) $(embedFile "config/pass") -- Zeilenumbruch entfernen
+usernameAdmin :: Text
+usernameAdmin = "admin"
+
+passwordAdmin :: Text
+passwordAdmin = (T.init . decodeUtf8) $(embedFile "config/passAdmin") -- Zeilenumbruch entfernen
+
+usernameKari :: Text
+usernameKari = "kari"
+
+passwordKari :: Text
+passwordKari = (T.init . decodeUtf8) $(embedFile "config/passKari") -- Zeilenumbruch entfernen
 
 data FrontendMessage = LifterUpdate (MeetState, [Lifter])
 
@@ -79,6 +86,13 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 type DB a = ∀ (m :: * -> *).
     (MonadIO m, Functor m) => ReaderT SqlBackend m a
 
+authorizedMinimal = do
+                      muid <- maybeAuthId
+                      return $ case muid of
+                        Nothing -> AuthenticationRequired
+                        Just usern -> if (usern==usernameKari || usern==usernameAdmin)
+                                      then Authorized else AuthenticationRequired
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -126,9 +140,14 @@ instance Yesod App where
                               muid <- maybeAuthId
                               return $ case muid of
                                 Nothing -> AuthenticationRequired
-                                Just usern -> if usern==username then Authorized
+                                Just usern -> if usern==usernameAdmin then Authorized
                                                                  else AuthenticationRequired
     isAuthorized UndoR b = isAuthorized AdminR b
+
+    isAuthorized (JuryR _) _ = authorizedMinimal
+
+    isAuthorized OverviewR _ = authorizedMinimal
+
     isAuthorized _ _ = return Authorized
 
     -- isAuthorized ProfileR _ = isAuthenticated
@@ -179,7 +198,7 @@ instance YesodAuth App where
     type AuthId App = Text
 
     -- Where to send a user after successful login
-    loginDest _ = AdminR
+    loginDest _ = OverviewR
     -- Where to send a user after logout
     logoutDest _ = FrontendR
 
@@ -187,9 +206,9 @@ instance YesodAuth App where
       return
         (case credsPlug of
            "hardcoded" ->
-             case credsId == username of
-               False-> UserError InvalidLogin
-               True -> Authenticated (username)
+             case (credsId == usernameAdmin || credsId == usernameKari) of
+               False  -> UserError InvalidLogin
+               True   -> Authenticated credsId
            _ ->  error "Different Authplugin than hardcoded")
 
     authPlugins _ = [authHardcoded]
@@ -197,18 +216,15 @@ instance YesodAuth App where
     -- authHttpManager = getHttpManager
 
 instance YesodAuthHardcoded App where
-  validatePassword u p = do
-                         return $ u==username && p==password
+  validatePassword u p = return $ (u==usernameAdmin && p==passwordAdmin)
+                               || (u==usernameKari  && p==passwordKari)
   doesUserNameExist  = return . (==) "admin"
 
 
 instance YesodAuthPersist App where
   type AuthEntity App = Text
 
-  getAuthEntity usern = do
-                          return $ case usern==username of
-                                     True -> Just $ usern
-                                     False -> Nothing
+  getAuthEntity usern = pure $ if usern==usernameAdmin || usern==usernameKari then Just $ usern else Nothing
 
 
 -- This instance is required to use forms. You can modify renderMessage to

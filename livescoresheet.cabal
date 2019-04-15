@@ -81,7 +81,9 @@ library
       Handler.Common
       Handler.Admin
       Handler.Frontend
+      Handler.Jury
       Handler.Stecker
+      Handler.Overview
       Handler.Urkunden
       Import
       Import.NoFoundation

@@ -7,7 +7,10 @@
 /favicon.png FaviconR GET
 /robots.txt RobotsR GET
 
+/overview OverviewR GET
+
 /admin AdminR GET POST
+/jury/#RefereePlaces JuryR GET POST
 /undo UndoR GET
 / FrontendR GET
 /stecker SteckerR GET

@@ -30,19 +30,28 @@ import Data.Maybe
 import qualified Prelude as P
 import Control.Lens (view)
 
+import qualified Data.Text as T
+
 -- You can define all of your database entities in the entities file.
 -- You can find more information on persistent and how to declare entities
 -- at:
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
 
-data RefereePlaces  = PLeft | PMain | PRight
+data RefereePlaces  = PLeft | PMain | PRight deriving (Show, Eq, Read)
+
+instance PathPiece RefereePlaces where
+  toPathPiece = T.pack . show
+  fromPathPiece s =
+    case P.reads $ T.unpack s of
+      (p, ""):_ -> Just p
+      _         -> Nothing
 
 data RefereeDecision (p :: RefereePlaces) = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
 
-data RefereeResult = RefereeResult { left  :: Maybe (RefereeDecision PLeft)
-                                   , main  :: Maybe (RefereeDecision PMain)
-                                   , right :: Maybe (RefereeDecision PRight) }
+data RefereeResult = RefereeResult { left  :: Maybe (RefereeDecision 'PLeft)
+                                   , main  :: Maybe (RefereeDecision 'PMain)
+                                   , right :: Maybe (RefereeDecision 'PRight) }
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> (view l) res) <$> meetType
