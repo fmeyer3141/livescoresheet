@@ -44,6 +44,7 @@ data App = App
     , appHttpManager     :: Manager
     , appLogger          :: Logger
     , appFrontendChannel :: TChan FrontendMessage
+    , refereeState       :: IORef RefereeResult
     }
 
 data MenuItem = MenuItem

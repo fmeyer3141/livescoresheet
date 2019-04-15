@@ -8,6 +8,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE DataKinds                  #-}
 
 module Model ( module MeetTypesTH
              , module THApplStage1
@@ -34,6 +35,14 @@ import Control.Lens (view)
 -- at:
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
+
+data RefereePlaces  = PLeft | PMain | PRight
+
+data RefereeDecision (p :: RefereePlaces) = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
+
+data RefereeResult = RefereeResult { left  :: Maybe (RefereeDecision PLeft)
+                                   , main  :: Maybe (RefereeDecision PMain)
+                                   , right :: Maybe (RefereeDecision PRight) }
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> (view l) res) <$> meetType
