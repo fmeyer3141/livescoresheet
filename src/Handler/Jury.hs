@@ -23,16 +23,24 @@ prettyPrintPos PLeft  = "Seitenkampfrichter Links"
 prettyPrintPos PMain  = "Hauptkampfrichter"
 prettyPrintPos PRight = "Seitenkampfrichter Rechts"
 
-getJuryR :: RefereePlaces -> Handler Html
-getJuryR p = do
+-- Did the Post work?
+getJuryR' :: RefereePlaces -> Maybe Bool -> Handler Html
+getJuryR' p mb = do
   (colorFormWidget, colorFormEnctype) <- generateFormPost $ colorForm
-  defaultLayout $
+  defaultLayout $ do
+    case mb of
+      Just True -> [whamlet| Die Daten wurden gespeichert |]
+      Just False -> [whamlet| eerrrrrorrrr |]
+      Nothing -> pure ()
     [whamlet|
       <h1> Kamprichterposition: #{prettyPrintPos p}
       <form method=post action@{AdminR} enctype=#{colorFormEnctype}>
         ^{colorFormWidget}
         <button type=submit> Absenden
     |]
+
+getJuryR :: RefereePlaces -> Handler Html
+getJuryR p = getJuryR' p Nothing
 
 allDecEntered :: RefereeResult -> Bool
 allDecEntered (RefereeResult (Just _) (Just _) (Just _)) = True
@@ -113,7 +121,7 @@ postJuryR p = do
       else
         pure ()
 
-      defaultLayout $ [whamlet| Gespeichert|]
+      getJuryR' p $ Just True
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]
