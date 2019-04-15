@@ -130,10 +130,19 @@ truncBackupHistory = do
                                    runDB $ deleteWhere [LifterBackupVersion >. deleteAfterVersion]
                          False -> return ()
 
-pushDataToChannel :: (MeetState, [Lifter]) -> Handler ()
-pushDataToChannel (ms, lifters) = do
+pushInChannel :: FrontendMessage -> Handler ()
+pushInChannel m = do
   wChan <- appFrontendChannel <$> getYesod
-  atomically $ writeTChan wChan $ LifterUpdate (ms, lifters)
+  atomically $ writeTChan wChan $ m
+
+pushDataToChannel :: (MeetState, [Lifter]) -> Handler ()
+pushDataToChannel = pushInChannel . LifterUpdate
+
+pushDataFromDBToChannel :: Handler ()
+pushDataFromDBToChannel =
+  do
+    d <- getDataFromDB
+    pushDataToChannel d
 
 restoreBackup :: Handler ()
 restoreBackup = do
@@ -160,6 +169,7 @@ meetStateForm MeetState {..} = renderDivs $
 
 getAdminR :: Handler Html
 getAdminR = do
+    addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
     meetState <- getCurrMeetStateFromDB

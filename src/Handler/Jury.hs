@@ -108,6 +108,7 @@ postJuryR p = do
       if allDecEntered refereeState then do
         liftIO $ putStrLn "All decisions entered"
         markLift refereeState
+        pushDataFromDBToChannel
       else
         pure ()
 
