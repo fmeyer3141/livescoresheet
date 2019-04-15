@@ -7,8 +7,6 @@
 
 module THApplStage1 where
 import qualified Data.Text as T
-import qualified Prelude as P
-import qualified Data.Foldable as F
 import ClassyPrelude.Yesod
 import Language.Haskell.TH
 import MeetTypesTH
@@ -41,13 +39,19 @@ meetTypeTH = do
       genTuple discName = TupE [ LitE (StringL discName),VarE (mkName ("disc" ++ discName)) ]
       tuples discs = map genTuple discs
 
+apFlipped :: Applicative f => f a -> f (a -> b) -> f b
+apFlipped = flip (<*>)
+
 emptyResultsTH :: Q [Dec]
 emptyResultsTH = do
     discs <- liftIO readDisciplines
     let emptyResultsName    = mkName "emptyResults"
-    let emptyDisciplineName = mkName "emptyDiscipline"
     let resultsName         = mkName "Results"
-    let apps = F.foldl' (\a n -> AppE a n) (ConE resultsName) $ P.replicate (length discs) (VarE emptyDisciplineName)
+    let apps = genApps discs
     pure $
-      [ SigD emptyResultsName (ConT resultsName)
+      [ SigD emptyResultsName (AppT (AppT ArrowT $ ConT $ mkName "UTCTime") $ ConT resultsName)
       , ValD (VarP emptyResultsName) (NormalB apps) []]
+
+    where
+      genApps []     = AppE (VarE $ mkName "pure")  $ ConE (mkName "Results")
+      genApps (_:ds) = AppE (AppE (VarE $ mkName "apFlipped") (VarE $ mkName "emptyDiscipline")) $ genApps ds

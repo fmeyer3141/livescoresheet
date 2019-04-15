@@ -68,6 +68,43 @@ getDataFromDB :: Handler (MeetState, [Lifter])
 getDataFromDB =
   (,) <$> getCurrMeetStateFromDB <*> getLiftersFromDB
 
+updateLiftersInDB :: [(Entity Lifter)] -> Handler ()
+updateLiftersInDB args = do
+  lock <- adminTimestampLock <$> getYesod
+  withMVar lock $ \_ -> do
+    time <- liftIO getCurrentTime
+    liftersInDB <- getELiftersFromDB
+    sequence_ $ (updatePr time liftersInDB) <$> args
+
+  where
+    updatePr :: UTCTime -> [Entity Lifter] -> Entity Lifter -> Handler ()
+    updatePr t els el@(Entity lId l) = do
+      let res = find ((==) lId . entityKey) els
+      case res of
+        Just fl -> updateLifterInDB t (fl, l)
+        Nothing -> liftIO $ putStrLn $ "Could not find Lifter " ++ (T.pack $ show el) ++ " in DB"
+
+    -- Entity Lifter is the old version from the db, Lifter contains the (perhaps) new attributes
+    updateLifterInDB :: UTCTime -> (Entity Lifter, Lifter) -> Handler ()
+    updateLifterInDB t ((Entity lId l), l') =
+      runDB $ updateWhere [LifterId ==. lId]
+                          [LifterGroup =. lifterGroup l', LifterRes =. updateLifterRes t (lifterRes l) (lifterRes l')]
+    -- store/keep the newest entry in the DB
+    updateLifterRes :: UTCTime -> Results -> Results -> Results
+    updateLifterRes t res res' = F.foldl' (\r' (v,m) -> m (updateLifterDisc t (v res)) r') res' $ zip viewLens modifyLens
+    updateLifterDisc :: UTCTime -> Discipline -> Discipline -> Discipline
+    updateLifterDisc t d d' = Discipline { att1 = attSetChangedDate t $ keepNewer (att1 d) (att1 d')
+                                         , att2 = attSetChangedDate t $ keepNewer (att2 d) (att2 d')
+                                         , att3 = attSetChangedDate t $ keepNewer (att3 d) (att3 d') }
+    keepNewer :: Attempt -> Attempt -> Attempt
+    keepNewer att att' =
+      case compare (attGetChangedTime att') (attGetChangedTime att) of
+        GT -> att'
+        _  -> att
+    modifyLens = (over . snd) <$> meetType
+    viewLens = (view . snd) <$> meetType
+
+
 getLatestBackupVersion :: Handler (Maybe Int)
 getLatestBackupVersion =
   do
@@ -140,22 +177,23 @@ csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 attemptForm :: Attempt -> MForm Handler (FormResult Attempt, Widget)
 attemptForm att = do
+  let time = attGetChangedTime att
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
   (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
-  let attRes = createAttempt <$> weightRes <*> succRes
+  let attRes = createAttempt <$> weightRes <*> succRes <*> pure time
   return (attRes, [whamlet| ^{fvInput weightView} ^{fvInput succView}|])
 
   where
     fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
     succType :: [(Text,LiftModifier)]
     succType = [("Todo", MTodo), ("Good", MGood), ("Fail", MFail), ("Skip", MSkip)]
-    createAttempt weight suc =
+    createAttempt weight suc t =
       case (weight, suc) of
-        (Just w, MGood) -> Success w
-        (Just w, MFail) -> Fail w
-        (Just w, MTodo) -> Todo w
-        (_, MSkip)      -> Skip
-        (_, _)          -> Unset
+        (Just w, MGood) -> Success w t
+        (Just w, MFail) -> Fail w t
+        (Just w, MTodo) -> Todo w t
+        (_, MSkip)      -> Skip t
+        (_, _)          -> Unset t
 
 disciplineForm :: Text -> Discipline -> MForm Handler (FormResult Discipline, Widget)
 disciplineForm descr Discipline { .. } =
@@ -258,6 +296,7 @@ postAdminR = do
                     Nothing -> backupLifter (map entityVal backup) 0
                     Just x -> backupLifter (map entityVal backup) (x+1)
                   let filteredLifterList = filter ((==) groupNr . lifterGroup . fromEntity) lifterList
+                  updateLiftersInDB filteredLifterList
                   let todo = [runDB $ updateWhere [LifterId ==. lId] [LifterGroup =. lifterGroup, LifterRes =. lifterRes]
                               | (Entity lId Lifter {..}) <-filteredLifterList] :: [Handler ()]
                   sequence_ todo
@@ -283,9 +322,10 @@ postAdminR = do
     handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
     handleFile typ rawFile |typ=="text/csv" = do
                                                 csv <- liftIO $ parseCSV rawFile
+                                                time <- liftIO $ getCurrentTime
                                                 case fromNullable csv of
                                                   Just csvNonEmpty ->
-                                                    let dataSet = sequenceA $ lifterParse <$> tail csvNonEmpty in
+                                                    let dataSet = sequenceA $ (lifterParse time) <$> tail csvNonEmpty in
                                                     case dataSet of
                                                       (ARight datas) ->
                                                         do
@@ -310,11 +350,11 @@ parseCSV rawFile =
     runResourceT $ runConduit $
     rawFile .| intoCSV defCSVSettings .| sinkList --defCSVSettings means , seperator and " to enclose fields
 
-lifterParse :: Row Text -> ApplEither [Text] Lifter
-lifterParse r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name age <$> safeRead sex      <*> safeRead aclass <*> safeRead wclass
-                    <*> safeRead weight   <*> safeRead raw    <*> safeRead flight
-                    <*> pure emptyResults <*> pure club
+lifterParse :: UTCTime -> Row Text -> ApplEither [Text] Lifter
+lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
+    Lifter name age <$> safeRead sex             <*> safeRead aclass <*> safeRead wclass
+                    <*> safeRead weight          <*> safeRead raw    <*> safeRead flight
+                    <*> pure (emptyResults time) <*> pure club
   where
     safeRead :: (Read a, Show a) => Text -> ApplEither [Text] a
     safeRead s = case P.reads $ T.unpack s of
@@ -322,7 +362,7 @@ lifterParse r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
                    t         -> ALeft . pure $ "Error reading " ++ s ++ " in str " ++ T.intercalate ", " r
                                             ++ " result: "  ++ (T.pack $  show t)
 
-lifterParse input = error ("Wrong number of entries in: " ++ show input)
+lifterParse _ input = error ("Wrong number of entries in: " ++ show input)
 
 getUndoR :: Handler Html
 getUndoR = do
@@ -405,15 +445,15 @@ displ :: Weight -> Text
 displ = pack . show
 
 showAttemptWeight :: Attempt -> Text
-showAttemptWeight (Success w) = displ w
-showAttemptWeight (Fail w)    = displ w
-showAttemptWeight (Todo w)    = displ w
-showAttemptWeight _           = ""
+showAttemptWeight (Success w _) = displ w
+showAttemptWeight (Fail w _)    = displ w
+showAttemptWeight (Todo w _)    = displ w
+showAttemptWeight _             = ""
 
 showGoodLift :: Attempt -> Text
-showGoodLift (Success _) = "1"
-showGoodLift (Fail _)    = "-1"
-showGoodLift _           = "0"
+showGoodLift (Success _ _) = "1"
+showGoodLift (Fail _ _)    = "-1"
+showGoodLift _             = "0"
 
 calcWilks :: Lifter -> Text
 calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $

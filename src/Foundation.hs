@@ -38,13 +38,14 @@ data FrontendMessage = LifterUpdate (MeetState, [Lifter])
 -- starts running, such as database connections. Every handler will have
 -- access to the data present here.
 data App = App
-    { appSettings        :: AppSettings
-    , appStatic          :: Static -- ^ Settings for static file serving.
-    , appConnPool        :: ConnectionPool -- ^ Database connection pool.
-    , appHttpManager     :: Manager
-    , appLogger          :: Logger
-    , appFrontendChannel :: TChan FrontendMessage
-    , refereeState       :: IORef RefereeResult
+    { appSettings         :: AppSettings
+    , appStatic           :: Static -- ^ Settings for static file serving.
+    , appConnPool         :: ConnectionPool -- ^ Database connection pool.
+    , appHttpManager      :: Manager
+    , appLogger           :: Logger
+    , appFrontendChannel  :: TChan FrontendMessage
+    , refereeState        :: IORef RefereeResult
+    , adminTimestampLock  :: MVar ()
     }
 
 data MenuItem = MenuItem
