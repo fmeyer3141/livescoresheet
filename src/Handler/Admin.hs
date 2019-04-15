@@ -144,6 +144,9 @@ pushDataFromDBToChannel =
     d <- getDataFromDB
     pushDataToChannel d
 
+pushRefereeStateToChannel :: (RefereeResult, Bool) -> Handler ()
+pushRefereeStateToChannel = pushInChannel . JuryResult
+
 restoreBackup :: Handler ()
 restoreBackup = do
                   version <- getLatestBackupVersion

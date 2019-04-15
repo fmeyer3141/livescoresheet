@@ -49,6 +49,9 @@ instance PathPiece RefereePlaces where
 
 data RefereeDecision = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
 
+instance ToJSON RefereeDecision where
+  toJSON RefereeDecision {..} = toJSON (red,blue,yellow)
+
 instance Show RefereeDecision where
   show (RefereeDecision r b y) = show . filter snd $ zip ["r","b","y"] [r,b,y]
 
@@ -56,10 +59,18 @@ data RefereeResult = RefereeResult { refereeLeft  :: Maybe RefereeDecision
                                    , refereeMain  :: Maybe RefereeDecision
                                    , refereeRight :: Maybe RefereeDecision }
 
+instance ToJSON RefereeResult where
+  toJSON RefereeResult {..} = toJSON (refereeLeft, refereeMain, refereeRight)
+
+emptyRefereeResult :: RefereeResult
 emptyRefereeResult = RefereeResult Nothing Nothing Nothing
 
 instance Show RefereeResult where
   show (RefereeResult l m r) = show [l,m,r]
+
+data FrontendMessage = LifterUpdate (MeetState, [Lifter])
+                     | JuryResult (RefereeResult, Bool) -- The bool indicates whether the frontend
+                                                         -- shows the result in an overlay or not at all
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> (view l) res) <$> meetType

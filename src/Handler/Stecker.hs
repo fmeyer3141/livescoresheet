@@ -19,7 +19,6 @@ test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 computeSteckerData :: FrontendMessage -> Maybe Value
 computeSteckerData (LifterUpdate (ms, lifters)) =
   Just $ toJSON $ doubleMap getLifterInfo $ getNext2LiftersInGroup ms lifters
-
   where
     getLifterInfo ml =
       do
@@ -27,6 +26,10 @@ computeSteckerData (LifterUpdate (ms, lifters)) =
         w <- nextWeight ms l
         return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
                , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
+
+computeSteckerData _                             = Nothing
+
+
 getSteckerR :: Handler Html
 getSteckerR = do
     webSockets $ dataSocket computeSteckerData

@@ -1,3 +1,7 @@
+<div id=juryOverlay>
+  <div id=juryOverlayContent>
+    Text
+
 <div .container>
   <h3> Die nächsten Athleten
   <div .divTable .nextLifterTable>

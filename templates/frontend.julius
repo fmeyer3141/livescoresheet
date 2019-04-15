@@ -21,12 +21,19 @@ function init() {
 
   socket.onmessage = function (e) {
     var data = JSON.parse(e.data);
-    lifters = data;
-    if (autoReload) {
-      console.log("success;");
-      console.log(data);
-      showNextLifters(data[1]);
-      showRanking(data[0]);
+    console.log("success;");
+    console.log(data);
+    if (data[0] == "SheetData") {
+      data = data[1];
+      lifters = data;
+      console.log("SheetData");
+      if (autoReload) {
+        showNextLifters(data[1]);
+        showRanking(data[0]);
+      }
+    } else if (data[0] == "JuryData") {
+      data = data[1];
+      showJury(data);
     }
   };
 
@@ -40,6 +47,13 @@ function init() {
     setTimeout(init,3000);
   };
 }
+
+function showJury (data) {
+  document.getElementById("juryOverlayContent").innerHTML = data;
+  overlayOn();
+  setTimeout(overlayOff, 5000);
+}
+
 
 /** Aktualisiert die Anzeige der naechsten Lifter */
 function showNextLifters(lifterArr) {
@@ -147,6 +161,14 @@ function printGroupInfo(l){
   }
   let $heading = $(`<h4>${getAgeclass(l.ageclass)} | ${sex} | ${raw} | ${l.weightclass} </h4>`).addClass("generated");
   $("#divGroupOverview").append($heading);
+}
+
+function overlayOn () {
+  document.getElementById("juryOverlay").style.display = "block";
+}
+
+function overlayOff () {
+  document.getElementById("juryOverlay").style.display = "none";
 }
 
 // age: 19

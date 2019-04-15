@@ -32,11 +32,15 @@ computeFrontendData (LifterUpdate (ms, lifters)) =
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
-     Just $ toJSON (liftersOverview, nextLiftersOutput)
+     Just $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput))
      where
         isNext :: Maybe Lifter -> Lifter -> Bool
         isNext (Just l') l = l == l'
         isNext _ _         = False
+
+computeFrontendData (JuryResult (refRes,True))   = Just $ toJSON ("JuryData" :: Text, refRes)
+computeFrontendData (JuryResult _)               = Nothing
+
 
 getFrontendR :: Handler Html
 getFrontendR = do

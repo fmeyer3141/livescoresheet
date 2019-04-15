@@ -109,6 +109,7 @@ postJuryR p = do
         liftIO $ putStrLn "All decisions entered"
         markLift refereeState
         pushDataFromDBToChannel
+        pushRefereeStateToChannel (refereeState, True) -- let the frontend show the state
       else
         pure ()
 
