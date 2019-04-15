@@ -152,10 +152,13 @@ getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen
     GT -> xs !! (i-1)
 (!!) []     _ = Nothing
 
+getNextLiftersWithf :: (a -> Lifter) -> MeetState -> [a] -> [a]
+getNextLiftersWithf f s lifterList = filter (\l -> Nothing /= nextWeight s (f l))
+                                     $ sortBy (\l l' -> cmpLifterOrder s (f l) (f l'))
+                                     $ filter ((==) (meetStateCurrGroupNr s) . lifterGroup . f) lifterList
+
 getNextLifters :: MeetState -> [Lifter] -> [Lifter]
-getNextLifters s lifterList = filter (\l -> Nothing /= nextWeight s l)
-                              $ sortBy (cmpLifterOrder s)
-                              $ filter ((==) (meetStateCurrGroupNr s) . lifterGroup) lifterList
+getNextLifters = getNextLiftersWithf id
 
 -- LifterListe -> Gruppennr -> Nächster Lifter
 getNextLifterInGroup :: MeetState -> [Lifter] -> Maybe Lifter

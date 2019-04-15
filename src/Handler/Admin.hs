@@ -70,7 +70,7 @@ getDataFromDB =
 
 updateLiftersInDB :: [(Entity Lifter)] -> Handler ()
 updateLiftersInDB args = do
-  lock <- adminTimestampLock <$> getYesod
+  lock <- appAdminTimestampLock <$> getYesod
   withMVar lock $ \_ -> do
     time <- liftIO getCurrentTime
     liftersInDB <- getELiftersFromDB
@@ -86,7 +86,7 @@ updateLiftersInDB args = do
 
     -- Entity Lifter is the old version from the db, Lifter contains the (perhaps) new attributes
     updateLifterInDB :: UTCTime -> (Entity Lifter, Lifter) -> Handler ()
-    updateLifterInDB t ((Entity lId l), l') =
+    updateLifterInDB t ((Entity lId l), l') = do
       runDB $ updateWhere [LifterId ==. lId]
                           [LifterGroup =. lifterGroup l', LifterRes =. updateLifterRes t (lifterRes l) (lifterRes l')]
     -- store/keep the newest entry in the DB
@@ -99,8 +99,8 @@ updateLiftersInDB args = do
     keepNewer :: Attempt -> Attempt -> Attempt
     keepNewer att att' =
       case compare (attGetChangedTime att') (attGetChangedTime att) of
-        GT -> att'
-        _  -> att
+        LT -> att
+        _  -> att'
     modifyLens = (over . snd) <$> meetType
     viewLens = (view . snd) <$> meetType
 
@@ -297,9 +297,6 @@ postAdminR = do
                     Just x -> backupLifter (map entityVal backup) (x+1)
                   let filteredLifterList = filter ((==) groupNr . lifterGroup . fromEntity) lifterList
                   updateLiftersInDB filteredLifterList
-                  let todo = [runDB $ updateWhere [LifterId ==. lId] [LifterGroup =. lifterGroup, LifterRes =. lifterRes]
-                              | (Entity lId Lifter {..}) <-filteredLifterList] :: [Handler ()]
-                  sequence_ todo
                   truncBackupHistory
                   -- update Frontends
                   pushDataToChannel (meetState, fromEntities lifterList)

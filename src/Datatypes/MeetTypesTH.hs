@@ -26,11 +26,19 @@ attGetChangedTime (Success _ t) = t
 attGetChangedTime (Fail _ t)    = t
 attGetChangedTime (Skip  t)     = t
 
+validateAttempt :: Attempt -> Maybe Attempt
+validateAttempt (Todo w t) = Just $ Success w t
+validateAttempt _          = Nothing
+
+inValidateAttempt :: Attempt -> Maybe Attempt
+inValidateAttempt (Todo w t) = Just $ Fail w t
+inValidateAttempt _          = Nothing
+
 attSetChangedDate :: UTCTime -> Attempt -> Attempt
-attSetChangedDate t' (Unset _)     = Unset t'
-attSetChangedDate t' (Todo _ _)    = Unset t'
-attSetChangedDate t' (Success _ _) = Unset t'
-attSetChangedDate t' (Fail _ _)    = Unset t'
+attSetChangedDate t' (Unset t)     = Unset t'
+attSetChangedDate t' (Todo w _)    = Todo w t'
+attSetChangedDate t' (Success w _) = Success w t'
+attSetChangedDate t' (Fail w _)    = Fail w t'
 attSetChangedDate t' (Skip _)      = Unset t'
 
 attemptFail :: Attempt -> Bool

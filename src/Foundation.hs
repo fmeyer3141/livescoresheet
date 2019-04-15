@@ -51,8 +51,8 @@ data App = App
     , appHttpManager      :: Manager
     , appLogger           :: Logger
     , appFrontendChannel  :: TChan FrontendMessage
-    , refereeState        :: IORef RefereeResult
-    , adminTimestampLock  :: MVar ()
+    , appRefereeState        :: IORef RefereeResult
+    , appAdminTimestampLock  :: MVar ()
     }
 
 data MenuItem = MenuItem

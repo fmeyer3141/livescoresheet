@@ -47,11 +47,19 @@ instance PathPiece RefereePlaces where
       (p, ""):_ -> Just p
       _         -> Nothing
 
-data RefereeDecision (p :: RefereePlaces) = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
+data RefereeDecision = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
 
-data RefereeResult = RefereeResult { left  :: Maybe (RefereeDecision 'PLeft)
-                                   , main  :: Maybe (RefereeDecision 'PMain)
-                                   , right :: Maybe (RefereeDecision 'PRight) }
+instance Show RefereeDecision where
+  show (RefereeDecision r b y) = show . filter snd $ zip ["r","b","y"] [r,b,y]
+
+data RefereeResult = RefereeResult { refereeLeft  :: Maybe RefereeDecision
+                                   , refereeMain  :: Maybe RefereeDecision
+                                   , refereeRight :: Maybe RefereeDecision }
+
+emptyRefereeResult = RefereeResult Nothing Nothing Nothing
+
+instance Show RefereeResult where
+  show (RefereeResult l m r) = show [l,m,r]
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> (view l) res) <$> meetType
