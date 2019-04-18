@@ -1,0 +1,6 @@
+<h1> Kamprichterposition: #{prettyPrintPos p}
+<h2>
+<form method=post action@{AdminR} enctype=#{colorFormEnctype}>
+  ^{colorFormWidget}
+  <button type=submit> Absenden
+

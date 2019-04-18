@@ -17,6 +17,12 @@
      <button .btn.btn-primary .btn-xs type=submit>
        Update
 
+  <div>
+    <div #kariResult>
+
+    <a href=@{ResetKariR}>
+      Reset Kari
+
   <div .left>
     <form id="lifterForm" enctype=#{lifterformEnctype} method=post action=@{LifterFormR}>
       <span .spanControl>

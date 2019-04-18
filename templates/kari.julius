@@ -1,0 +1,36 @@
+var head2 = document.querySelectorAll('h2')[0];
+var url = document.URL;
+url = url.replace("http:", "ws:").replace("https:", "wss:");
+var socket = undefined;
+
+function init() {
+  console.log("init");
+  socket = new WebSocket(url);
+  head2.innerHTML = "ljalj";
+  socket.onmessage = function(e) {
+    var lifter = JSON.parse(e.data);
+    console.log("onmessage");
+    console.log(lifter);
+
+    head2.innerHTML = lifter[0]; //Name
+    head2.innerHTML += " - ";
+    head2.innerHTML += lifter[5]; //Gewicht
+    head2.innerHTML += "Kg - ";
+    head2.innerHTML += lifter[2] + " "; //Disziplin
+    head2.innerHTML += lifter[4]; //Versuch
+    head2.innerHTML += ". Versuch - ";
+    head2.innerHTML += lifter[1]; //Verein
+  };
+
+  socket.onerror = function(e) {
+    console.log("WebSocket Error: "+e);
+  };
+
+  socket.onclose = function() {
+    console.log("socket closed");
+    console.log("try to restart socket soon");
+    setTimeout(init,3000);
+  }
+}
+
+init();

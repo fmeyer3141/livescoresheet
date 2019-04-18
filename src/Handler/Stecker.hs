@@ -18,14 +18,7 @@ test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 
 computeSteckerData :: FrontendMessage -> Maybe Value
 computeSteckerData (LifterUpdate (ms, lifters)) =
-  Just $ toJSON $ doubleMap getLifterInfo $ getNext2LiftersInGroup ms lifters
-  where
-    getLifterInfo ml =
-      do
-        l <- ml
-        w <- nextWeight ms l
-        return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
-               , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
+  Just $ toJSON $ doubleMap (getLifterInfo ms) $ getNext2LiftersInGroup ms lifters
 
 computeSteckerData _                             = Nothing
 

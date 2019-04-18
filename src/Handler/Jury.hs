@@ -1,10 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Handler.Jury where
 
 import Import
+import Yesod.WebSockets
 import qualified Data.Text as T
 import qualified Data.List as L
 import Data.Maybe
@@ -13,6 +15,7 @@ import Control.Lens (over, view)
 import Scoresheetlogic
 import ManageScoresheetState
 import PackedHandler
+import Misc
 
 colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
 colorForm = renderDivs $
@@ -24,21 +27,22 @@ prettyPrintPos PLeft  = "Seitenkampfrichter Links"
 prettyPrintPos PMain  = "Hauptkampfrichter"
 prettyPrintPos PRight = "Seitenkampfrichter Rechts"
 
+computeKariData :: FrontendMessage -> Maybe Value
+computeKariData (LifterUpdate (ms, lifters)) = Just $ toJSON $ getLifterInfo ms $ getNextLifterInGroup ms lifters
+computeKariData _                            = Nothing
+
 -- Did the Post work?
 getJuryR' :: RefereePlaces -> Maybe Bool -> Handler Html
 getJuryR' p mb = do
+  webSockets $ dataSocket computeKariData
   (colorFormWidget, colorFormEnctype) <- generateFormPost colorForm
   defaultLayout $ do
     case mb of
       Just True -> [whamlet| Die Daten wurden gespeichert |]
       Just False -> [whamlet| eerrrrrorrrr |]
       Nothing -> pure ()
-    [whamlet|
-      <h1> Kamprichterposition: #{prettyPrintPos p}
-      <form method=post action@{AdminR} enctype=#{colorFormEnctype}>
-        ^{colorFormWidget}
-        <button type=submit> Absenden
-    |]
+
+    $(widgetFile "kari")
 
 getJuryR :: RefereePlaces -> Handler Html
 getJuryR p = getJuryR' p Nothing
@@ -107,7 +111,7 @@ postJuryR p = do
     FormSuccess colors -> (atomicallyUnpackHandler $ do
       time <- liftIO getCurrentTime
       ioRef <- appRefereeState <$> getYesodPacked
-      refereeState <- atomicModifyIORef ioRef $
+      refereeState <- atomicModifyIORef' ioRef $
         \s -> let checkForReset r = if allDecEntered r then (emptyRefereeResult,r) else (r,r) in
         checkForReset $ case p of
           PLeft  -> s { refereeLeft  = Just colors }
@@ -120,9 +124,16 @@ postJuryR p = do
         *> markLift time refereeState
         *> pushRefereeStateToChannel (refereeState, True) -- let the frontend show the state
       else
-        pure () )
+        pushRefereeStateToChannel (refereeState, False) )
 
       *> (getJuryR' p $ Just True)
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]
+
+getResetKariR :: Handler Html
+getResetKariR = do
+  ioRef <- appRefereeState <$> getYesod
+  atomicallyUnpackHandler . packHandler $ atomicModifyIORef' ioRef $ const ( emptyRefereeResult
+                                                                           , ())
+  redirect AdminR

@@ -11,6 +11,7 @@ module Handler.Admin where
 
 import Import
 import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
+import Yesod.WebSockets
 
 import Sex
 import Ageclass
@@ -32,6 +33,7 @@ import Control.Lens (view, set)
 import Control.Lens.Setter
 import ManageScoresheetState
 import PackedHandler (atomicallyUnpackHandler)
+import Misc
 
 latexTemplate :: String
 latexTemplate = "latexexport/template.tex"
@@ -48,8 +50,13 @@ meetStateForm MeetState {..} = renderDivs $
     list :: [(Text,Text)]
     list = map (double . fstMeetType) meetType
 
+computeKariData :: FrontendMessage -> Maybe Value
+computeKariData (JuryResult (res,_)) = Just $ toJSON res
+computeKariData _                    = Nothing
+
 getAdminR :: Handler Html
 getAdminR = do
+    webSockets $ dataSocket computeKariData
     addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm

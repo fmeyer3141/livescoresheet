@@ -11,7 +11,16 @@ import Data.Aeson (encode)
 import Data.Text as T
 
 import ManageScoresheetState
+import Scoresheetlogic
 import PackedHandler
+
+getLifterInfo :: MeetState -> Maybe Lifter -> Maybe (Text, Text, Text, Int, Maybe Int, Double, [(Plate, Int)])
+getLifterInfo ms ml =
+  do
+    l <- ml
+    w <- nextWeight ms l
+    return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
+           , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
 
 doubleMap :: (a -> b) -> (a,a) -> (b,b)
 doubleMap f = bimap f f
@@ -27,7 +36,10 @@ dataSocket computeData = do
   rChan <- Import.atomically $ dupTChan c
   -- send current state for Frontend
   dbData <- lift $ atomicallyUnpackHandler getDataFromDB
+  juryStateRef <- appRefereeState <$> getYesod
+  refState <- lift . atomicallyUnpackHandler . packHandler $ atomicModifyIORef' juryStateRef $ \a -> (a,a)
   sendJSON $ LifterUpdate dbData
+  sendJSON $ JuryResult (refState, False)
   catch
     (race_
       (forever $ (atomically $ readTChan rChan) >>= sendJSON)

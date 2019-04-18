@@ -151,6 +151,7 @@ instance Yesod App where
     isAuthorized LifterFormR b = isAuthorized AdminR b
     isAuthorized MeetStateFormR b = isAuthorized AdminR b
     isAuthorized UndoR b = isAuthorized AdminR b
+    isAuthorized ResetKariR b = isAuthorized AdminR b
 
     isAuthorized (JuryR _) _ = authorizedMinimal
 

@@ -13,6 +13,7 @@
 /csv-form CSVFormR POST
 /lifter-form LifterFormR POST
 /meet-state-form MeetStateFormR POST
+/reset-kari ResetKariR GET
 
 /jury/#RefereePlaces JuryR GET POST
 /undo UndoR GET

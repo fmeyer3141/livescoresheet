@@ -12,7 +12,6 @@ module PackedHandler ( PackedHandlerFor
                      , atomicallyUnpackHandler) where
 
 import ClassyPrelude.Yesod hiding (runDB, unpack)
-import Yesod.Core.Types
 import qualified ClassyPrelude.Yesod as Y (runDB)
 
 -- Wrapper around Handler to compose atomic actions
