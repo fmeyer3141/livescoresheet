@@ -112,14 +112,22 @@ updateLiftersInDB args = do -- perform backup
     updateLifterRes t res res' =
       F.foldl' (\r' (v,m) -> m (updateLifterDisc t (v res)) r') res' $ zip viewLens modifyLens
     updateLifterDisc :: UTCTime -> Discipline -> Discipline -> Discipline
-    updateLifterDisc t d d' = Discipline { att1 = attSetChangedDate t $ keepNewer (att1 d) (att1 d')
-                                         , att2 = attSetChangedDate t $ keepNewer (att2 d) (att2 d')
-                                         , att3 = attSetChangedDate t $ keepNewer (att3 d) (att3 d') }
-    keepNewer :: Attempt -> Attempt -> Attempt
+    updateLifterDisc t d d' = Discipline { att1 = processAtt t (att1 d) (att1 d')
+                                         , att2 = processAtt t (att2 d) (att2 d')
+                                         , att3 = processAtt t (att3 d) (att3 d') }
+
+    processAtt :: UTCTime -> Attempt -> Attempt -> Attempt
+    processAtt t a a' =
+      let (b,newer) = keepNewer a a' in
+      if b then attSetChangedDate t newer else newer
+
+-- The bool indicates if we want to store a new time in the database
+    keepNewer :: Attempt -> Attempt -> (Bool, Attempt)
     keepNewer att att' =
       case compare (attGetChangedTime att') (attGetChangedTime att) of
-        LT -> att
-        _  -> att'
+        LT -> (False, att)
+        EQ -> (False, att')
+        GT -> (True,  att')
     modifyLens = (over . snd) <$> meetType
     viewLens = (view . snd) <$> meetType
 

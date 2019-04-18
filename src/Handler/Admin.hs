@@ -67,11 +67,11 @@ csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 attemptForm :: Attempt -> MForm Handler (FormResult Attempt, Widget)
 attemptForm att = do
-  let time = attGetChangedTime att
+  (timeRes,timeView)      <- mreq hiddenField fieldFormat $ Just (show $ attGetChangedTime att)
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
   (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
-  let attRes = createAttempt <$> weightRes <*> succRes <*> pure time
-  return (attRes, [whamlet| ^{fvInput weightView} ^{fvInput succView}|])
+  let attRes = createAttempt <$> weightRes <*> succRes <*> (P.read <$> timeRes)
+  return (attRes, [whamlet| ^{fvInput timeView} ^{fvInput weightView} ^{fvInput succView}|])
 
   where
     fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
@@ -206,8 +206,7 @@ postLifterFormR = do
   ((res,_),_) <- runFormPost $ liftersForm meetState lifters
   case res of
       FormSuccess lifterList ->
-          atomicallyUnpackHandler (updateLiftersInDBWithGroupNr groupNr lifterList)
-          *> redirect AdminR
+          atomicallyUnpackHandler (updateLiftersInDBWithGroupNr groupNr lifterList) *> redirect AdminR
       FormFailure fs -> invalidArgs fs
       _ -> invalidArgs ["Lifter-Form is missing"]
 
