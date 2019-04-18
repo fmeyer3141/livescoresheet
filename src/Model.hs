@@ -38,6 +38,8 @@ import qualified Data.Text as T
 -- http://www.yesodweb.com/book/persistent/
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
 
+type GroupNr = Int
+
 data RefereePlaces  = PLeft | PMain | PRight deriving (Show, Eq, Read)
 
 instance PathPiece RefereePlaces where

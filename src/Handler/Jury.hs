@@ -11,7 +11,8 @@ import Data.Maybe
 import Control.Lens (over, view)
 
 import Scoresheetlogic
-import Handler.Admin
+import ManageScoresheetState
+import PackedHandler
 
 colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
 colorForm = renderDivs $
@@ -26,7 +27,7 @@ prettyPrintPos PRight = "Seitenkampfrichter Rechts"
 -- Did the Post work?
 getJuryR' :: RefereePlaces -> Maybe Bool -> Handler Html
 getJuryR' p mb = do
-  (colorFormWidget, colorFormEnctype) <- generateFormPost $ colorForm
+  (colorFormWidget, colorFormEnctype) <- generateFormPost colorForm
   defaultLayout $ do
     case mb of
       Just True -> [whamlet| Die Daten wurden gespeichert |]
@@ -53,11 +54,11 @@ setDiscipline 3 att d = Just $ d {att3 = att}
 setDiscipline _ _   _ = Nothing
 
 getCurrELifter :: MeetState -> [Entity Lifter] -> Maybe (Entity Lifter)
-getCurrELifter ms els = (getNextLiftersWithf fromEntity ms els) !! 0
+getCurrELifter ms els = (getNextLiftersWithf entityVal ms els) !! 0
 
-markAttempt :: Bool -> Attempt -> Maybe Attempt
-markAttempt True  = validateAttempt
-markAttempt False = inValidateAttempt
+markAttempt :: UTCTime -> Bool -> Attempt -> Maybe Attempt
+markAttempt t True  = validateAttempt t
+markAttempt t False = inValidateAttempt t
 
 getAttempt :: Int -> Discipline -> Maybe Attempt
 getAttempt 1 d = Just $ att1 d
@@ -65,8 +66,8 @@ getAttempt 2 d = Just $ att2 d
 getAttempt 3 d = Just $ att3 d
 getAttempt _ _ = Nothing
 
-markLift :: RefereeResult -> Handler ()
-markLift (RefereeResult (Just le) (Just ma) (Just ri)) = do
+markLift :: UTCTime -> RefereeResult -> PackedHandler ()
+markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   let weight = sum $ map (\(RefereeDecision r b y) -> if null $ filter id [r,b,y] then 1 else -1)
                          [le,ma,ri] :: Int
   elifters <- getELiftersFromDB
@@ -80,31 +81,32 @@ markLift (RefereeResult (Just le) (Just ma) (Just ri)) = do
     Just (Entity eId l) ->
       let attemptNr = fromJust $ nextAttemptNr meetState l in
       let attempt = fromJust $ getAttempt attemptNr (view discLensV (lifterRes l)) in
-      if weight > 0 then do
+      if weight > 0 then
         -- Valid
         markLiftDBHelper (Entity eId l) attempt attemptNr discLensM True
       else
         -- Invalid
         markLiftDBHelper (Entity eId l) attempt attemptNr discLensM False
 
-    _       -> liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fromEntities elifters)) ++
+    _       -> liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
                                    " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
 
     where
       markLiftDBHelper el a an ls b =
         let (Entity eId l) = el in
-        let mA = fromJust $ markAttempt b a in
+        let mA = fromJust $ markAttempt t b a in
         updateLiftersInDB
           [Entity eId (l {lifterRes = over ls (fromJust . setDiscipline an mA) (lifterRes l)} )]
 
-markLift _                                = liftIO $ putStrLn "An error ocurred lift could not be marked"
+markLift _ _                              = liftIO $ putStrLn "An error ocurred lift could not be marked"
 
 postJuryR :: RefereePlaces -> Handler Html
 postJuryR p = do
   ((res,_), _) <- runFormPost colorForm
   case res of
-    FormSuccess colors -> do
-      ioRef <- appRefereeState <$> getYesod
+    FormSuccess colors -> (atomicallyUnpackHandler $ do
+      time <- liftIO getCurrentTime
+      ioRef <- appRefereeState <$> getYesodPacked
       refereeState <- atomicModifyIORef ioRef $
         \s -> let checkForReset r = if allDecEntered r then (emptyRefereeResult,r) else (r,r) in
         checkForReset $ case p of
@@ -113,15 +115,14 @@ postJuryR p = do
           PRight -> s { refereeRight = Just colors }
 
       liftIO $ putStrLn $ "Referee State: " ++ (T.pack $ show refereeState)
-      if allDecEntered refereeState then do
-        liftIO $ putStrLn "All decisions entered"
-        markLift refereeState
-        pushDataFromDBToChannel
-        pushRefereeStateToChannel (refereeState, True) -- let the frontend show the state
+      if allDecEntered refereeState then
+        liftIO (putStrLn "All decisions entered")
+        *> markLift time refereeState
+        *> pushRefereeStateToChannel (refereeState, True) -- let the frontend show the state
       else
-        pure ()
+        pure () )
 
-      getJuryR' p $ Just True
+      *> (getJuryR' p $ Just True)
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]

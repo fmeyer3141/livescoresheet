@@ -9,7 +9,11 @@
 
 /overview OverviewR GET
 
-/admin AdminR GET POST
+/admin AdminR GET
+/csv-form CSVFormR POST
+/lifter-form LifterFormR POST
+/meet-state-form MeetStateFormR POST
+
 /jury/#RefereePlaces JuryR GET POST
 /undo UndoR GET
 / FrontendR GET

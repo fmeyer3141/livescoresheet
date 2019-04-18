@@ -24,6 +24,8 @@ import Control.Monad.Logger                 (liftLoc, runLoggingT)
 import Database.Persist.Sqlite              (createSqlitePool, runSqlPool,
                                              sqlDatabase, sqlPoolSize)
 import Import
+import PackedHandler (newPackHandlerLock)
+import ClassyPrelude.Yesod (runDB)
 import Language.Haskell.TH.Syntax           (qLocation)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp             (Settings, defaultSettings,
@@ -67,7 +69,7 @@ makeFoundation appSettings = do
         (appStaticDir appSettings)
     appFrontendChannel <- atomically newBroadcastTChan
     appRefereeState <- newIORef $ RefereeResult Nothing Nothing Nothing
-    appAdminTimestampLock <- newMVar ()
+    packedHandlerLock <- newPackHandlerLock
 
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a

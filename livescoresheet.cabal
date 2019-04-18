@@ -96,6 +96,8 @@ library
       Settings.StaticFiles
       Sex
       Scoresheetlogic
+      PackedHandler
+      ManageScoresheetState
       Ageclass
       ApplEither
       Weightclass

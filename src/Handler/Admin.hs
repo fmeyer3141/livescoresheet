@@ -30,136 +30,14 @@ import           Text.RE.TDFA.Text
 
 import Control.Lens (view, set)
 import Control.Lens.Setter
+import ManageScoresheetState
+import PackedHandler (atomicallyUnpackHandler)
 
 latexTemplate :: String
 latexTemplate = "latexexport/template.tex"
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
-
-resetDB :: Handler ()
-resetDB = do
-  runDB $ deleteWhere ([] :: [Filter Lifter])
-  runDB $ deleteWhere ([] :: [Filter LifterBackup])
-  runDB $ deleteWhere ([] :: [Filter MeetState])
-
-getELiftersFromDB :: Handler [Entity Lifter]
-getELiftersFromDB = runDB $ selectList ([] :: [Filter Lifter]) ([] :: [SelectOpt Lifter])
-
-fromEntity :: Entity a -> a
-fromEntity (Entity _ x) = x
-
-fromEntities :: [Entity a] -> [a]
-fromEntities = map fromEntity
-
-getLiftersFromDB :: Handler [Lifter]
-getLiftersFromDB = fromEntities <$> getELiftersFromDB
-
-getCurrMeetStateFromDB :: Handler MeetState
-getCurrMeetStateFromDB = do
-    dataFromDB <- runDB $ selectList ([] :: [Filter MeetState]) []
-    return $
-      if ((length dataFromDB) > 0) then
-        P.head [ms | (Entity _ ms)<-dataFromDB]
-      else
-        emptyMeetState
-
-getDataFromDB :: Handler (MeetState, [Lifter])
-getDataFromDB =
-  (,) <$> getCurrMeetStateFromDB <*> getLiftersFromDB
-
-updateLiftersInDB :: [(Entity Lifter)] -> Handler ()
-updateLiftersInDB args = do
-  lock <- appAdminTimestampLock <$> getYesod
-  withMVar lock $ \_ -> do
-    time <- liftIO getCurrentTime
-    liftersInDB <- getELiftersFromDB
-    sequence_ $ (updatePr time liftersInDB) <$> args
-
-  where
-    updatePr :: UTCTime -> [Entity Lifter] -> Entity Lifter -> Handler ()
-    updatePr t els el@(Entity lId l) = do
-      let res = find ((==) lId . entityKey) els
-      case res of
-        Just fl -> updateLifterInDB t (fl, l)
-        Nothing -> liftIO $ putStrLn $ "Could not find Lifter " ++ (T.pack $ show el) ++ " in DB"
-
-    -- Entity Lifter is the old version from the db, Lifter contains the (perhaps) new attributes
-    updateLifterInDB :: UTCTime -> (Entity Lifter, Lifter) -> Handler ()
-    updateLifterInDB t ((Entity lId l), l') = do
-      runDB $ updateWhere [LifterId ==. lId]
-                          [LifterGroup =. lifterGroup l', LifterRes =. updateLifterRes t (lifterRes l) (lifterRes l')]
-    -- store/keep the newest entry in the DB
-    updateLifterRes :: UTCTime -> Results -> Results -> Results
-    updateLifterRes t res res' = F.foldl' (\r' (v,m) -> m (updateLifterDisc t (v res)) r') res' $ zip viewLens modifyLens
-    updateLifterDisc :: UTCTime -> Discipline -> Discipline -> Discipline
-    updateLifterDisc t d d' = Discipline { att1 = attSetChangedDate t $ keepNewer (att1 d) (att1 d')
-                                         , att2 = attSetChangedDate t $ keepNewer (att2 d) (att2 d')
-                                         , att3 = attSetChangedDate t $ keepNewer (att3 d) (att3 d') }
-    keepNewer :: Attempt -> Attempt -> Attempt
-    keepNewer att att' =
-      case compare (attGetChangedTime att') (attGetChangedTime att) of
-        LT -> att
-        _  -> att'
-    modifyLens = (over . snd) <$> meetType
-    viewLens = (view . snd) <$> meetType
-
-
-getLatestBackupVersion :: Handler (Maybe Int)
-getLatestBackupVersion =
-  do
-    versionDB <- runDB $ selectFirst [] [Desc LifterBackupVersion]
-    return $ do
-      entitym <- versionDB
-      let version = lifterBackupVersion $ entityVal entitym
-      return version
-
-backupLifter :: [Lifter] -> Int -> Handler ()
-backupLifter lifterList v = do
-                      let insertList = [LifterBackup v na ag se acl wcl we ra gr res cl | (Lifter na ag se acl wcl we ra gr res cl)<-lifterList] :: [LifterBackup]
-                      _ <- runDB $ insertMany insertList
-                      return ()
-
-truncBackupHistory :: Handler ()
-truncBackupHistory = do
-                       backupDB <- runDB $ selectList [] [Desc LifterBackupVersion]
-                       let backupVersions = group $ map (lifterBackupVersion . entityVal) backupDB
-                       case (length backupVersions) >= 10 of
-                         True -> do
-                                   let deleteAfterVersion = P.head $ backupVersions P.!! 9
-                                   runDB $ deleteWhere [LifterBackupVersion >. deleteAfterVersion]
-                         False -> return ()
-
-pushInChannel :: FrontendMessage -> Handler ()
-pushInChannel m = do
-  wChan <- appFrontendChannel <$> getYesod
-  atomically $ writeTChan wChan $ m
-
-pushDataToChannel :: (MeetState, [Lifter]) -> Handler ()
-pushDataToChannel = pushInChannel . LifterUpdate
-
-pushDataFromDBToChannel :: Handler ()
-pushDataFromDBToChannel =
-  do
-    d <- getDataFromDB
-    pushDataToChannel d
-
-pushRefereeStateToChannel :: (RefereeResult, Bool) -> Handler ()
-pushRefereeStateToChannel = pushInChannel . JuryResult
-
-restoreBackup :: Handler ()
-restoreBackup = do
-                  version <- getLatestBackupVersion
-                  case version of
-                    Nothing -> return ()
-                    Just v -> do
-                              backup <- runDB $ selectList [LifterBackupVersion ==. v] []
-                              _ <- runDB $ deleteWhere ([] :: [Filter Lifter]) -- truncate table
-                              _ <- runDB $ deleteWhere [LifterBackupVersion ==. v]
-                              -- restore
-                              let insertBack = [Lifter na ag se acl wcl we ra gr res cl | (LifterBackup _ na ag se acl wcl we ra gr res cl) <- map entityVal backup]
-                              _ <- runDB $ insertMany insertBack
-                              return ()
 
 meetStateForm :: MeetState -> Html -> MForm Handler (FormResult MeetState, Widget)
 meetStateForm MeetState {..} = renderDivs $
@@ -175,8 +53,7 @@ getAdminR = do
     addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
-    meetState <- getCurrMeetStateFromDB
-    eLifters <- getELiftersFromDB
+    (meetState, eLifters) <- atomicallyUnpackHandler $ (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState eLifters
     (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
 
@@ -257,13 +134,13 @@ lifterForm (Entity lId Lifter {..}) = do
 
 liftersForm :: MeetState -> [Entity Lifter] -> Html -> MForm Handler (FormResult [Entity Lifter], Widget)
 liftersForm meetState eLifterList extra = do
-  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (fromEntity l) (fromEntity l')) eLifterList
+  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (entityVal l) (entityVal l')) eLifterList
   list <- forM sortedList lifterForm
   let reslist = fmap fst list :: [FormResult (Entity Lifter)]
   let res0 = (catMaybes $ map formEval reslist) :: [Entity Lifter]
   let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
   -- Combine Widgets and Lifters and then group by liftergroups
-  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (fromEntities sortedList) viewList :: [[(Lifter,Widget)]]
+  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (fEntityVal sortedList) viewList :: [[(Lifter,Widget)]]
   let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
                                                                   Gruppe #{lifterGroup $ P.fst $ P.head l}
@@ -291,70 +168,60 @@ liftersForm meetState eLifterList extra = do
     formEval (FormSuccess s) = Just s
     formEval _               = Nothing
 
-postAdminR :: Handler Html
-postAdminR = do
-  meetState <- getCurrMeetStateFromDB
-  let groupNr = meetStateCurrGroupNr meetState
+postCSVFormR :: Handler Html
+postCSVFormR = do
   ((result, _), _) <- runFormPost csvForm
   case result of
-      FormSuccess (FileForm info) ->  handleFile (fileContentType info) (fileSource info)
-      _ -> do
-          lifters <- getELiftersFromDB
-          ((res,_),_) <- runFormPost $ liftersForm meetState lifters
-          case res of
-              FormSuccess lifterList -> do
-                  backup <- runDB $ selectList ([] :: [Filter Lifter]) []
-                  backVersion <- getLatestBackupVersion
-                  case backVersion of
-                    Nothing -> backupLifter (map entityVal backup) 0
-                    Just x -> backupLifter (map entityVal backup) (x+1)
-                  let filteredLifterList = filter ((==) groupNr . lifterGroup . fromEntity) lifterList
-                  updateLiftersInDB filteredLifterList
-                  truncBackupHistory
-                  -- update Frontends from DB in order to send consistent information
-                  -- (e.g. were the attempts up-to-date and therefore stored?)
-                  pushDataFromDBToChannel
-                  getAdminR
-              FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
-              _ -> do
-                  ((res',_),_) <- runFormPost $ meetStateForm meetState
-                  case res' of
-                      FormSuccess ms@(MeetState {..}) -> do
-                        runDB $ updateWhere ([] :: [Filter MeetState]) [ MeetStateCurrGroupNr =. meetStateCurrGroupNr
-                                                                       , MeetStateCurrDiscipline =. meetStateCurrDiscipline]
-                        pushDataToChannel (ms, fromEntities lifters)
-                        getAdminR
-
-                      FormFailure (t:_) -> defaultLayout $ [whamlet| Error #{t} |]
-
-                      _ -> error "FormError"
-
+      FormSuccess (FileForm info) -> handleFile (fileContentType info) (fileSource info) *> redirect AdminR
+      FormFailure fs -> invalidArgs fs
+      _              -> defaultLayout [whamlet| Form is missing|]
   where
     handleFile :: Text ->  ConduitT () ByteString  (ResourceT IO) () -> Handler Html
-    handleFile typ rawFile |typ=="text/csv" = do
-                                                csv <- liftIO $ parseCSV rawFile
-                                                time <- liftIO $ getCurrentTime
-                                                case fromNullable csv of
-                                                  Just csvNonEmpty ->
-                                                    let dataSet = sequenceA $ (lifterParse time) <$> tail csvNonEmpty in
-                                                    case dataSet of
-                                                      (ARight datas) ->
-                                                        do
-                                                          let startGroupNr = P.head $ sort $ fmap lifterGroup datas
-                                                          resetDB
-                                                          _ <- runDB $ insertMany datas -- Insert CSV
-                                                          _ <- runDB $ insert $
-                                                               emptyMeetState { meetStateCurrGroupNr = startGroupNr }
-                                                          getAdminR
+    handleFile typ rawFile
+      |typ=="text/csv" = do
+        csv <- liftIO $ parseCSV rawFile
+        time <- liftIO $ getCurrentTime
+        case fromNullable csv of
+          Just csvNonEmpty ->
+            let dataSet = sequenceA $ (lifterParse time) <$> tail csvNonEmpty in
+            case dataSet of
+              (ARight datas) ->
+                do
+                  let startGroupNr = P.head $ sort $ lifterGroup <$> datas
+                  atomicallyUnpackHandler $
+                    resetDB *> initialSetupDB datas startGroupNr
+                  getAdminR
 
-                                                      (ALeft es) ->
-                                                        invalidArgs es
+              (ALeft es) ->
+                invalidArgs es
 
-                                                  _ -> error "CSV File empty"
+          _ -> invalidArgs ["CSV-Form is missing"]
 
-                           |otherwise       = defaultLayout $
-                                                  [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
+      |otherwise       = defaultLayout $ [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
+postLifterFormR :: Handler Html
+postLifterFormR = do
+  (meetState, lifters) <- atomicallyUnpackHandler $ (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
+  let groupNr = meetStateCurrGroupNr meetState
+  ((res,_),_) <- runFormPost $ liftersForm meetState lifters
+  case res of
+      FormSuccess lifterList ->
+          atomicallyUnpackHandler (updateLiftersInDBWithGroupNr groupNr lifterList)
+          *> redirect AdminR
+      FormFailure fs -> invalidArgs fs
+      _ -> invalidArgs ["Lifter-Form is missing"]
+
+postMeetStateFormR :: Handler Html
+postMeetStateFormR = do
+  meetState <- atomicallyUnpackHandler getCurrMeetStateFromDB
+  ((res,_),_) <- runFormPost $ meetStateForm meetState
+  case res of
+      FormSuccess ms ->
+        atomicallyUnpackHandler (updateMeetState ms)
+        *> redirect AdminR
+      FormFailure fs -> invalidArgs fs
+
+      _ -> invalidArgs ["MeetState-Form is missing"]
 
 parseCSV :: ConduitT () ByteString (ResourceT IO) () -> IO [Row Text]
 parseCSV rawFile =
@@ -377,7 +244,7 @@ lifterParse _ input = error ("Wrong number of entries in: " ++ show input)
 
 getUndoR :: Handler Html
 getUndoR = do
-             restoreBackup
+             atomicallyUnpackHandler $ restoreBackup
              redirect AdminR
 
 
@@ -532,15 +399,15 @@ liftersGrouped lifters = map (L.sortBy (cmpLifterTotalAndBw)) $
 
 getTableR :: Handler TypedContent
 getTableR = do
-              input <- liftIO getLatexTemplate
-              let contentText = getContentText input
-              let lifterText = getLifterText input
-              let mkClass = composeClass contentText
-              liftersFromDB <- getLiftersFromDB
-              let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings liftersFromDB :: [Text]
-              let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head)
-                                     (liftersGrouped liftersFromDB))
-                                      liftersTexts :: [(Text,Text)] -- [(Klassentext,Liftertext)]
-              let classBlocks = map (P.uncurry mkClass) classAndLifters :: [Text]
-              --return $ TypedContent "text/plain" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
-              return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ unlines classBlocks ++ wafter
+  input <- liftIO getLatexTemplate
+  let contentText = getContentText input
+  let lifterText = getLifterText input
+  let mkClass = composeClass contentText
+  liftersFromDB <- atomicallyUnpackHandler getLiftersFromDB
+  let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings liftersFromDB :: [Text]
+  let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head)
+                         (liftersGrouped liftersFromDB))
+                          liftersTexts :: [(Text,Text)] -- [(Klassentext,Liftertext)]
+  let classBlocks = map (P.uncurry mkClass) classAndLifters :: [Text]
+  --return $ TypedContent "text/plain" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
+  return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ unlines classBlocks ++ wafter

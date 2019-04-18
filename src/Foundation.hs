@@ -11,11 +11,14 @@
 
 module Foundation where
 
+import PackedHandler
 import Data.FileEmbed (embedFile)
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
+
+import ClassyPrelude.Yesod (runDB)
 
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
@@ -43,15 +46,18 @@ passwordKari = (T.init . decodeUtf8) $(embedFile "config/passKari") -- Zeilenumb
 -- starts running, such as database connections. Every handler will have
 -- access to the data present here.
 data App = App
-    { appSettings         :: AppSettings
-    , appStatic           :: Static -- ^ Settings for static file serving.
-    , appConnPool         :: ConnectionPool -- ^ Database connection pool.
-    , appHttpManager      :: Manager
-    , appLogger           :: Logger
-    , appFrontendChannel  :: TChan FrontendMessage
+    { appSettings            :: AppSettings
+    , appStatic              :: Static -- ^ Settings for static file serving.
+    , appConnPool            :: ConnectionPool -- ^ Database connection pool.
+    , appHttpManager         :: Manager
+    , appLogger              :: Logger
+    , appFrontendChannel     :: TChan FrontendMessage
     , appRefereeState        :: IORef RefereeResult
-    , appAdminTimestampLock  :: MVar ()
+    , packedHandlerLock      :: PackedHandlerLock
     }
+
+instance HasPackedHandlerLock App where
+  getPackedHandlerLock = packedHandlerLock
 
 data MenuItem = MenuItem
     { menuItemLabel :: Text
@@ -141,6 +147,9 @@ instance Yesod App where
                                 Nothing -> AuthenticationRequired
                                 Just usern -> if usern==usernameAdmin then Authorized
                                                                  else AuthenticationRequired
+    isAuthorized CSVFormR b = isAuthorized AdminR b
+    isAuthorized LifterFormR b = isAuthorized AdminR b
+    isAuthorized MeetStateFormR b = isAuthorized AdminR b
     isAuthorized UndoR b = isAuthorized AdminR b
 
     isAuthorized (JuryR _) _ = authorizedMinimal

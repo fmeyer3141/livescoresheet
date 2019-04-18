@@ -1,12 +1,17 @@
 {-# LANGUAGE CPP #-}
 module Import.NoFoundation
     ( module Import
+    , safeHead
     ) where
 
-import ClassyPrelude.Yesod   as Import
+import ClassyPrelude.Yesod   as Import hiding (runDB)
 import Model                 as Import
 import Settings              as Import
 import Settings.StaticFiles  as Import
 import Yesod.Auth            as Import
 import Yesod.Core.Types      as Import (loggerSet)
 import Yesod.Default.Config2 as Import
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead _     = Nothing

@@ -10,7 +10,8 @@ import Data.Aeson (encode)
 
 import Data.Text as T
 
-import Handler.Admin
+import ManageScoresheetState
+import PackedHandler
 
 doubleMap :: (a -> b) -> (a,a) -> (b,b)
 doubleMap f = bimap f f
@@ -23,10 +24,10 @@ connectionError _                    = pure () -- Connection closed
 dataSocket :: (FrontendMessage -> Maybe Value) -> WebSocketsT Handler ()
 dataSocket computeData = do
   c <- appFrontendChannel <$> getYesod
-  -- send current state for Frontend
-  dbData <- lift getDataFromDB
-  sendJSON $ LifterUpdate dbData
   rChan <- Import.atomically $ dupTChan c
+  -- send current state for Frontend
+  dbData <- lift $ atomicallyUnpackHandler getDataFromDB
+  sendJSON $ LifterUpdate dbData
   catch
     (race_
       (forever $ (atomically $ readTChan rChan) >>= sendJSON)

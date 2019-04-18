@@ -5,20 +5,20 @@
       Logout
 
   <div .divPart>
-    <form method=post action=@{AdminR}#forms enctype=#{formEnctype}>
+    <form method=post action=@{CSVFormR} enctype=#{formEnctype}>
       ^{formWidget}
       <button .btn.btn-primary  .btn-xs type="submit">
           Upload it!
 
   <div .divPart .left>
-    <form method=post action=@{AdminR}#forms enctype=#{meetStateEnctype}>
+    <form method=post action=@{MeetStateFormR} enctype=#{meetStateEnctype}>
      ^{meetStateFormWidget}
 
      <button .btn.btn-primary .btn-xs type=submit>
        Update
 
   <div .left>
-    <form id="lifterForm" enctype=#{lifterformEnctype} method=post action=@{AdminR}#forms>
+    <form id="lifterForm" enctype=#{lifterformEnctype} method=post action=@{LifterFormR}>
       <span .spanControl>
         <span .spanUpdate>
           <button .btn.btn-primary .btn-xs type=submit>

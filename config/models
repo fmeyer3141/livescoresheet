@@ -18,19 +18,11 @@ Lifter
 MeetState
   currDiscipline Text
   currGroupNr Int
+  deriving Show
 
 LifterBackup
   version Int
-  name Text
-  age Text
-  sex Sex
-  ageclass Ageclass
-  weightclass Weightclass
-  weight Double
-  raw Bool
-  group Int
-  res Results
-  club               Text
+  lifter Lifter
   deriving Eq
   deriving Show
 

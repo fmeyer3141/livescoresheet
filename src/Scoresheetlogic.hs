@@ -19,6 +19,14 @@ instance ToJSON Plate where
 isDQ :: Lifter -> Bool
 isDQ = or . fmap (and . fmap (\a -> if attemptFail a then True else False) . attemptsAsList) . resultList . lifterRes
 
+type Comparison a = a -> a -> Ordering
+
+infixr 8 .~.
+(.~.) :: Comparison a -> Comparison a -> Comparison a
+(.~.) cmp cmp' a a' = case cmp' a a' of
+  EQ -> cmp a a'
+  c  -> c
+
 getTotalLifter :: Lifter -> Maybe Double
 getTotalLifter lifter@(Lifter {..}) =
   case isDQ lifter of
@@ -59,48 +67,39 @@ cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l
                        | otherwise -- Lifter in der selben nicht prio gruppe
                              = EQ
 
-cmpLifterGroupAndTotal :: Int -> Lifter -> Lifter -> Ordering
-cmpLifterGroupAndTotal g l1 l2 = case cmpLifterGroup g l1 l2 of
-                                   EQ -> if getTotalLifter l1 /= getTotalLifter l2
-                                         then -- sortiere nach total
-                                           compare (lifterWeight l1) (lifterWeight l2)
-                                         else -- dann nach BW
-                                           flip compare (getTotalLifter l1) (getTotalLifter l2)
+-- Größtes Total ist minimal hier -- dieser Lifter steht 'oben'
+compareTotal :: Lifter -> Lifter -> Ordering
+compareTotal l l' = (flip compare) (getTotalLifter l) (getTotalLifter l')
 
-                                   x  -> x
+-- minimales Bodyweight ist minimal -- dieser Lifter steht 'oben'
+compareBodyweight :: Lifter -> Lifter -> Ordering
+compareBodyweight l l' = compare (lifterWeight l) (lifterWeight l')
 
 cmpLifterTotalAndBw :: Lifter -> Lifter -> Ordering
-cmpLifterTotalAndBw l1 l2   | getTotalLifter l1 /= getTotalLifter l2
-                                  = flip compare (getTotalLifter l1) (getTotalLifter l2)
-                            | otherwise --selbe Gruppe und Total identisch -> BW
-                                  = compare (lifterWeight l1) (lifterWeight l2)
-
+cmpLifterTotalAndBw = compareBodyweight .~. compareTotal
 
 cmpLifterGroupAndOrder :: MeetState -> Lifter -> Lifter -> Ordering
-cmpLifterGroupAndOrder s l1 l2 = case cmpLifterGroup (meetStateCurrGroupNr s) l1 l2 of
-                                   EQ -> cmpLifterOrder s l1 l2
-                                   x -> x
+cmpLifterGroupAndOrder s = cmpLifterOrder s .~. cmpLifterGroup (meetStateCurrGroupNr s)
 
 cmpLifterOrder :: MeetState -> Lifter -> Lifter -> Ordering
-cmpLifterOrder s l1 l2
-             | attemptNrl1 /= attemptNrl2
-                   = compareMaybe attemptNrl1 attemptNrl2
-             | weightl1 /= weightl2
-                   = compareMaybe weightl1 weightl2
-             | lifterWeight l1 /= lifterWeight l2
-                   = compare (lifterWeight l1) (lifterWeight l2)
-             | otherwise
-                   = EQ
+cmpLifterOrder s = compareBodyweight .~. compareAttWeight .~. compareAttemptNr
+-- cmpLifterOrder s l1 l2
+--              | attemptNrl1 /= attemptNrl2
+--                    = compareMaybe attemptNrl1 attemptNrl2
+--              | weightl1 /= weightl2
+--                    = compareMaybe weightl1 weightl2
+--              | lifterWeight l1 /= lifterWeight l2
+--                    = compare (lifterWeight l1) (lifterWeight l2)
+--              | otherwise
+--                    = EQ
     where
         compareMaybe :: (Ord a) => Maybe a -> Maybe a -> Ordering -- Nothing also kein Gewicht angegeben oder alle Versuche gemacht -> ans ende sortieren
         compareMaybe Nothing Nothing   = EQ
         compareMaybe (Just _) Nothing  = LT
         compareMaybe Nothing (Just _)  = GT
         compareMaybe (Just x) (Just y) = compare x y
-        attemptNrl1 = nextAttemptNr s l1
-        attemptNrl2 = nextAttemptNr s l2
-        weightl1 = nextWeight s l1
-        weightl2 = nextWeight s l2
+        compareAttemptNr l l'          = compareMaybe (nextAttemptNr s l) (nextAttemptNr s l')
+        compareAttWeight l l'          = compareMaybe (nextWeight s l) (nextWeight s l')
 
 cmpLifterClass :: Lifter -> Lifter -> Ordering
 cmpLifterClass l1 l2 | getClass l1 /= getClass l2
