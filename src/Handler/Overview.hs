@@ -12,5 +12,5 @@ getOverviewR = defaultLayout $
     <p><a href=@{AdminR}> Admin
     <p><a href=@{JuryR PLeft}> Seitenkampfrichter Links
     <p><a href=@{JuryR PMain}> Hauptkampfrichter
-    <p><a href=@{JuryR PLeft}> Seitenkampfrichter Rechts|]
+    <p><a href=@{JuryR PRight}> Seitenkampfrichter Rechts|]
 
