@@ -9,6 +9,8 @@ import Import
 getOverviewR :: Handler Html
 getOverviewR = defaultLayout $
   [whamlet|
+    <p><a href=@{FrontendR True}> Frontend  (mit Kari Update)
+    <p><a href=@{FrontendR False}> Frontend (ohne Kari Update)
     <p><a href=@{AdminR}> Admin
     <p><a href=@{JuryR PLeft}> Seitenkampfrichter Links
     <p><a href=@{JuryR PMain}> Hauptkampfrichter

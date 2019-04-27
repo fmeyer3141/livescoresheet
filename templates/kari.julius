@@ -3,12 +3,19 @@ var url = document.URL;
 url = url.replace("http:", "ws:").replace("https:", "wss:");
 var socket = undefined;
 
+var defMessage = "Kein nächster Lifter vorhanden";
+
 function init() {
   console.log("init");
   socket = new WebSocket(url);
-  head2.innerHTML = "ljalj";
+  head2.innerHTML = defMessage;
   socket.onmessage = function(e) {
     var lifter = JSON.parse(e.data);
+
+    if (lifter == null) {
+      head2.innerHTML = defMessage;
+      return;
+    }
     console.log("onmessage");
     console.log(lifter);
 

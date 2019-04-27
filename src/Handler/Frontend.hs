@@ -16,6 +16,8 @@ import Scoresheetlogic
 import Handler.Admin
 import Misc
 
+import Text.Julius (RawJS (..))
+
 computeFrontendData :: FrontendMessage -> Maybe Value
 computeFrontendData (LifterUpdate (ms, lifters)) =
   do
@@ -42,10 +44,14 @@ computeFrontendData (JuryResult (refRes,True))   = Just $ toJSON ("JuryData" :: 
 computeFrontendData (JuryResult _)               = Nothing
 
 
-getFrontendR :: Handler Html
-getFrontendR = do
+getFrontendR :: Bool -> Handler Html
+getFrontendR showJury = do
     addHeader "Access-Control-Allow-Origin" "*"
     webSockets $ dataSocket computeFrontendData
     defaultLayout $ do
       setTitle "Scoresheet"
+      let juryCode = if showJury then "showJury(data[1]);" else "" :: Text
       $(widgetFile "frontend")
+
+getFrontendDefR :: Handler Html
+getFrontendDefR = redirect $ FrontendR False

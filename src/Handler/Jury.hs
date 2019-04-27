@@ -37,6 +37,7 @@ getJuryR' p mb = do
   webSockets $ dataSocket computeKariData
   (colorFormWidget, colorFormEnctype) <- generateFormPost colorForm
   defaultLayout $ do
+    setTitle $ toHtml (prettyPrintPos p)
     case mb of
       Just True -> [whamlet| Die Daten wurden gespeichert |]
       Just False -> [whamlet| eerrrrrorrrr |]

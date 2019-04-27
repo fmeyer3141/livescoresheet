@@ -155,8 +155,6 @@ instance Yesod App where
 
     isAuthorized (JuryR _) _ = authorizedMinimal
 
-    isAuthorized OverviewR _ = authorizedMinimal
-
     isAuthorized _ _ = return Authorized
 
     -- isAuthorized ProfileR _ = isAuthenticated
@@ -209,7 +207,7 @@ instance YesodAuth App where
     -- Where to send a user after successful login
     loginDest _ = OverviewR
     -- Where to send a user after logout
-    logoutDest _ = FrontendR
+    logoutDest _ = FrontendR False
 
     authenticate (Creds credsPlug credsId _) = do
       return
