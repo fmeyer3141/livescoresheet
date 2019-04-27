@@ -28,7 +28,7 @@ import THApplStage2
 import MeetTypesTH
 import Data.Maybe
 import qualified Prelude as P
-import Control.Lens (view, (^.))
+import Control.Lens ((^.))
 
 import qualified Data.Text as T
 
