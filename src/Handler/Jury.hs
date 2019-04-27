@@ -9,8 +9,7 @@ import Import
 import Yesod.WebSockets
 import qualified Data.Text as T
 import qualified Data.List as L
-import Data.Maybe
-import Control.Lens (over, view)
+import Control.Lens ((^.), (%%~))
 
 import Scoresheetlogic
 import ManageScoresheetState
@@ -40,7 +39,7 @@ getJuryR' p mb = do
     setTitle $ toHtml (prettyPrintPos p)
     case mb of
       Just True -> [whamlet| Die Daten wurden gespeichert |]
-      Just False -> [whamlet| eerrrrrorrrr |]
+      Just False -> [whamlet| Konnte Versuchsergebnis nicht eintragen |]
       Nothing -> pure ()
 
     $(widgetFile "kari")
@@ -71,7 +70,7 @@ getAttempt 2 d = Just $ att2 d
 getAttempt 3 d = Just $ att3 d
 getAttempt _ _ = Nothing
 
-markLift :: UTCTime -> RefereeResult -> PackedHandler ()
+markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler ()))
 markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   let weight = sum $ map (\(RefereeDecision r b y) -> if null $ filter id [r,b,y] then 1 else -1)
                          [le,ma,ri] :: Int
@@ -79,31 +78,37 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   meetState <- getCurrMeetStateFromDB
   let eCurrLifter = getCurrELifter meetState elifters
   let currDiscipline = meetStateCurrDiscipline meetState
-  let discLensM = snd . fromJust $ L.find ((==) currDiscipline . fst) meetType
-  let discLensV = snd . fromJust $ L.find ((==) currDiscipline . fst) meetType
 
-  case eCurrLifter of
+  pure $ case eCurrLifter of
     Just (Entity eId l) ->
-      let attemptNr = fromJust $ nextAttemptNr meetState l in
-      let attempt = fromJust $ getAttempt attemptNr (view discLensV (lifterRes l)) in
-      if weight > 0 then
-        -- Valid
-        markLiftDBHelper (Entity eId l) attempt attemptNr discLensM True
-      else
-        -- Invalid
-        markLiftDBHelper (Entity eId l) attempt attemptNr discLensM False
+      do
+        attemptNr <- nextAttemptNr meetState l
+        discLens  <- map snd $ L.find ((==) currDiscipline . fst) meetType
+        attempt   <- getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
 
-    _       -> liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
-                                   " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
+        if weight > 0 then
+          -- Valid
+          markLiftDBHelper (Entity eId l) attempt attemptNr discLens True
+        else
+          -- Invalid
+          markLiftDBHelper (Entity eId l) attempt attemptNr discLens False
+
+    _       -> Nothing
+    -- liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
+    --                               " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
 
     where
-      markLiftDBHelper el a an ls b =
+      markLiftDBHelper :: Entity Lifter -> Attempt -> Int -> Lens'NT Results Discipline -> Bool -> Maybe (PackedHandler ())
+      markLiftDBHelper el a an lsNT b =
+        let ls = unpackLens'NT lsNT in
         let (Entity eId l) = el in
-        let mA = fromJust $ markAttempt t b a in
-        updateLiftersInDB
-          [Entity eId (l {lifterRes = over ls (fromJust . setDiscipline an mA) (lifterRes l)} )]
+        do
+          mA         <- markAttempt t b a
+          updResults <- ls %%~ (setDiscipline an mA) $ lifterRes l
+          pure $ updateLiftersInDB
+            [Entity eId (l {lifterRes = updResults } )]
 
-markLift _ _                              = liftIO $ putStrLn "An error ocurred lift could not be marked"
+markLift _ _ = pure Nothing
 
 postJuryR :: RefereePlaces -> Handler Html
 postJuryR p = do
@@ -122,12 +127,14 @@ postJuryR p = do
       liftIO $ putStrLn $ "Referee State: " ++ (T.pack $ show refereeState)
       if allDecEntered refereeState then
         liftIO (putStrLn "All decisions entered")
-        *> markLift time refereeState
-        *> pushRefereeStateToChannel (refereeState, True) -- let the frontend show the state
+        *> (markLift time refereeState >>=
+             (\markRes -> case markRes of
+               Just act -> act *> pushRefereeStateToChannel (refereeState, True) *> pure True--perform marking action
+               Nothing  -> liftIO (putStrLn "Error marking Lifter") *> pure False)) -- TODO log error
       else
-        pushRefereeStateToChannel (refereeState, False) )
+        pushRefereeStateToChannel (refereeState, False) *> pure True)
 
-      *> (getJuryR' p $ Just True)
+     >>= (getJuryR' p . Just) -- show success
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]

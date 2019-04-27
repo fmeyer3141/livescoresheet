@@ -20,11 +20,9 @@ derivePersistField ("Results")
 makeLenses ''Results
 
 -- (DisciplineName, Lens' )
-type MeetTypeEntry = ∀ f. Functor f => (Text, (Discipline -> (f Discipline)) -> Results -> (f Results))
-type MeetType      = ∀ f. Functor f => [(Text, (Discipline -> (f Discipline)) -> Results -> (f Results))]
-
-fstMeetType :: (Text, (Discipline -> (Identity Discipline)) -> Results -> (Identity Results)) -> Text
-fstMeetType = fst
+newtype Lens'NT s a= Lens'NT { unpackLens'NT :: Lens' s a }
+type MeetTypeEntry = (Text, Lens'NT Results Discipline)
+type MeetType      = [MeetTypeEntry]
 
 meetTypeTH :: Q [Dec]
 meetTypeTH = do
@@ -36,7 +34,7 @@ meetTypeTH = do
       , ValD (VarP meetTypeName) (NormalB (ListE (tuples $ T.unpack <$> discs)) ) [] ]
 
     where
-      genTuple discName = TupE [ LitE (StringL discName),VarE (mkName ("disc" ++ discName)) ]
+      genTuple discName = TupE [ LitE (StringL discName),AppE (ConE $ mkName "Lens'NT") $ VarE (mkName ("disc" ++ discName)) ]
       tuples discs = map genTuple discs
 
 apFlipped :: Applicative f => f a -> f (a -> b) -> f b

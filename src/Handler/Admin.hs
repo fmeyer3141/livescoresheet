@@ -29,7 +29,7 @@ import qualified Prelude as P
 import           Text.RE.Replace
 import           Text.RE.TDFA.Text
 
-import Control.Lens (view, set)
+import Control.Lens ((^.))
 import Control.Lens.Setter
 import ManageScoresheetState
 import PackedHandler (atomicallyUnpackHandler)
@@ -48,7 +48,7 @@ meetStateForm MeetState {..} = renderDivs $
   where
     double a = (a,a)
     list :: [(Text,Text)]
-    list = map (double . fstMeetType) meetType
+    list = map (double . fst) meetType
 
 computeKariData :: FrontendMessage -> Maybe Value
 computeKariData (JuryResult (res,_)) = Just $ toJSON res
@@ -105,7 +105,7 @@ disciplineForm descr Discipline { .. } =
 resForm :: Results -> MForm Handler (FormResult Results, Widget)
 resForm res =
   do
-    discForms <- forM meetType (\(n, l) -> disciplineForm n ((view l) res))
+    discForms <- forM meetType (\(n, Lens'NT l) -> disciplineForm n (res ^. l))
     let widgets = fmap snd discForms
 
     let discWidgets = F.foldl' (>>) [whamlet| |] widgets
@@ -116,9 +116,9 @@ resForm res =
       _      -> (FormFailure ["Error parsing results form"], discWidgets)
 
     where
-      resChangesf :: FormResult Discipline -> (Text, ASetter' Results Discipline) -> Maybe Results -> Maybe Results
-      resChangesf (FormSuccess d) (_,l) = fmap $ set l d
-      resChangesf _               _     = id
+      resChangesf :: FormResult Discipline -> (Text, Lens'NT Results Discipline) -> Maybe Results -> Maybe Results
+      resChangesf (FormSuccess d) (_, Lens'NT l) = fmap $ l .~ d
+      resChangesf _               _              = id
 
 lifterForm :: Entity Lifter -> MForm Handler (FormResult (Entity Lifter), Widget)
 lifterForm (Entity lId Lifter {..}) = do

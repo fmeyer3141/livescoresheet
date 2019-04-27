@@ -28,7 +28,7 @@ import THApplStage2
 import MeetTypesTH
 import Data.Maybe
 import qualified Prelude as P
-import Control.Lens (view)
+import Control.Lens (view, (^.))
 
 import qualified Data.Text as T
 
@@ -75,7 +75,7 @@ data FrontendMessage = LifterUpdate (MeetState, [Lifter])
                                                          -- shows the result in an overlay or not at all
 
 resultList :: Results -> [Discipline]
-resultList res = (\(_,l) -> (view l) res) <$> meetType
+resultList res = (\(_,l) -> res ^. (unpackLens'NT l)) <$> meetType
 
 getBestAttempt :: Discipline -> Maybe Double
 getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
@@ -83,11 +83,11 @@ getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
 getDisciplineFromLifter :: Text -> Lifter -> Discipline
 getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)
   where
-    disciplineNames = fstMeetType <$> meetType
+    disciplineNames = fst <$> meetType
 
 emptyMeetState :: MeetState
 emptyMeetState =
-  MeetState { meetStateCurrDiscipline = fstMeetType . P.head $ meetType
+  MeetState { meetStateCurrDiscipline = fst . P.head $ meetType
             , meetStateCurrGroupNr = 0
             }
 
@@ -107,4 +107,4 @@ instance ToJSON Lifter where
       ]
 
 instance ToJSON Results where
-  toJSON res = toJSON $ (\(n,l) -> (n, (view l) res)) <$> meetType
+  toJSON res = toJSON $ (\(n,l) -> (n, res ^. (unpackLens'NT l))) <$> meetType

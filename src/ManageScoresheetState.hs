@@ -128,8 +128,8 @@ updateLiftersInDB args = do -- perform backup
         LT -> (False, att)
         EQ -> (False, att')
         GT -> (True,  att')
-    modifyLens = (over . snd) <$> meetType
-    viewLens = (view . snd) <$> meetType
+    modifyLens = (over . unpackLens'NT . snd) <$> meetType
+    viewLens = (view . unpackLens'NT . snd) <$> meetType
 
 
 getLatestBackupVersion :: [LifterBackup] -> Maybe Int
