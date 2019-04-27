@@ -57,8 +57,8 @@ setDiscipline 2 att d = Just $ d {att2 = att}
 setDiscipline 3 att d = Just $ d {att3 = att}
 setDiscipline _ _   _ = Nothing
 
-getCurrELifter :: MeetState -> [Entity Lifter] -> Maybe (Entity Lifter)
-getCurrELifter ms els = (getNextLiftersWithf entityVal ms els) !! 0
+getCurrELifter :: MeetState -> [(Key Lifter', Lifter)] -> Maybe (Key Lifter', Lifter)
+getCurrELifter ms els = (getNextLiftersWithf snd ms els) !! 0
 
 markAttempt :: UTCTime -> Bool -> Attempt -> Maybe Attempt
 markAttempt t True  = validateAttempt t
@@ -80,7 +80,7 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   let currDiscipline = meetStateCurrDiscipline meetState
 
   pure $ case eCurrLifter of
-    Just (Entity eId l) ->
+    Just (eId, l) ->
       do
         attemptNr <- nextAttemptNr meetState l
         discLens  <- map snd $ L.find ((==) currDiscipline . fst) meetType
@@ -88,25 +88,25 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
 
         if weight > 0 then
           -- Valid
-          markLiftDBHelper (Entity eId l) attempt attemptNr discLens True
+          markLiftDBHelper (eId, l) attempt attemptNr discLens True
         else
           -- Invalid
-          markLiftDBHelper (Entity eId l) attempt attemptNr discLens False
+          markLiftDBHelper (eId, l) attempt attemptNr discLens False
 
     _       -> Nothing
     -- liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
     --                               " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
 
     where
-      markLiftDBHelper :: Entity Lifter -> Attempt -> Int -> Lens'NT Results Discipline -> Bool -> Maybe (PackedHandler ())
+      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> Int -> Lens'NT Results Discipline -> Bool -> Maybe (PackedHandler ())
       markLiftDBHelper el a an lsNT b =
         let ls = unpackLens'NT lsNT in
-        let (Entity eId l) = el in
+        let (eId, l) = el in
         do
           mA         <- markAttempt t b a
           updResults <- ls %%~ (setDiscipline an mA) $ lifterRes l
           pure $ updateLiftersInDB
-            [Entity eId (l {lifterRes = updResults } )]
+            [(eId, l {lifterRes = updResults })]
 
 markLift _ _ = pure Nothing
 

@@ -109,7 +109,7 @@ resForm res =
     let widgets = fmap snd discForms
 
     let discWidgets = F.foldl' (>>) [whamlet| |] widgets
-    let resChanges =  (zipWith resChangesf (fst <$> discForms) meetType) :: [Maybe Results -> Maybe Results]
+    let resChanges =  (zipWith resChangesf (fst <$> discForms) meetType)
     let resRes = F.foldl' (\r f -> f r) (Just $ res) resChanges
     return $ case resRes of
       Just r -> (pure r, discWidgets)
@@ -117,11 +117,11 @@ resForm res =
 
     where
       resChangesf :: FormResult Discipline -> (Text, Lens'NT Results Discipline) -> Maybe Results -> Maybe Results
-      resChangesf (FormSuccess d) (_, Lens'NT l) = fmap $ l .~ d
-      resChangesf _               _              = id
+      resChangesf (FormSuccess d) (_,Lens'NT l) = fmap $ l .~ d
+      resChangesf _               _             = id
 
-lifterForm :: Entity Lifter -> MForm Handler (FormResult (Entity Lifter), Widget)
-lifterForm (Entity lId Lifter {..}) = do
+lifterForm :: (Key Lifter', Lifter) -> MForm Handler (FormResult (Key Lifter', Lifter), Widget)
+lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
   (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
   (resRes, resView) <- resForm lifterRes
@@ -134,20 +134,20 @@ lifterForm (Entity lId Lifter {..}) = do
            ^{fvInput groupView}
            ^{resView}
   |]
-  return (Entity <$> idRes <*> lifterResulting, widget)
+  return ((,) <$> idRes <*> lifterResulting, widget)
   where
       fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
 
 
-liftersForm :: MeetState -> [Entity Lifter] -> Html -> MForm Handler (FormResult [Entity Lifter], Widget)
+liftersForm :: MeetState -> [(Key Lifter', Lifter)] -> Html -> MForm Handler (FormResult [(Key Lifter', Lifter)], Widget)
 liftersForm meetState eLifterList extra = do
-  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (entityVal l) (entityVal l')) eLifterList
+  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (snd l) (snd l')) eLifterList
   list <- forM sortedList lifterForm
-  let reslist = fmap fst list :: [FormResult (Entity Lifter)]
-  let res0 = (catMaybes $ map formEval reslist) :: [Entity Lifter]
+  let reslist = fmap fst list :: [FormResult (Key Lifter', Lifter)]
+  let res0 = (catMaybes $ map formEval reslist) :: [(Key Lifter', Lifter)]
   let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
   -- Combine Widgets and Lifters and then group by liftergroups
-  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (fEntityVal sortedList) viewList :: [[(Lifter,Widget)]]
+  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (snd <$> sortedList) viewList :: [[(Lifter,Widget)]]
   let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
                                                                   Gruppe #{lifterGroup $ P.fst $ P.head l}
@@ -236,9 +236,9 @@ parseCSV rawFile =
 
 lifterParse :: UTCTime -> Row Text -> ApplEither [Text] Lifter
 lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name age <$> safeRead sex             <*> safeRead aclass <*> safeRead wclass
-                    <*> safeRead weight          <*> safeRead raw    <*> safeRead flight
-                    <*> pure (emptyResults time) <*> pure club
+    Lifter name <$> safeRead age             <*> safeRead sex             <*> safeRead aclass <*> safeRead wclass
+                <*> safeRead weight          <*> safeRead raw             <*> safeRead flight
+                <*> pure (emptyResults time) <*> pure club
   where
     safeRead :: (Read a, Show a) => Text -> ApplEither [Text] a
     safeRead s = case P.reads $ T.unpack s of
@@ -285,8 +285,8 @@ createLifter inp l@(Lifter {..}) pl = F.foldl' (P.flip (P.$)) inp actions
               , \src -> replaceAllCaptures TOP replGood $ src *=~ goodRegex] ++
               (map (\(a,b) -> T.replace a b)
                 [("NAME", lifterName )
-                ,("AGE", lifterAge )
-                ,("BW", pack $ show $ lifterWeight )
+                ,("AGE", pack $ show lifterAge )
+                ,("BW", pack $ show lifterWeight )
                 --,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight )
                 --,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight )
                 --,("ATTEMPT3",showAttempt $ lifterAttemptDL3Weight )

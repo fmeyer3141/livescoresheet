@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE NoImplicitPrelude #-} {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module MeetTypesTH where
 
@@ -18,6 +19,20 @@ data Attempt = Unset UTCTime
              | Skip UTCTime deriving (Show, Read, Eq)
 data LiftModifier = MTodo | MGood | MFail | MSkip deriving Eq
 data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt} deriving (Show, Read, Eq)
+
+attemptFromDB :: Int -> Double -> UTCTime -> Attempt
+attemptFromDB 0 _ t = Unset t
+attemptFromDB 1 w t = Todo w t
+attemptFromDB 2 w t = Success w t
+attemptFromDB 3 w t = Fail w t
+attemptFromDB _ _ t = Skip t
+
+attemptToDB :: Attempt -> (Int, Double, UTCTime)
+attemptToDB (Unset t)     = (0, 0.0, t)
+attemptToDB (Todo w t)    = (1, w, t)
+attemptToDB (Success w t) = (2, w, t)
+attemptToDB (Fail w t)    = (3, w, t)
+attemptToDB (Skip t)      = (4, 0.0, t)
 
 attGetChangedTime :: Attempt -> UTCTime
 attGetChangedTime (Unset t)     = t

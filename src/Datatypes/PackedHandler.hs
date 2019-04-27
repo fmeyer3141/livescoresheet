@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module PackedHandler ( PackedHandlerFor
                      , pack
@@ -14,8 +15,8 @@ module PackedHandler ( PackedHandlerFor
 import ClassyPrelude.Yesod hiding (runDB, unpack)
 import qualified ClassyPrelude.Yesod as Y (runDB)
 
--- Wrapper around Handler to compose atomic actions
-newtype PackedHandlerFor site a = Packed (HandlerFor site a)
+-- Wrapper around Handler to not forget to compose atomic actions
+newtype PackedHandlerFor site a = Packed (HandlerFor site a) deriving (Functor, Applicative, Monad, MonadIO)
 newtype PackedHandlerLock    = Lock (MVar ())
 
 class HasPackedHandlerLock site where
@@ -23,20 +24,6 @@ class HasPackedHandlerLock site where
 
 unpack :: PackedHandlerFor site a -> HandlerFor site a
 unpack (Packed h) = h
-
-instance Functor (PackedHandlerFor site) where
-  fmap f (Packed h)= Packed $ map f h
-
-instance Applicative (PackedHandlerFor site) where
-  pure x                        = Packed $ pure x
-  (<*>) (Packed af) (Packed ah) = Packed $ af <*> ah
-
-instance Monad (PackedHandlerFor site) where
-  return = pure
-  (>>=) (Packed h) f = Packed $ h >>= (unpack . f)
-
-instance MonadIO (PackedHandlerFor site) where
-  liftIO = Packed . liftIO
 
 runDB :: (YesodPersist site) => YesodDB site a -> PackedHandlerFor site a
 runDB = Packed . Y.runDB

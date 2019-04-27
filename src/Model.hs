@@ -18,7 +18,6 @@ module Model ( module MeetTypesTH
   where
 
 import ClassyPrelude.Yesod
-import Database.Persist.Quasi
 import Sex
 import Ageclass
 import ApplEither
@@ -36,9 +35,29 @@ import qualified Data.Text as T
 -- You can find more information on persistent and how to declare entities
 -- at:
 -- http://www.yesodweb.com/book/persistent/
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFileWith lowerCaseSettings "config/models")
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(databaseScheme) -- $(persistFileWith lowerCaseSettings "config/models")
 
 type GroupNr = Int
+
+data Lifter = Lifter { lifterName        :: !Text
+                     , lifterAge         :: !Int
+                     , lifterSex         :: !Sex
+                     , lifterAgeclass    :: !Ageclass
+                     , lifterWeightclass :: !Weightclass
+                     , lifterWeight      :: !Double
+                     , lifterRaw         :: !Bool
+                     , lifterGroup       :: !GroupNr
+                     , lifterRes         :: !Results
+                     , lifterClub        :: !Text
+                     } deriving (Show, Eq)
+
+data LifterBackup = LifterBackup { lifterBackupLifter  :: !Lifter
+                                 , lifterBackupVersion :: !Int    }
+
+$(dbLifterConvFunctions)
+
+fromLifterList :: [Lifter] -> [Lifter']
+fromLifterList = map toLifter'
 
 data RefereePlaces  = PLeft | PMain | PRight deriving (Show, Eq, Read)
 

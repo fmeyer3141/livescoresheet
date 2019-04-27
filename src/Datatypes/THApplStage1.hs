@@ -34,7 +34,7 @@ meetTypeTH = do
       , ValD (VarP meetTypeName) (NormalB (ListE (tuples $ T.unpack <$> discs)) ) [] ]
 
     where
-      genTuple discName = TupE [ LitE (StringL discName),AppE (ConE $ mkName "Lens'NT") $ VarE (mkName ("disc" ++ discName)) ]
+      genTuple discName = TupE [ LitE (StringL discName), AppE (ConE $ mkName "Lens'NT") $ VarE (mkName ("disc" ++ discName)) ]
       tuples discs = map genTuple discs
 
 apFlipped :: Applicative f => f a -> f (a -> b) -> f b

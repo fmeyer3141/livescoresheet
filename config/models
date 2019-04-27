@@ -1,28 +1,6 @@
 -- By default this file is used by `persistFileWith` in Model.hs (which is imported by Foundation.hs)
 -- Syntax for this file here: https://github.com/yesodweb/persistent/blob/master/docs/Persistent-entity-syntax.md
-
-Lifter
-  name Text
-  age Text
-  sex Sex
-  ageclass Ageclass
-  weightclass Weightclass
-  weight Double
-  raw Bool
-  group Int
-  res Results
-  club               Text
-  deriving Eq
-  deriving Show
-
 MeetState
   currDiscipline Text
   currGroupNr Int
   deriving Show
-
-LifterBackup
-  version Int
-  lifter Lifter
-  deriving Eq
-  deriving Show
-
