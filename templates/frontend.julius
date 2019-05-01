@@ -2,6 +2,8 @@ var autoReload = true;
 
 init();
 var lifters = undefined;
+var lastDiscipline = "";
+var allDisciplines = [];
 
 function toggleAutoReload () {
   if (autoReload) {
@@ -22,14 +24,15 @@ function init() {
   socket.onmessage = function (e) {
     var data = JSON.parse(e.data);
     console.log("success;");
-    console.log(data);
     if (data[0] == "SheetData") {
       data = data[1];
       lifters = data;
       console.log("SheetData");
       if (autoReload) {
+        allDisciplines = data[3];
         showNextLifters(data[1]);
         showRanking(data[0]);
+        updateCheckboxes(data[2], allDisciplines);
       }
     } else if (data[0] == "JuryData") {
         #{rawJS juryCode}
@@ -112,25 +115,51 @@ function showRanking(arr) {
 
       let $newRow = $rowBase.clone();
 
-      let addRow = cell => cell.addClass("divTableCell").appendTo($newRow)
-      let null2Empty = val => val !== null ? val : ""
+      let addRow = cell => cell.addClass("divTableCell").appendTo($newRow);
+      let extractWeight = val =>
+      {
+        switch(val.statusCode)
+        {
+          case "unset": return "";  
+          case "skip": return "Skip";
+          default: return val.weight;
+        }
+      } 
       let colorize = (success, cell) => {
-        if(success == null) return cell;
-        success ? cell.addClass("liftGood") : cell.addClass("liftFail");
+        switch(success)
+        {
+          case "success": cell.addClass("liftGood"); break; 
+          case "fail": cell.addClass("liftFail"); break; 
+          case "skip": cell.addClass("liftSkip"); break; 
+          default: break;
+        }
         return cell;
       };
       let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;};
 
-
       let rowElements = [
       highlightFirst($(`<div> ${lifter.name} </div>`)),
       $(`<div> ${lifter.group} </div>`),
-      colorize(lifter.attemptDL1Success, $(`<div>${null2Empty(lifter.attemptDL1Weight)} </div>`)),
-      colorize(lifter.attemptDL2Success, $(`<div>${null2Empty(lifter.attemptDL2Weight)} </div>`)),
-      colorize(lifter.attemptDL3Success, $(`<div>${null2Empty(lifter.attemptDL3Weight)} </div>`)),
-      $(`<div> ${wilks} </div>`),
-      $(`<div> ${lifter.club} </div>`),
       ];
+
+      for(let disciplineIndex = 0; disciplineIndex < lifter.results.length; disciplineIndex++)
+      {
+        let disc = allDisciplines[disciplineIndex];
+        let attempt1 = lifter.results[disciplineIndex][1].att1;
+        rowElements.push(colorize(attempt1.statusCode, $(`<div class="discCell${disc}">${extractWeight(attempt1)} </div>`)));
+        let attempt2 = lifter.results[disciplineIndex][1].att2;
+        rowElements.push(colorize(attempt2.statusCode, $(`<div class="discCell${disc}">${extractWeight(attempt2)} </div>`)));
+        let attempt3 = lifter.results[disciplineIndex][1].att3;
+        rowElements.push(colorize(attempt3.statusCode, $(`<div class="discCell${disc}">${extractWeight(attempt3)} </div>`)));
+      }
+
+      rowElements = rowElements.concat(
+        [
+          $(`<div> ${wilks} </div>`),
+          $(`<div> ${lifter.club} </div>`),
+        ]
+      )
+
       rowElements.forEach(elem => addRow(elem));
 
       $newRow.appendTo($newTable);
@@ -138,6 +167,19 @@ function showRanking(arr) {
 
     $("#divGroupOverview").append($newTable);
   }
+}
+
+// aktualisiert die Disziplinscheckboxen wenn im Adminpanel die Disziplin geaendert wird
+function updateCheckboxes(currentDiscipline, disciplinesArr) {
+  if(currentDiscipline == lastDiscipline) return;
+
+  disciplinesArr.forEach(d => {
+    let $checkbox = $("#check" + d); 
+    $checkbox.prop('checked', d == currentDiscipline);
+  })
+  lastDiscipline = currentDiscipline;
+
+  showSelectedDisciplines();
 }
 
 /** Extrahiert aus dem ersten Lifter einer Gruppe die Gruppeninfo und gibt
@@ -170,18 +212,19 @@ function overlayOff () {
   document.getElementById("juryOverlay").style.display = "none";
 }
 
-// age: 19
-// ageclass: "Open"
-// attemptDL1Success: null
-// attemptDL1Weight: null
-// attemptDL2Success: null
-// attemptDL2Weight: null
-// attemptDL3Success: null
-// attemptDL3Weight: null
-// club: " Fitnesskreis Witten"
-// group: 2
-// name: "Bernd"
-// raw: true
-// sex: "Male"
-// weight: 94
-// weightclass: "105"
+$('#divGroupSelector :checkbox').change(function() {
+  showSelectedDisciplines();
+});
+
+// Zeigt nur die ausgewaehlten Disziplinen an
+function showSelectedDisciplines() {
+
+  allDisciplines.forEach(d => {
+    let checkboxChecked = $("#check" + d).prop("checked"); 
+    let $discHeads = $(".discHead" + d);
+    let $discCells = $(".discCell" + d);
+    checkboxChecked ? $discHeads.show() : $discHeads.hide();
+    checkboxChecked ? $discCells.show() : $discCells.hide();
+  })
+
+}

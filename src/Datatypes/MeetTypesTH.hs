@@ -17,6 +17,13 @@ data Attempt = Unset UTCTime
              | Success Weight UTCTime
              | Fail Weight UTCTime
              | Skip UTCTime deriving (Show, Read, Eq)
+
+instance ToJSON Attempt where
+  toJSON (Unset _)     = object  ["statusCode" .= ("unset" :: Text)]
+  toJSON (Todo w _)    = object  ["statusCode" .= ("todo" :: Text), "weight" .= show w]
+  toJSON (Success w _) = object  ["statusCode" .= ("success" :: Text), "weight" .= show w]
+  toJSON (Fail w _)    = object  ["statusCode" .= ("fail" :: Text), "weight" .= show w]
+  toJSON (Skip _)      = object  ["statusCode" .= ("skip" :: Text)]
 data LiftModifier = MTodo | MGood | MFail | MSkip deriving Eq
 data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt} deriving (Show, Read, Eq)
 
@@ -86,9 +93,6 @@ meetSettingsFile = "config/meetSettings.yml"
 
 meetSettings :: IO MeetSettings
 meetSettings = readMeetSettings meetSettingsFile
-
-instance ToJSON Attempt where
-  toJSON = toJSON . show
 
 instance ToJSON Discipline where
   toJSON Discipline {..} = object [ "att1" .= toJSON att1, "att2" .= toJSON att2, "att3" .= toJSON att3]

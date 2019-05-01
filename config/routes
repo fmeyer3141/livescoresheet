@@ -1,24 +1,25 @@
 -- By default this file is used by `parseRoutesFile` in Foundation.hs
 -- Syntax for this file here: https://www.yesodweb.com/book/routing-and-handlers
 
-/static              StaticR Static appStatic
-/auth                AuthR   Auth   getAuth
+/static               StaticR Static appStatic
+/auth                 AuthR   Auth   getAuth
 
-/favicon.png         FaviconR       GET
-/robots.txt          RobotsR        GET
+/favicon.png          FaviconR       GET
+/robots.txt           RobotsR        GET
 
-/overview            OverviewR      GET
+/overview             OverviewR      GET
 
-/admin               AdminR         GET
-/csv-form            CSVFormR       POST
-/lifter-form         LifterFormR    POST
-/meet-state-form     MeetStateFormR POST
-/reset-kari          ResetKariR     GET
+/admin                AdminR         GET
+/csv-form             CSVFormR       POST
+/lifter-form          LifterFormR    POST
+/meet-state-form      MeetStateFormR POST
+/reset-kari           ResetKariR     GET
 
-/                    FrontendDefR   GET
-/jury/#RefereePlaces JuryR          GET POST
-/undo                UndoR          GET
-/frontend/#Bool      FrontendR      GET
-/stecker             SteckerR       GET
-/table.tex           TableR         GET
-/urkunden.csv        UrkundenR      GET
+/                     FrontendDefR   GET
+/beamer               BeamerR        GET
+/jury/#RefereePlaces  JuryR          GET POST
+/undo                 UndoR          GET
+/frontend/#Bool/#Bool FrontendR      GET
+/stecker              SteckerR       GET
+/table.tex            TableR         GET
+/urkunden.csv         UrkundenR      GET

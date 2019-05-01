@@ -207,7 +207,7 @@ instance YesodAuth App where
     -- Where to send a user after successful login
     loginDest _ = OverviewR
     -- Where to send a user after logout
-    logoutDest _ = FrontendR False
+    logoutDest _ = FrontendR False False
 
     authenticate (Creds credsPlug credsId _) = do
       return

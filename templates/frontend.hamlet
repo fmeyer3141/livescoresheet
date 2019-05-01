@@ -1,6 +1,5 @@
 <div id=juryOverlay>
   <div id=juryOverlayContent>
-    Text
 
 <div .container>
   <h3> Die nächsten Athleten
@@ -16,16 +15,22 @@
         <div .divTableCell>
         <div .divTableCell>
 
-  <h3> Klassenübersicht
+  <div #divClassConfig>
+    <h3> Klassenübersicht
+    <div #divGroupSelector .form-check>
+      $forall d<- (map fst meetType)
+        <input type="checkbox" id="check#{d}" .form-check-input checked>
+        <label for="check#{d}" .form-check-label>#{d}</label>
   <div #divGroupOverview>
     <div #groupTableBase .divTable .groupTable .nextLifterTable .invisible>
       <div .divTableHeading>
         <div .divTableRow>
           <div .divTableHead .widthName>Name
           <div .divTableHead .widthNumber>Gruppe
-          <div .divTableHead .widthNumber>Versuch 1
-          <div .divTableHead .widthNumber>Versuch 2
-          <div .divTableHead .widthNumber>Versuch 3
+          $forall d<- (map fst meetType)
+            <div .divTableHead .widthNumber .discHead#{d}>#{d} 1
+            <div .divTableHead .widthNumber .discHead#{d}>#{d} 2
+            <div .divTableHead .widthNumber .discHead#{d}>#{d} 3
           <div .divTableHead .widthNumber>Relativwertung
           <div .divTableHead .widthName>Verein
       <div .divTableBody>

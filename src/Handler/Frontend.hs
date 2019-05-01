@@ -34,7 +34,7 @@ computeFrontendData (LifterUpdate (ms, lifters)) =
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
      let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
-     Just $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput))
+     Just $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput, meetStateCurrDiscipline ms, fst <$> meetType))
      where
         isNext :: Maybe Lifter -> Lifter -> Bool
         isNext (Just l') l = l == l'
@@ -44,8 +44,8 @@ computeFrontendData (JuryResult (refRes,True))   = Just $ toJSON ("JuryData" :: 
 computeFrontendData (JuryResult _)               = Nothing
 
 
-getFrontendR :: Bool -> Handler Html
-getFrontendR showJury = do
+getFrontendR :: Bool -> Bool -> Handler Html
+getFrontendR showJury updateFrontendDiscView = do
     addHeader "Access-Control-Allow-Origin" "*"
     webSockets $ dataSocket computeFrontendData
     defaultLayout $ do
@@ -53,5 +53,8 @@ getFrontendR showJury = do
       let juryCode = if showJury then "showJury(data[1]);" else "" :: Text
       $(widgetFile "frontend")
 
+getBeamerR :: Handler Html
+getBeamerR = redirect $ FrontendR True True
+
 getFrontendDefR :: Handler Html
-getFrontendDefR = redirect $ FrontendR False
+getFrontendDefR = redirect $ FrontendR False False
