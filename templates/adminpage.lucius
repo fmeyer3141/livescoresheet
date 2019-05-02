@@ -10,16 +10,20 @@
   background-color: black;
   color: white;
 }
-
+.contentContainer {
+  width: 90%;
+  margin-left: auto;
+  margin-right:auto;
+}
 #lifterNameHeader {
   float : left;
-	width : 11.5em;
+  width : 11.5em;
   padding-left: 0.2em;
 }
 
 #lifterGroupHeader {
   float : left;
-	width : 6em;
+  width : 6em;
 }
 
 .lifterAttemptHeader {
@@ -42,7 +46,7 @@
 }
 
 .lifterName {
-	width : 12em;
+  width : 11.5em;
   float : left;
   background-color : #D6D6D6;
   padding-bottom : 1.0em;
@@ -50,7 +54,7 @@
 }
 
 .tableText {
-	width : 5em;
+  width : 5em;
 }
 
 .attempt {
@@ -74,5 +78,6 @@
   margin-bottom: 30px;
 }
 
-
-
+#showMenu {
+  margin-left: 1cm;
+}

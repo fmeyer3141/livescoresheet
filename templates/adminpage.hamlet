@@ -1,4 +1,4 @@
-<div .container>
+<div .contentContainer>
   <div .divLogin>
     Logged in as #{show maid}.
     <a href=@{AuthR LogoutR}>
@@ -32,6 +32,14 @@
         <span .spanUndo>
           <a href=@{UndoR}>
             &emsp; Undo!
+        <span #showMenu>
+          $forall d<-map fst meetType
+            $if (==) d currDisc
+              <input .form-check-input type=checkbox #check#{d} checked>
+            $else
+              <input .form-check-input type=checkbox #check#{d}>
+            <label .form-check-label for=check#{d}>
+              #{d}
 
       ^{lifterformWidget}
 

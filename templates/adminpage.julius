@@ -25,3 +25,21 @@ function init() {
 }
 
 init();
+
+var allDisciplines = #{toJSON discNames};
+
+$('#showMenu :checkbox').change(function() {
+  showSelectedDisciplines();
+});
+
+function showSelectedDisciplines () {
+  allDisciplines.forEach(d => {
+    let checkboxChecked = $("#check" + d).prop("checked");
+    let $discHeads = $(".discHead" + d);
+    let $discCells = $(".discCell" + d);
+    checkboxChecked ? $discHeads.show() : $discHeads.hide();
+    checkboxChecked ? $discCells.show() : $discCells.hide();
+  });
+}
+
+showSelectedDisciplines ();

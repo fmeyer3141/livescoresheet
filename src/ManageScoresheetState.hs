@@ -5,6 +5,7 @@
 module ManageScoresheetState ( getDataFromDB
                              , PackedHandler
                              , getELiftersFromDB
+                             , getELiftersInGroupFromDB
                              , getCurrMeetStateFromDB
                              , fEntityVal
                              , pushDataFromDBToChannel
@@ -45,6 +46,10 @@ getELiftersFromDB = do
     fromDB <- runDB $ selectList ([] :: [Filter Lifter']) ([] :: [SelectOpt Lifter'])
     pure $ map (\(Entity k l) -> (k, toLifter l)) fromDB
 
+getELiftersInGroupFromDB :: GroupNr -> PackedHandler [(Key Lifter', Lifter)]
+getELiftersInGroupFromDB gNr = do
+    fromDB <- runDB $ selectList [Lifter'Group ==. gNr] ([] :: [SelectOpt Lifter'])
+    pure $ map (\(Entity k l) -> (k, toLifter l)) fromDB
 
 fEntityVal :: Functor f => f (Entity a) -> f a
 fEntityVal= map entityVal

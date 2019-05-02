@@ -51,6 +51,7 @@ getFrontendR showJury updateFrontendDiscView = do
     defaultLayout $ do
       setTitle "Scoresheet"
       let juryCode = if showJury then "showJury(data[1]);" else "" :: Text
+      let discNames = fst <$> meetType :: [Text]
       $(widgetFile "frontend")
 
 getBeamerR :: Handler Html

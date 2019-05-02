@@ -60,25 +60,30 @@ getAdminR = do
     addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
-    (meetState, eLifters) <- atomicallyUnpackHandler $ (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
+    meetState <- atomicallyUnpackHandler getCurrMeetStateFromDB
+    eLifters  <- atomicallyUnpackHandler $ getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState eLifters
     (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
+        let currDisc = meetStateCurrDiscipline meetState
+        let discNames = fst <$> meetType :: [Text]
         $(widgetFile "adminpage")
 
 csvForm :: Form FileForm
 csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
     <$> fileAFormReq "Wählen Sie die Anmeldungsdatei aus."
 
-attemptForm :: Attempt -> MForm Handler (FormResult Attempt, Widget)
-attemptForm att = do
+attemptForm :: Text -> Attempt -> MForm Handler (FormResult Attempt, Widget)
+attemptForm dDescr att = do
   (timeRes,timeView)      <- mreq hiddenField fieldFormat $ Just (show $ attGetChangedTime att)
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
   (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
   let attRes = createAttempt <$> weightRes <*> succRes <*> (P.read <$> timeRes)
-  return (attRes, [whamlet| ^{fvInput timeView} ^{fvInput weightView} ^{fvInput succView}|])
+  return (attRes, [whamlet|
+                    <div .attempt .discCell#{dDescr}>
+                      ^{fvInput timeView} ^{fvInput weightView} ^{fvInput succView} |])
 
   where
     fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
@@ -93,11 +98,11 @@ attemptForm att = do
         (_, _)          -> Unset t
 
 disciplineForm :: Text -> Discipline -> MForm Handler (FormResult Discipline, Widget)
-disciplineForm descr Discipline { .. } =
+disciplineForm dDescr Discipline { .. } =
   do
-    (att1f, att1View) <- attemptForm att1
-    (att2f, att2View) <- attemptForm att2
-    (att3f, att3View) <- attemptForm att3
+    (att1f, att1View) <- attemptForm dDescr att1
+    (att2f, att2View) <- attemptForm dDescr att2
+    (att3f, att3View) <- attemptForm dDescr att3
     let widget = [whamlet| ^{att1View} ^{att2View} ^{att3View}|]
     let disciplineRes = Discipline <$> att1f <*> att2f <*> att3f
     return (disciplineRes, widget)
@@ -157,13 +162,14 @@ liftersForm meetState eLifterList extra = do
                                       -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
   let framedFrom = ([whamlet|
                 #{extra}
-                <div id="lifterForm">
-                  <div id="lifterFormHeaderRow">
-                    <span id="lifterNameHeader" class="lifterFormHeader"> Name
-                    <span id="lifterGroupHeader" class="lifterFormHeader"> Gruppe
-                    <span class="lifterAttemptHeader lifterFormHeader"> Versuch 1
-                    <span class="lifterAttemptHeader lifterFormHeader"> Versuch 2
-                    <span class="lifterAttemptHeaderEnd lifterFormHeader"> Versuch 3
+                <div #lifterForm>
+                  <div #lifterFormHeaderRow>
+                    <span #lifterNameHeader .lifterFormHeader> Name
+                    <span #lifterGroupHeader .lifterFormHeader> Gruppe
+                    $forall d <- map fst meetType
+                      <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 1
+                      <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 2
+                      <span .lifterAttemptHeaderEnd .lifterFormHeader .discHead#{d}> #{d} 3
                   ^{combinedWidgets}
               |])
   if (elem Nothing (map formEval reslist))
@@ -208,8 +214,9 @@ postCSVFormR = do
 
 postLifterFormR :: Handler Html
 postLifterFormR = do
-  (meetState, lifters) <- atomicallyUnpackHandler $ (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
+  meetState <- atomicallyUnpackHandler $ getCurrMeetStateFromDB
   let groupNr = meetStateCurrGroupNr meetState
+  lifters <- atomicallyUnpackHandler $ getELiftersInGroupFromDB groupNr
   ((res,_),_) <- runFormPost $ liftersForm meetState lifters
   case res of
       FormSuccess lifterList ->
