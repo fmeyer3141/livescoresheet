@@ -36,9 +36,7 @@ function init() {
         updateCheckboxes(data[2], allDisciplines);
       }
     } else if (data[0] == "JuryData") {
-        console.log(data);
-        console.log(data[1]);
-        console.log(data[2]);
+        console.log ("juryData")
         juryLifter = data[1];
         juryCards  = data[2];
         #{rawJS juryCode}
