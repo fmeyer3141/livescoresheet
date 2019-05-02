@@ -51,8 +51,8 @@ meetStateForm MeetState {..} = renderDivs $
     list = map (double . fst) meetType
 
 computeKariData :: FrontendMessage -> Maybe Value
-computeKariData (JuryResult (res,_)) = Just $ toJSON res
-computeKariData _                    = Nothing
+computeKariData (JuryResult (_,res,_)) = Just $ toJSON res
+computeKariData _                      = Nothing
 
 getAdminR :: Handler Html
 getAdminR = do

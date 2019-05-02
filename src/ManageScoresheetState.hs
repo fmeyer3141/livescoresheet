@@ -168,7 +168,7 @@ pushDataToChannel = pushInChannel . LifterUpdate
 pushDataFromDBToChannel :: PackedHandler ()
 pushDataFromDBToChannel = getDataFromDB >>= pushDataToChannel
 
-pushRefereeStateToChannel :: (RefereeResult, Bool) -> PackedHandler ()
+pushRefereeStateToChannel :: (Maybe LifterAttemptInfo, RefereeResult, Bool) -> PackedHandler ()
 pushRefereeStateToChannel = pushInChannel . JuryResult
 
 restoreBackup :: PackedHandler ()

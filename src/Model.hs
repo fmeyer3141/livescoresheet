@@ -89,9 +89,15 @@ emptyRefereeResult = RefereeResult Nothing Nothing Nothing
 instance Show RefereeResult where
   show (RefereeResult l m r) = show [l,m,r]
 
+data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
+
+-- (lifterName, lifterClub, currDiscipline, currGroupNr, nextAttemptNr, nextWeight, plates)
+type LifterAttemptInfo = (Text, Text, Text, Int, Maybe Int, Double, [(Plate, Int)])
+
 data FrontendMessage = LifterUpdate (MeetState, [Lifter])
-                     | JuryResult (RefereeResult, Bool) -- The bool indicates whether the frontend
-                                                         -- shows the result in an overlay or not at all
+                     | JuryResult (Maybe LifterAttemptInfo, RefereeResult, Bool)
+                         -- The bool indicates whether the frontend
+                         -- shows the result in an overlay or not at all
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> res ^. (unpackLens'NT l)) <$> meetType

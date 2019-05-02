@@ -40,8 +40,8 @@ computeFrontendData (LifterUpdate (ms, lifters)) =
         isNext (Just l') l = l == l'
         isNext _ _         = False
 
-computeFrontendData (JuryResult (refRes,True))   = Just $ toJSON ("JuryData" :: Text, refRes)
-computeFrontendData (JuryResult _)               = Nothing
+computeFrontendData (JuryResult (lAttInfo,refRes,True)) = Just $ toJSON ("JuryData" :: Text, lAttInfo, refRes)
+computeFrontendData (JuryResult _)                      = Nothing
 
 
 getFrontendR :: Bool -> Bool -> Handler Html
@@ -50,7 +50,7 @@ getFrontendR showJury updateFrontendDiscView = do
     webSockets $ dataSocket computeFrontendData
     defaultLayout $ do
       setTitle "Scoresheet"
-      let juryCode = if showJury then "showJury(data[1]);" else "" :: Text
+      let juryCode = if showJury then "showJury(data[0], data[1]);" else "" :: Text
       let discNames = fst <$> meetType :: [Text]
       $(widgetFile "frontend")
 

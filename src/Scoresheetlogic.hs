@@ -11,8 +11,6 @@ import Sex
 
 type Class = (Ageclass, Sex, Weightclass, Bool)
 
-data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
-
 instance ToJSON Plate where
   toJSON = toJSON . show
 

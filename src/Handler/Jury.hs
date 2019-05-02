@@ -27,7 +27,8 @@ prettyPrintPos PMain  = "Hauptkampfrichter"
 prettyPrintPos PRight = "Seitenkampfrichter Rechts"
 
 computeKariData :: FrontendMessage -> Maybe Value
-computeKariData (LifterUpdate (ms, lifters)) = Just $ toJSON $ getLifterInfo ms $ getNextLifterInGroup ms lifters
+computeKariData (LifterUpdate (ms, lifters)) = Just . toJSON $
+                                               (getNextLifterInGroup ms lifters >>= getLifterAttemptInfo ms)
 computeKariData _                            = Nothing
 
 -- Did the Post work?
@@ -70,11 +71,11 @@ getAttempt 2 d = Just $ att2 d
 getAttempt 3 d = Just $ att3 d
 getAttempt _ _ = Nothing
 
-markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler ()))
+markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler LifterAttemptInfo))
 markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   let weight = sum $ map (\(RefereeDecision r b y) -> if null $ filter id [r,b,y] then 1 else -1)
                          [le,ma,ri] :: Int
-  elifters <- getELiftersFromDB
+  elifters  <- getELiftersFromDB
   meetState <- getCurrMeetStateFromDB
   let eCurrLifter = getCurrELifter meetState elifters
   let currDiscipline = meetStateCurrDiscipline meetState
@@ -82,31 +83,33 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   pure $ case eCurrLifter of
     Just (eId, l) ->
       do
-        attemptNr <- nextAttemptNr meetState l
-        discLens  <- map snd $ L.find ((==) currDiscipline . fst) meetType
-        attempt   <- getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
+        attemptNr     <- nextAttemptNr meetState l
+        discLens      <- map snd $ L.find ((==) currDiscipline . fst) meetType
+        attempt       <- getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
+        lifterAttInfo <- getLifterAttemptInfo meetState l
 
         if weight > 0 then
           -- Valid
-          markLiftDBHelper (eId, l) attempt attemptNr discLens True
+          markLiftDBHelper (eId, l) attempt attemptNr discLens True lifterAttInfo
         else
           -- Invalid
-          markLiftDBHelper (eId, l) attempt attemptNr discLens False
+          markLiftDBHelper (eId, l) attempt attemptNr discLens False lifterAttInfo
 
     _       -> Nothing
     -- liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
     --                               " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
 
     where
-      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> Int -> Lens'NT Results Discipline -> Bool -> Maybe (PackedHandler ())
-      markLiftDBHelper el a an lsNT b =
+      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> Int -> Lens'NT Results Discipline -> Bool ->
+                          LifterAttemptInfo -> Maybe (PackedHandler LifterAttemptInfo)
+      markLiftDBHelper el a an lsNT b attInfo =
         let ls = unpackLens'NT lsNT in
         let (eId, l) = el in
         do
           mA         <- markAttempt t b a
           updResults <- ls %%~ (setDiscipline an mA) $ lifterRes l
           pure $ updateLiftersInDB
-            [(eId, l {lifterRes = updResults })]
+            [(eId, l {lifterRes = updResults })] *> pure attInfo
 
 markLift _ _ = pure Nothing
 
@@ -129,10 +132,12 @@ postJuryR p = do
         liftIO (putStrLn "All decisions entered")
         *> (markLift time refereeState >>=
              (\markRes -> case markRes of
-               Just act -> act *> pushRefereeStateToChannel (refereeState, True) *> pure True--perform marking action
+               Just act ->
+                (act >>= (\lAttInfo -> pushRefereeStateToChannel (Just lAttInfo, refereeState, True)))
+                *> pure True--perform marking action
                Nothing  -> liftIO (putStrLn "Error marking Lifter") *> pure False)) -- TODO log error
       else
-        pushRefereeStateToChannel (refereeState, False) *> pure True)
+        pushRefereeStateToChannel (Nothing, refereeState, False) *> pure True)
 
      >>= (getJuryR' p . Just) -- show success
 

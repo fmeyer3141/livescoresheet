@@ -4,6 +4,8 @@ init();
 var lifters = undefined;
 var lastDiscipline = "";
 var allDisciplines = #{toJSON discNames};
+var juryLifter = undefined;
+var juryCards  = [false,false,false,true,true,true,true,false,false];
 
 function toggleAutoReload () {
   if (autoReload) {
@@ -34,6 +36,11 @@ function init() {
         updateCheckboxes(data[2], allDisciplines);
       }
     } else if (data[0] == "JuryData") {
+        console.log(data);
+        console.log(data[1]);
+        console.log(data[2]);
+        juryLifter = data[1];
+        juryCards  = data[2];
         #{rawJS juryCode}
     }
   };
@@ -49,10 +56,92 @@ function init() {
   };
 }
 
-function showJury (data) {
-  document.getElementById("juryOverlayContent").innerHTML = data;
+function showJury () {
   overlayOn();
+  renderJury();
   setTimeout(overlayOff, 5000);
+}
+
+function renderJury() {
+  let lifter           = juryLifter;
+  let cards            = juryCards;
+
+  if (lifter == undefined || cards == undefined)
+    return;
+
+  //set lifter info
+  let h1               = document.getElementById('juryh1');
+  let h2               = document.getElementById('juryh2');
+  h1.innerHTML         = lifter[0]; //Name
+  h1.innerHTML        += " - ";
+  h1.innerHTML        += lifter[5]; //Gewicht
+  h1.innerHTML        += "Kg - ";
+  h1.innerHTML        += lifter[2] + " "; //Disziplin
+  h1.innerHTML        += lifter[4]; //Versuch
+  h1.innerHTML        += ". Versuch";
+  h2.innerHTML         = lifter[1]; //Verein
+
+  let circleSizeRel    = 0.3;
+
+  let karisRot         = [cards[0][0], cards[1][0], cards[2][0]];
+  let karisBlue        = [cards[0][1], cards[1][1], cards[2][1]];
+  let karisYellow      = [cards[0][2], cards[1][2], cards[2][2]];
+
+  let canvas           = document.getElementById("juryCanvas");
+  let c                = canvas.getContext('2d');
+  canvas.width         = 0.9 * window.innerWidth;
+  let juryHeaderBRect  = document.getElementById('juryHeader').getBoundingClientRect();
+  canvas.height        = 0.9*(window.innerHeight - (juryHeaderBRect.bottom - juryHeaderBRect.top)) // 0.9 * window.innerHeight;
+
+  let width            = canvas.width;
+  let height           = canvas.height;
+
+  let maxCircleX       = width*circleSizeRel;
+  let maxCircleY       = height*0.85;
+  let circleSize       = maxCircleX < maxCircleY ? maxCircleX : maxCircleY;
+
+  let circleRad        = (circleSize / 2);
+  let horizontalSpace  = ( (width - 3*circleSize)/4 );
+
+  let totalHeight      = 0.1*height + circleSize;
+  //Redefine canvas height
+  canvas.height        = totalHeight;
+  height               = canvas.height;
+
+  for (let i = 0; i<3; ++i) {
+    let isInvalid = karisRot[i] || karisBlue[i] || karisYellow[i];
+    let color = isInvalid ? 'rgb(255,0,0)' : 'rgb(255,255,255)';
+    let offset = horizontalSpace + 2*circleRad;
+    let xpos = horizontalSpace + circleRad + i*offset;
+    let ypos = circleRad;
+    c.fillStyle = color;
+    //draw Primary Lights
+    c.beginPath();
+    c.arc(xpos, ypos, circleRad, 0, 2*Math.PI);
+    c.closePath();
+    c.fill();
+
+    //below the primary lights draw the cards
+    cardWidth = circleSize/3;
+    offset    = 0;
+    if (karisRot[i]) {
+      color = 'rgb(255,0,0)'
+      c.fillStyle = color;
+      c.fillRect(xpos-circleRad+offset, ypos+circleRad+0.01*height, cardWidth, 0.09*height);
+    }
+    offset += cardWidth;
+    if (karisBlue[i]) {
+      color = 'rgb(0,0,255)'
+      c.fillStyle = color;
+      c.fillRect(xpos-circleRad+offset, ypos+circleRad+0.01*height, cardWidth, 0.09*height);
+    }
+    offset += cardWidth;
+    if (karisYellow[i]) {
+      color = 'rgb(255,255,0)'
+      c.fillStyle = color;
+      c.fillRect(xpos-circleRad+offset, ypos+circleRad+0.01*height, cardWidth, 0.09*height);
+    }
+  }
 }
 
 
@@ -115,8 +204,7 @@ function showRanking(arr) {
       let $newRow = $rowBase.clone();
 
       let addRow = cell => cell.addClass("divTableCell").appendTo($newRow);
-      let extractWeight = val =>
-      {
+      let extractWeight = val => {
         switch(val.statusCode)
         {
           case "unset": return "";
@@ -227,3 +315,5 @@ function showSelectedDisciplines() {
   });
 
 }
+
+window.addEventListener('resize', renderJury, false);

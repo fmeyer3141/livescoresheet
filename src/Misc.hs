@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Misc where
 
@@ -14,12 +15,11 @@ import ManageScoresheetState
 import Scoresheetlogic
 import PackedHandler
 
-getLifterInfo :: MeetState -> Maybe Lifter -> Maybe (Text, Text, Text, Int, Maybe Int, Double, [(Plate, Int)])
-getLifterInfo ms ml =
+getLifterAttemptInfo :: MeetState -> Lifter -> Maybe LifterAttemptInfo
+getLifterAttemptInfo ms l@Lifter {..} =
   do
-    l <- ml
-    w <- nextWeight ms l
-    return ( lifterName l, lifterClub l, meetStateCurrDiscipline ms
+    w             <- nextWeight ms l
+    return ( lifterName, lifterClub, meetStateCurrDiscipline ms
            , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
 
 doubleMap :: (a -> b) -> (a,a) -> (b,b)
@@ -39,7 +39,7 @@ dataSocket computeData = do
   juryStateRef <- appRefereeState <$> getYesod
   refState <- lift . atomicallyUnpackHandler . packHandler $ atomicModifyIORef' juryStateRef $ \a -> (a,a)
   sendJSON $ LifterUpdate dbData
-  sendJSON $ JuryResult (refState, False)
+  sendJSON $ JuryResult (Nothing, refState, False)
   catch
     (race_
       (forever $ (atomically $ readTChan rChan) >>= sendJSON)
