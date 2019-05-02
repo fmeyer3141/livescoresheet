@@ -9,8 +9,7 @@ function init() {
       var data = JSON.parse(e.data);
       console.log("onmessage");
       console.log(data);
-
-      document.getElementById("kariResult").innerHTML = data;
+      showKariResults(data);
   };
 
   socket.onerror = function(e) {
@@ -21,6 +20,45 @@ function init() {
     console.log("socket closed");
     console.log("try to restart socket soon");
     setTimeout(init,3000);
+  }
+}
+
+function showKariResults (data) {
+  let field = document.getElementById("kariResult");
+  field.innerHTML = "";
+
+  for (let i = 0; i<3; ++i) {
+    let currDecision = data[i];
+    let kariDescr = "";
+
+    if (i == 0)
+      kariDescr = "links";
+    else if (i == 1)
+      kariDescr = "mitte";
+    else if (i == 2)
+      kariDescr = "rechts";
+
+    field.innerHTML += "Kari " + kariDescr + ": ";
+    if (currDecision != null) { //A decision was made
+      if (currDecision[0] == false && currDecision[1] == false && currDecision[2] == false) {
+        // Valid Attempt
+        field.innerHTML += "✓ ";
+      } else {
+        if (currDecision[0] == true) { //red
+          field.innerHTML += "🔴 ";
+        }
+        if (currDecision[1] == true) { //blue
+          field.innerHTML += "🔵 ";
+        }
+        if (currDecision[2] == true) { //yellow
+          field.innerHTML += "💛 ";
+          // yellow unicode circle was added on march 12 19 which is too recent at least for my font
+        }
+      }
+    } else { //Entscheidung noch nicht fertig
+      field.innerHTML += "… ";
+    }
+    field.innerHTML += " &nbsp; &nbsp; &nbsp;";
   }
 }
 
