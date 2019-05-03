@@ -34,6 +34,7 @@ function init() {
         showNextLifters(data[1]);
         showRanking(data[0]);
         updateCheckboxes(data[2], allDisciplines);
+        showSelectedDisciplines();
       }
     } else if (data[0] == "JuryData") {
         console.log ("juryData")
