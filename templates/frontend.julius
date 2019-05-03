@@ -5,7 +5,7 @@ var lifters = undefined;
 var lastDiscipline = "";
 var allDisciplines = #{toJSON discNames};
 var juryLifter = undefined;
-var juryCards  = [false,false,false,true,true,true,true,false,false];
+var juryCards  = undefined;
 
 function toggleAutoReload () {
   if (autoReload) {
