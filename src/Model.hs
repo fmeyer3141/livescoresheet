@@ -25,7 +25,7 @@ import Weightclass
 import THApplStage1
 import THApplStage2
 import MeetTypesTH
-import Data.Maybe
+import Data.Maybe (fromJust)
 import qualified Prelude as P
 import Control.Lens ((^.))
 
@@ -102,8 +102,11 @@ data FrontendMessage = LifterUpdate (MeetState, [Lifter])
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> res ^. (unpackLens'NT l)) <$> meetType
 
+getHighestAttempt :: [Attempt] -> Maybe Double
+getHighestAttempt = maximumMay . catMaybes . map attemptWeight
+
 getBestAttempt :: Discipline -> Maybe Double
-getBestAttempt = P.maximum . fmap attemptWeight . attemptsAsList
+getBestAttempt = getHighestAttempt . filter attemptSuccess . attemptsAsList
 
 getDisciplineFromLifter :: Text -> Lifter -> Discipline
 getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNames (resultList $ lifterRes)

@@ -65,7 +65,12 @@ attSetChangedDate t' (Skip _)      = Unset t'
 
 attemptFail :: Attempt -> Bool
 attemptFail (Fail _ _) = True
-attemptFail _          = True
+attemptFail (Skip _ )  = True
+attemptFail _          = False
+
+attemptSuccess :: Attempt -> Bool
+attemptSuccess (Success _ _) = True
+attemptSuccess _             = False
 
 attemptToModifier :: Attempt -> LiftModifier
 attemptToModifier (Unset _)     = MTodo

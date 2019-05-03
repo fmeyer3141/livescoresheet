@@ -15,7 +15,7 @@ instance ToJSON Plate where
   toJSON = toJSON . show
 
 isDQ :: Lifter -> Bool
-isDQ = or . fmap (and . fmap (\a -> if attemptFail a then True else False) . attemptsAsList) . resultList . lifterRes
+isDQ = or . map (and . map attemptFail . attemptsAsList) . resultList . lifterRes
 
 type Comparison a = a -> a -> Ordering
 
@@ -25,11 +25,12 @@ infixr 8 .~.
   EQ -> cmp a a'
   c  -> c
 
+-- Running Total
 getTotalLifter :: Lifter -> Maybe Double
 getTotalLifter lifter@(Lifter {..}) =
   case isDQ lifter of
     True -> Nothing
-    False -> Just . sum . fmap (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
+    False -> Just . sum . map (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
 nextAttemptNr :: MeetState -> Lifter -> Maybe Int
 nextAttemptNr s l

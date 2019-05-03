@@ -9,7 +9,7 @@ module Handler.Frontend where
 import Import
 import Yesod.WebSockets
 
-import Data.Maybe (listToMaybe,isJust)
+import Data.Maybe (isJust)
 import qualified Data.List as L
 
 import Scoresheetlogic
@@ -27,12 +27,13 @@ computeFrontendData (LifterUpdate (ms, lifters)) =
      let nextLiftersFiltered = filter (\l -> isJust $ nextWeight ms l) nextLifters
      let nextLiftersOutput = map (\l -> (lifterName l, nextWeight ms l, nextAttemptNr ms l))
                                  nextLiftersFiltered
-     let mc = getClass <$> listToMaybe nextLiftersFiltered
+     let mc = getClass <$> safeHead nextLiftersFiltered
      let liftersSortedByClass = case mc of
                                   (Just c) -> sortBy (cmpLifterClassPrio c) lifters
                                   Nothing  -> sortBy cmpLifterClass lifters
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
-     let liftersOverview = map (map $ \l -> (isNext (listToMaybe nextLiftersFiltered) l,l,calcWilks l)) liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
+     let liftersOverview = map (map $ \l -> (isNext (safeHead nextLiftersFiltered) l,l,show $ getTotalLifter l))
+                               liftersGroupedByClass:: [[(Bool,Lifter,String)]]
      -- The Bool indicates if the Lifter is the next
      Just $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput, meetStateCurrDiscipline ms, fst <$> meetType))
      where

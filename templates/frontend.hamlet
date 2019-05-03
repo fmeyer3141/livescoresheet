@@ -37,7 +37,7 @@
             <div .divTableHead .widthNumber .discHead#{d}>#{d} 1
             <div .divTableHead .widthNumber .discHead#{d}>#{d} 2
             <div .divTableHead .widthNumber .discHead#{d}>#{d} 3
-          <div .divTableHead .widthNumber>Relativwertung
+          <div .divTableHead .widthNumber>Total
           <div .divTableHead .widthName>Verein
       <div .divTableBody>
         <div #rowBase .divTableRow .invisible>
