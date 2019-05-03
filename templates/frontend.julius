@@ -198,7 +198,7 @@ function showRanking(arr) {
     for(let li = 0; li < group.length; li++) {
       let isNext = group[li][0];
       let lifter = group[li][1];
-      let wilks = group[li][2];
+      let total = group[li][2];
 
       let $newRow = $rowBase.clone();
 
@@ -221,6 +221,13 @@ function showRanking(arr) {
         }
         return cell;
       };
+
+      let showTotal = (tot, cell) => {
+        if (tot == "D.Q.")
+          cell.addClass("liftSkip");
+        return cell;
+      };
+
       let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;};
 
       let rowElements = [
@@ -241,8 +248,8 @@ function showRanking(arr) {
 
       rowElements = rowElements.concat(
         [
-          $(`<div> ${wilks} </div>`),
-          $(`<div> ${lifter.club} </div>`),
+          showTotal(total, $(`<div>${total} </div>`)),
+          $(`<div> ${lifter.club} </div>`)
         ]
       )
 
