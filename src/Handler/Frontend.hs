@@ -32,8 +32,8 @@ computeFrontendData (LifterUpdate (ms, lifters)) =
                                   (Just c) -> sortBy (cmpLifterClassPrio c) lifters
                                   Nothing  -> sortBy cmpLifterClass lifters
      let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
-     let liftersOverview = map (map $ \l -> (isNext (safeHead nextLiftersFiltered) l,l,show $ getTotalLifter l))
-                               liftersGroupedByClass:: [[(Bool,Lifter,String)]]
+     let liftersOverview = map (map $ \l -> (isNext (safeHead nextLiftersFiltered) l,l,getTotalLifter l))
+                               liftersGroupedByClass:: [[(Bool,Lifter,Maybe Double)]]
      -- The Bool indicates if the Lifter is the next
      Just $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput, meetStateCurrDiscipline ms, fst <$> meetType))
      where
