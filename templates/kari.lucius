@@ -1,0 +1,82 @@
+h1, h2, h3, h4, label, p{
+  font-family: Rockwell, "Roboto Slab", "Courier New", serif;
+  letter-spacing: 1px;
+  font-weight: bold;
+  color: black; 
+}
+
+h1
+{
+  font-size: 18pt;
+}
+
+h2
+{
+  font-size: 16pt;
+}
+
+label
+{
+  margin-bottom: 1em;
+  margin-left: 1em;
+  width: 65%;
+  height: 50pt;
+  line-height: 50pt;
+  border: 2px solid #111111;
+  border-radius: 3px;
+}
+
+label[for="cbRedCard"]
+{
+  background-color: #FF4136;
+  color: #FF4136;
+}
+
+label[for="cbBlueCard"]
+{
+  background-color: #0074D9;
+  color:#0074D9;
+}
+
+label[for="cbYellowCard"]
+{
+  background-color: #FFDC00;
+  color: #FFDC00;
+}
+
+input[type=checkbox]
+{
+  -webkit-appearance: none;
+  top: 19pt;
+  width: 50pt;
+  height: 50pt;
+  border: 2px solid #111111;
+  border-radius: 3px;
+	position: relative;
+  font-size: 70pt;
+  line-height: 40pt;
+  color: #111111;
+}
+input[type=checkbox]:checked
+{
+  overflow: hidden;
+}
+
+input[type=checkbox]:checked:after
+{
+	content: '\2713';
+  font-weight: bold;
+}
+
+#btnConfirm
+{
+  letter-spacing: 1px;
+  font-size: 36pt;
+  color: black; 
+  margin-top: 0.5em;
+  margin-left: 10%;
+  width: 80%;
+  height: 50pt;
+  line-height: 50pt;
+}
+

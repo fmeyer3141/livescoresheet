@@ -1,32 +1,39 @@
-var head2 = document.querySelectorAll('h2')[0];
 var url = document.URL;
 url = url.replace("http:", "ws:").replace("https:", "wss:");
 var socket = undefined;
 
 var defMessage = "Kein nächster Lifter vorhanden";
+//var head2 = $("h2")[0]; 
+var $lifterInfo = $("#lifterInfo");
+var $attemptInfo = $("#attemptInfo");
 
 function init() {
-  console.log("init");
+  // console.log("init");
   socket = new WebSocket(url);
-  head2.innerHTML = defMessage;
+  //head2.innerHTML = defMessage;
   socket.onmessage = function(e) {
-    var lifter = JSON.parse(e.data);
+    var lifterArr = JSON.parse(e.data);
 
-    if (lifter == null) {
-      head2.innerHTML = defMessage;
+    if (lifterArr == null) {
+      lifterInfo.innerHTML = defMessage;
       return;
     }
-    console.log("onmessage");
-    console.log(lifter);
+    // console.log("onmessage");
+    // console.log(lifter);
 
-    head2.innerHTML = lifter[0]; //Name
-    head2.innerHTML += " - ";
-    head2.innerHTML += lifter[5]; //Gewicht
-    head2.innerHTML += "Kg - ";
-    head2.innerHTML += lifter[2] + " "; //Disziplin
-    head2.innerHTML += lifter[4]; //Versuch
-    head2.innerHTML += ". Versuch - ";
-    head2.innerHTML += lifter[1]; //Verein
+    let lifter = {
+      name         : lifterArr[0],
+      club         : lifterArr[1],
+      discipline   : lifterArr[2],
+      meetType     : lifterArr[3],
+      attemptNumber: lifterArr[4],
+      attemptWeight: lifterArr[5]
+    };
+
+    $attemptInfo.text(lifter.attemptWeight + "Kg im " + lifter.attemptNumber + ". Versuch " +
+                      "(" + lifter.discipline + ")");
+    $lifterInfo.text(lifter.name + " vom " + lifter.club);
+
   };
 
   socket.onerror = function(e) {
@@ -41,3 +48,5 @@ function init() {
 }
 
 init();
+
+

@@ -18,13 +18,18 @@ import Misc
 
 colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
 colorForm = renderDivs $
-  RefereeDecision <$> areq checkBoxField "Rot: " Nothing <*> areq checkBoxField "Blau: " Nothing
-                  <*> areq checkBoxField "Gelb:" Nothing
+  RefereeDecision <$> areq checkBoxField redFormat Nothing 
+                  <*> areq checkBoxField blueFormat Nothing
+                  <*> areq checkBoxField yellowFormat Nothing 
+  where
+    redFormat    = FieldSettings "R"  Nothing (Just "cbRedCard")    Nothing [("class", "cbJuryCard")]
+    blueFormat   = FieldSettings "B" Nothing (Just "cbBlueCard")   Nothing [("class", "cbJuryCard")]
+    yellowFormat = FieldSettings "Y" Nothing (Just "cbYellowCard") Nothing [("class", "cbJuryCard")]
 
 prettyPrintPos :: RefereePlaces -> Text
-prettyPrintPos PLeft  = "Seitenkampfrichter Links"
+prettyPrintPos PLeft  = "Seitenkampfrichter links"
 prettyPrintPos PMain  = "Hauptkampfrichter"
-prettyPrintPos PRight = "Seitenkampfrichter Rechts"
+prettyPrintPos PRight = "Seitenkampfrichter rechts"
 
 computeKariData :: FrontendMessage -> Maybe Value
 computeKariData (LifterUpdate (ms, lifters)) = Just . toJSON $

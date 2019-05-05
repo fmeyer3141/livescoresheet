@@ -1,5 +1,6 @@
 body {
-  background: #23292f url(@{StaticR chalk_hero_bg_jpg});
+    background: #23292f url(@{StaticR chalk_hero_bg_jpg}); 
+   /* background: #23292f url(@{StaticR lm2019_jpg}); */
 }
 #juryOverlay {
   position: fixed; /* Sit on top of the page content */
