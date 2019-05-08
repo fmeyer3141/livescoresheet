@@ -35,6 +35,8 @@ import ManageScoresheetState
 import PackedHandler (atomicallyUnpackHandler)
 import Misc
 
+import Control.Monad.Logger
+
 latexTemplate :: String
 latexTemplate = "latexexport/template.tex"
 
@@ -203,6 +205,7 @@ postCSVFormR = do
                   let startGroupNr = P.head $ sort $ lifterGroup <$> datas
                   atomicallyUnpackHandler $
                     resetDB *> initialSetupDB datas startGroupNr
+                  logInfoN "load csv"
                   getAdminR
 
               (ALeft es) ->

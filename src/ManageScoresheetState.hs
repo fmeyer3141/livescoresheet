@@ -109,7 +109,7 @@ updateLiftersInDB args = do -- perform backup
       let res = find ((==) lId . fst) els
       case res of
         Just fl -> updateLifterInDB t (fl, l)
-        Nothing -> liftIO $ putStrLn $ "Could not find Lifter " ++ (T.pack $ show el) ++ " in DB"
+        Nothing -> $logError $ "Could not find Lifter " ++ (T.pack $ show el) ++ " in DB"
 
     -- Entity Lifter consisting of the first two tuple elements
     -- is the old version from the db, Lifter contains the (perhaps) new attributes

@@ -10,6 +10,7 @@ import Yesod.WebSockets
 import qualified Data.Text as T
 import qualified Data.List as L
 import Control.Lens ((^.), (%%~))
+import Control.Monad.Logger
 
 import Scoresheetlogic
 import ManageScoresheetState
@@ -18,9 +19,9 @@ import Misc
 
 colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
 colorForm = renderDivs $
-  RefereeDecision <$> areq checkBoxField redFormat Nothing 
+  RefereeDecision <$> areq checkBoxField redFormat Nothing
                   <*> areq checkBoxField blueFormat Nothing
-                  <*> areq checkBoxField yellowFormat Nothing 
+                  <*> areq checkBoxField yellowFormat Nothing
   where
     redFormat    = FieldSettings "R"  Nothing (Just "cbRedCard")    Nothing [("class", "cbJuryCard")]
     blueFormat   = FieldSettings "B" Nothing (Just "cbBlueCard")   Nothing [("class", "cbJuryCard")]
@@ -101,8 +102,6 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
           markLiftDBHelper (eId, l) attempt attemptNr discLens False lifterAttInfo
 
     _       -> Nothing
-    -- liftIO $ putStrLn $ T.pack $ "An error occurred. Lifter could not be found in DB and marked. NextLifters: " ++ show (getNextLifters meetState (fEntityVal elifters)) ++
-    --                               " nextELifters: " -- ++ show (getNextLiftersWithf fromEntity meetState elifters)
 
     where
       markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> Int -> Lens'NT Results Discipline -> Bool ->
@@ -132,15 +131,15 @@ postJuryR p = do
           PMain  -> s { refereeMain  = Just colors }
           PRight -> s { refereeRight = Just colors }
 
-      liftIO $ putStrLn $ "Referee State: " ++ (T.pack $ show refereeState)
+      logInfoN $ "Referee State: " ++ (T.pack $ show refereeState)
       if allDecEntered refereeState then
-        liftIO (putStrLn "All decisions entered")
+        logInfoN "All referee decisions entered"
         *> (markLift time refereeState >>=
              (\markRes -> case markRes of
                Just act ->
                 (act >>= (\lAttInfo -> pushRefereeStateToChannel (Just lAttInfo, refereeState, True)))
                 *> pure True--perform marking action
-               Nothing  -> liftIO (putStrLn "Error marking Lifter") *> pure False)) -- TODO log error
+               Nothing  -> logInfoN "Error marking Lifter" *> pure False)) -- TODO log error
       else
         pushRefereeStateToChannel (Nothing, refereeState, False) *> pure True)
 

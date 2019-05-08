@@ -16,7 +16,7 @@ import ClassyPrelude.Yesod hiding (runDB, unpack)
 import qualified ClassyPrelude.Yesod as Y (runDB)
 
 -- Wrapper around Handler to not forget to compose atomic actions
-newtype PackedHandlerFor site a = Packed (HandlerFor site a) deriving (Functor, Applicative, Monad, MonadIO)
+newtype PackedHandlerFor site a = Packed (HandlerFor site a) deriving (Functor, Applicative, Monad, MonadIO, MonadLogger)
 newtype PackedHandlerLock    = Lock (MVar ())
 
 class HasPackedHandlerLock site where

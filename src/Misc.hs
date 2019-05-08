@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Misc where
 
@@ -15,6 +16,8 @@ import ManageScoresheetState
 import Scoresheetlogic
 import PackedHandler
 
+import Control.Monad.Logger
+
 getLifterAttemptInfo :: MeetState -> Lifter -> Maybe LifterAttemptInfo
 getLifterAttemptInfo ms l@Lifter {..} =
   do
@@ -26,9 +29,9 @@ doubleMap :: (a -> b) -> (a,a) -> (b,b)
 doubleMap f = bimap f f
 
 connectionError :: ConnectionException -> WebSocketsT Handler ()
-connectionError (ParseException s)   = liftIO $ putStrLn $ "ParseException " ++ T.pack s
-connectionError (UnicodeException s) = liftIO $ putStrLn $ "UnicodeException " ++ T.pack s
-connectionError _                    = pure () -- Connection closed
+connectionError (ParseException s)   = $logError $ "ParseException " ++ T.pack s
+connectionError (UnicodeException s) = $logError $ "UnicodeException " ++ T.pack s
+connectionError _                    = logInfoN "websocket closed" -- Connection closed
 
 dataSocket :: (FrontendMessage -> Maybe Value) -> WebSocketsT Handler ()
 dataSocket computeData = do
