@@ -6,15 +6,12 @@
 module Misc where
 
 import Import
-import Ageclass
-import Weightclass
 import Yesod.WebSockets
 import Network.WebSockets (ConnectionException (..))
 import Data.Aeson (encode)
 
 import Data.Text as T
 import qualified Data.List as L
-import qualified Data.Maybe as Maybe (fromJust)
 import Control.Lens ((%%~), (^.))
 
 import ManageScoresheetState
@@ -25,14 +22,14 @@ import Control.Monad.Logger
 
 getPrognosedPlacing :: MeetState -> Lifter -> [Lifter] -> Placing
 getPrognosedPlacing ms l ls =
-  fromMaybe 0 $ (\l' -> getPlacing ms l' ls) <$> updateLifterAttempt ms l ls
+  fromMaybe 0 $ (\l' -> getPlacing l' ls) <$> updateLifterAttempt
   where
-    updateLifterAttempt :: MeetState -> Lifter -> [Lifter] -> Maybe Lifter
-    updateLifterAttempt ms l ls = do
+    updateLifterAttempt :: Maybe Lifter
+    updateLifterAttempt = do
       Lens'NT discLens <- L.lookup (meetStateCurrDiscipline ms) meetType
       aNr <- nextAttemptNr ms l
       attempt <- getAttempt aNr $ (lifterRes l) ^. discLens
-      ma  <- markAttempt undefined True attempt
+      ma  <- validateAttemptDummy attempt
       res <- discLens %%~ (setDiscipline aNr ma) $ lifterRes l
       Just $ l { lifterRes = res }
 
@@ -55,7 +52,7 @@ getLivestreamInfo ms l@Lifter {..} ls = Just $ object [ "lifterName" .= lifterNa
                                                       , "sex" .= show lifterSex
                                                       , "total" .= getTotalLifter l
                                                       , "raw" .= lifterRaw
-                                                      , "placing" .= getPlacing ms l ls
+                                                      , "placing" .= getPlacing l ls
                                                       , "progPlacing" .= (1 :: Int)]
 
 doubleMap :: (a -> b) -> (a,a) -> (b,b)

@@ -52,6 +52,10 @@ validateAttempt :: UTCTime -> Attempt -> Maybe Attempt
 validateAttempt t (Todo w _) = Just $ Success w t
 validateAttempt _ _          = Nothing
 
+validateAttemptDummy :: Attempt -> Maybe Attempt
+validateAttemptDummy (Todo w t) = Just $ Success w t
+validateAttemptDummy _          = Nothing
+
 inValidateAttempt :: UTCTime -> Attempt -> Maybe Attempt
 inValidateAttempt t (Todo w _) = Just $ Fail w t
 inValidateAttempt _ _          = Nothing
@@ -140,4 +144,3 @@ getAttempt 1 d = Just $ att1 d
 getAttempt 2 d = Just $ att2 d
 getAttempt 3 d = Just $ att3 d
 getAttempt _ _ = Nothing
-
