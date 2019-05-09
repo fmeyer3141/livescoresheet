@@ -124,3 +124,20 @@ resultsTypeTH = do
       constr disc = RecC typeName [(mkName ("_disc" ++ T.unpack name), defBang, attType) | name<-disc]
       defBang = Bang NoSourceUnpackedness NoSourceStrictness
       attType = ConT ''Discipline
+
+setDiscipline :: Int -> Attempt -> Discipline -> Maybe Discipline
+setDiscipline 1 att d = Just $ d {att1 = att}
+setDiscipline 2 att d = Just $ d {att2 = att}
+setDiscipline 3 att d = Just $ d {att3 = att}
+setDiscipline _ _   _ = Nothing
+
+markAttempt :: UTCTime -> Bool -> Attempt -> Maybe Attempt
+markAttempt t True  = validateAttempt t
+markAttempt t False = inValidateAttempt t
+
+getAttempt :: Int -> Discipline -> Maybe Attempt
+getAttempt 1 d = Just $ att1 d
+getAttempt 2 d = Just $ att2 d
+getAttempt 3 d = Just $ att3 d
+getAttempt _ _ = Nothing
+

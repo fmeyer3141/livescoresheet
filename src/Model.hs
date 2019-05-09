@@ -38,6 +38,7 @@ import qualified Data.Text as T
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(databaseScheme) -- $(persistFileWith lowerCaseSettings "config/models")
 
 type GroupNr = Int
+type Placing = Int
 
 data Lifter = Lifter { lifterName        :: !Text
                      , lifterAge         :: !Int
@@ -136,3 +137,6 @@ instance ToJSON Lifter where
 
 instance ToJSON Results where
   toJSON res = toJSON $ (\(n,l) -> (n, res ^. (unpackLens'NT l))) <$> meetType
+
+disciplinesAsList :: Results -> [Discipline]
+disciplinesAsList res = (\(_,Lens'NT l) -> res ^. l) <$> meetType

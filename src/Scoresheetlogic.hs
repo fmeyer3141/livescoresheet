@@ -164,3 +164,11 @@ getNextLifterInGroup ms l = (getNextLifters ms l) !! 0
 
 getNext2LiftersInGroup :: MeetState -> [Lifter] -> (Maybe Lifter, Maybe Lifter)
 getNext2LiftersInGroup ms l = let n = getNextLifters ms l in (n !! 0, n !! 1)
+
+-- compare on lifterName to allow for prognosed placings
+getPlacing :: MeetState -> Lifter -> [Lifter] -> Placing
+getPlacing ms l ls =
+  let liftersInClass = filter ((==) (getClass l) . getClass) ls in
+  let liftersWithPlacings = zip [1..] $ sortBy cmpLifterTotalAndBw liftersInClass in
+  let mpl = safeHead $ map fst $ filter ((==) (lifterName l) . lifterName . snd) liftersWithPlacings in
+  fromMaybe 0 mpl

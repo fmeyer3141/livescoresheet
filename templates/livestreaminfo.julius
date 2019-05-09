@@ -1,0 +1,401 @@
+var url              = document.URL;
+url                  = url.replace("http:", "ws:").replace("https:", "wss:");
+var lifterInfo       = undefined;
+var canvas           = document.getElementById("lifterInfo");
+var c                = canvas.getContext('2d');
+
+var fontColour       = 'rgb(240,220,220)';
+
+var canvasBackground = "@{StaticR chalk_hero_bg_jpg}";
+var background       = new Image();
+
+function init() {
+  console.log("init");
+  socket = new WebSocket(url);
+  socket.onmessage = function(e) {
+      var data = JSON.parse(e.data);
+      console.log("onmessage");
+      console.log(data);
+
+      lifterInfo = data;
+
+      renderInfo();
+  };
+
+  socket.onerror = function(e) {
+    console.log("WebSocket Error: "+e);
+  };
+
+  socket.onclose = function() {
+    console.log("socket closed");
+    console.log("try to restart socket soon");
+    setTimeout(init,3000);
+  }
+}
+
+function setFontSize(size) {
+  c.font = size.toString() + "px" + " sans-serif";
+}
+
+function min (arg1, arg2) {
+  return (arg2 > arg1 ? arg1 : arg2);
+}
+
+function max (arg1, arg2) {
+  return (arg1 > arg2 ? arg1 : arg2);
+}
+
+function getTextHeight(size, font) {
+  var text = $('<span>Hg</span>').css({ fontFamily: font, fontSize: size });
+  var block = $('<div style="display: inline-block; width: 1px; height: 0px;"></div>');
+
+  var div = $('<div></div>');
+  div.append(text, block);
+
+  var body = $('body');
+  body.append(div);
+
+  try {
+    var result = {};
+    block.css({ verticalAlign: 'baseline' });
+    result.ascent = block.offset().top - text.offset().top;
+    block.css({ verticalAlign: 'bottom' });
+    result.height = block.offset().top - text.offset().top;
+    result.descent = result.height - result.ascent;
+  } finally {
+    div.remove();
+  }
+  return result.height;
+}
+
+function determineFontSize(txt, maxWidth, maxHeight) {
+  var size = 15;
+  setFontSize(size);
+
+  while (c.measureText(txt).width < maxWidth && getTextHeight(size, c.font) < maxHeight) {
+
+    size++;
+    setFontSize(size);
+  }
+  size--;
+  setFontSize(size);
+  return size;
+}
+
+
+function renderInfo() {
+  let height                     = window.innerHeight-1;
+  let width                      = window.innerWidth-1;
+
+  let disciplineString           = lifterInfo.currentDiscipline;
+  let headerDescrString                = undefined;
+  let ageclass                   = lifterInfo.lifterAgeclass;
+
+
+  let headerHorizSpacing         = 0.03;
+  let headerMiddleToHorizSpacing = 2;
+
+  let verticalSpacing            = 0.05;
+
+  let headerFirstBlockRelHeight  = 0.2;
+  let headerFirstBlockRelWidth   = 0.2;
+  let headerSecBlockRelWidth     = 1 - headerFirstBlockRelWidth - (2 + headerMiddleToHorizSpacing) * headerHorizSpacing;
+
+  let linePadding                = headerHorizSpacing;
+
+  let nameHeightToLifterBox      = 0.28;
+  let clubHeightToLifterBox      = 0.8*nameHeightToLifterBox;
+  let lifterBoxRelHeight         = 1 - headerFirstBlockRelHeight - 2*verticalSpacing;
+  let lifterBoxInnerVertSpacing  = 0.05;
+
+  canvas.height                  = height;
+  canvas.width                   = width;
+
+  c.fillStyle = c.createPattern(background, "repeat");
+  c.fillRect(0, 0, width, height);
+
+  switch (ageclass) {
+    case "Subjunior":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. Jugend" : headerDescrString = "Weibl. Jugend"; break;
+    case "Junior":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Junioren" : headerDescrString = "Juniorinnen"; break;
+    case "Open":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. Aktive" : headerDescrString = "Weibl. Aktive"; break;
+    case "Master1":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. AK1" : headerDescrString = "Weibl. AK1"; break;
+    case "Master2":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. AK2" : headerDescrString = "Weibl. AK2"; break;
+    case "Master3":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. AK3" : headerDescrString = "Weibl. AK3"; break;
+    case "Master4":
+      (lifterInfo.sex == "Male") ? headerDescrString = "Männl. AK4" : headerDescrString = "Weibl. AK4"; break;
+  }
+  headerDescrString += " " + lifterInfo.lifterWeightclass;
+
+  c.textBaseline = 'bottom';
+
+  // Draw discipline string
+  let fSize = determineFontSize(disciplineString, headerFirstBlockRelWidth * width, headerFirstBlockRelHeight*height);
+
+  setFontSize(fSize);
+  c.fillStyle = fontColour;
+  c.fillText(disciplineString, headerHorizSpacing * width, headerFirstBlockRelHeight * height);
+
+  // Draw headerDescrString
+  let headerDescrStringFontSize = headerDescrString + "  99↗99";
+  fSize = min(determineFontSize( headerDescrStringFontSize, headerSecBlockRelWidth * width
+                               , headerFirstBlockRelHeight*height), fSize);
+
+  // Draw discipline string
+  setFontSize(fSize);
+  c.fillStyle = fontColour;
+  c.fillText( headerDescrString, ((1 + headerMiddleToHorizSpacing)* headerHorizSpacing + headerFirstBlockRelWidth) * width
+            , headerFirstBlockRelHeight * height);
+
+  // Draw ranking
+  // if the current lifter will succeed at her next attempt does this improve her placing? Display a corresponding arrow
+  let arrow = (lifterInfo.progPlacing < lifterInfo.placing) ? "↗" : "→";
+  let arrowColor = (lifterInfo.progPlacing < lifterInfo.placing) ? 'rgb(0,255,0)' : 'rgb(255,165,0)';
+
+  let placingWidth = (c.measureText(lifterInfo.placing).width)/width;
+  let arrowWidth = (c.measureText(arrow).width)/width;
+  let progPlacingWidth = (c.measureText(lifterInfo.progPlacing).width)/width;
+  let textWidth = placingWidth + arrowWidth + progPlacingWidth;
+  let xRightBorder = headerSecBlockRelWidth +
+                     ((1 + headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth);
+  let x = xRightBorder - textWidth;
+  c.fillText(lifterInfo.placing, x*width, headerFirstBlockRelHeight * height);
+  c.fillStyle = arrowColor;
+  x += placingWidth;
+  c.fillText(arrow, x*width, headerFirstBlockRelHeight * height);
+  c.fillStyle = fontColour;
+  x += arrowWidth;
+  c.fillText(lifterInfo.progPlacing, x*width, headerFirstBlockRelHeight * height);
+
+  //draw lines - Vertical
+  c.beginPath();
+  x = ((1 + 0.5 * headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth) * width;
+  c.moveTo(x, linePadding*height);
+  c.lineTo(x, (1 - linePadding) * height);
+  c.strokeStyle = 'rgb(255,255,255)';
+  c.lineWidth = 0.0025 * width;
+  c.stroke();
+
+  //draw lines - horizontal
+  c.beginPath();
+  let y = (headerFirstBlockRelHeight + verticalSpacing * 0.5) * height;
+  c.moveTo(linePadding*width, y);
+  c.lineTo((1-linePadding) * width,  y);
+  c.strokeStyle = 'rgb(255,255,255)';
+  c.lineWidth = 0.0025 * width;
+  c.stroke();
+
+  // draw lifterInfo Name
+  let lifterName = lifterInfo.lifterName;
+  y = (headerFirstBlockRelHeight + verticalSpacing + (lifterBoxInnerVertSpacing + nameHeightToLifterBox) * lifterBoxRelHeight);
+  x = ((1 + headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth);
+  fSize = determineFontSize(lifterName, headerSecBlockRelWidth * width, nameHeightToLifterBox * lifterBoxRelHeight * height);
+  setFontSize(fSize);
+  c.fillStyle = fontColour;
+  c.fillText( lifterName, x * width
+            ,  y * height);
+
+  // draw lifterInfo Club
+  let lifterClub = lifterInfo.lifterClub;
+  fSize = determineFontSize(lifterClub, headerSecBlockRelWidth * width, clubHeightToLifterBox * lifterBoxRelHeight * height);
+  setFontSize(fSize);
+  c.fillStyle = fontColour;
+  y += (clubHeightToLifterBox + lifterBoxInnerVertSpacing) * lifterBoxRelHeight;
+  c.fillText( lifterClub, x*width
+            , y * height);
+
+  //draw attempts of current discipline
+  y += (lifterBoxInnerVertSpacing) * lifterBoxRelHeight;
+  let lifterCurrAttemptBoxWidth  = 0.3 * headerSecBlockRelWidth;
+  let lifterCurrAttemptBoxHeight =
+  	(1 - nameHeightToLifterBox - clubHeightToLifterBox - 3*lifterBoxInnerVertSpacing)*lifterBoxRelHeight;
+  let lifterCurrAttemptBoxSpace = (headerSecBlockRelWidth - 3*lifterCurrAttemptBoxWidth) / 2;
+  let currAttemptFontSize = determineFontSize( "227.5", lifterCurrAttemptBoxWidth*width
+                                             , lifterCurrAttemptBoxHeight*height)
+  for (let i = 0; i<3; ++i) {
+    drawCurrAttemptBox( x, y, lifterCurrAttemptBoxWidth, lifterCurrAttemptBoxHeight, i
+                      , currAttemptFontSize);
+    x += lifterCurrAttemptBoxWidth + lifterCurrAttemptBoxSpace;
+  }
+
+  // draw best attempts of disciplines
+  let nrDisciplines        = lifterInfo.results.length;
+  let bestAttemptBoxWidth  = headerFirstBlockRelWidth;
+  let totalBoxHeight       = 0.9;
+  let bestAttemptVertSpace = (1 - totalBoxHeight) / nrDisciplines;
+  let bestAttemptBoxHeight = totalBoxHeight / (nrDisciplines + 1);
+  let bestAttemptFontSize = determineFontSize( "1777.5"
+                                             , bestAttemptBoxWidth*width
+                                             , bestAttemptBoxHeight * lifterBoxRelHeight*height);
+
+  x = headerHorizSpacing;
+  y = headerFirstBlockRelHeight + verticalSpacing + lifterBoxInnerVertSpacing * lifterBoxRelHeight;
+  for (let i = 0; i<nrDisciplines; ++i) {
+    drawBestAttemptBox( x, y, bestAttemptBoxWidth, bestAttemptBoxHeight * lifterBoxRelHeight
+                      , i, bestAttemptFontSize);
+    y += (bestAttemptBoxHeight + bestAttemptVertSpace) * lifterBoxRelHeight;
+  }
+  // show total
+  drawTotalBox ( x, y, bestAttemptBoxWidth, bestAttemptBoxHeight * lifterBoxRelHeight
+               , bestAttemptFontSize);
+}
+
+function attemptFailed (attempt) {
+  if (attempt.statusCode == "fail" || attempt.statusCode == "skip")
+    return true;
+
+  return false;
+}
+
+function attemptSuccess (attempt) {
+  if (attempt.statusCode == "success")
+    return true;
+
+  return false;
+}
+
+function allAttemptsFailed (discipline) {
+  if (attemptFailed(discipline.att1) && attemptFailed(discipline.att2) && attemptFailed(discipline.att3)) {
+    return true;
+  }
+  return false;
+}
+
+function atLeastOneSuccess (discipline) {
+  if (attemptSuccess(discipline.att1) || attemptSuccess(discipline.att2) || attemptSuccess(discipline.att3)) {
+    return true;
+  }
+  return false;
+}
+
+function getAttemptWeight (attempt) {
+  if (attempt.statusCode == "success")
+    return attempt.weight;
+  return 0;
+}
+
+function oneSuccessInEveryDisc () {
+  for (let i = 0; i<lifterInfo.results.length; ++i) {
+    if (!atLeastOneSuccess(lifterInfo.results[i][1]))
+      return false;
+  }
+  return true;
+}
+
+function drawTotalBox (x, y, width, height, fontSize) {
+  let totalWeight = lifterInfo.total;
+  let boxColour    = undefined;
+  // failed discipline
+  if (totalWeight == null) {
+    totalWeight = "D.Q.";
+    boxColour = 'rgb(255,0,0)';
+  }
+  else if (oneSuccessInEveryDisc()) {
+    boxColour = 'rgb(0,255,0)';
+  }
+  // not finished
+  else {
+    boxColour = fontColour;
+  }
+  c.fillStyle = boxColour;
+  c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+
+  setFontSize(fontSize);
+  c.textBaseline = "middle";
+  c.fillStyle = 'rgb(0,0,0)';
+  let textTooShortInPx = width*canvas.width - c.measureText(totalWeight).width;
+  c.fillText(totalWeight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+}
+
+function drawBestAttemptBox(x, y, width, height, discNr, fontSize) {
+  let currDiscipline     = lifterInfo.results[discNr][1];
+  let currDisciplineName = lifterInfo.results[discNr][0];
+  let discWeight = undefined;
+  let boxColour   = undefined;
+  // failed discipline
+  if (allAttemptsFailed (currDiscipline)) {
+    discWeight = 0.0;
+    boxColour = 'rgb(255,0,0)';
+  }
+  else if (atLeastOneSuccess(currDiscipline)) {
+    discWeight = max ( max (getAttemptWeight(currDiscipline.att1), getAttemptWeight(currDiscipline.att2))
+                     , getAttemptWeight (currDiscipline.att3) );
+    boxColour = 'rgb(0,255,0)';
+  }
+  // discipline is ongoing
+  else {
+    discWeight = 0.0;
+    boxColour = fontColour;
+  }
+  c.fillStyle = boxColour;
+  c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+
+  setFontSize(fontSize);
+  c.textBaseline = "middle";
+  c.fillStyle = 'rgb(0,0,0)';
+  let textTooShortInPx = width*canvas.width - c.measureText(discWeight).width;
+  c.fillText(discWeight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+}
+
+function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
+  let currDiscipline = undefined;
+  for (let i = 0; i<lifterInfo.results.length; ++i) {
+    if (lifterInfo.results[i][0] == lifterInfo.currentDiscipline)
+      currDiscipline = lifterInfo.results[i];
+  }
+
+  let currAttempt = undefined;
+
+  if (attemptNr == 0)
+    currAttempt = currDiscipline[1].att1;
+  else if (attemptNr == 1)
+    currAttempt = currDiscipline[1].att2;
+  else if (attemptNr == 2)
+    currAttempt = currDiscipline[1].att3;
+
+  if (currAttempt.statusCode == "unset")
+    return;
+
+  let boxColour = undefined;
+  switch (currAttempt.statusCode) {
+    case "todo":
+      boxColour = fontColour; break;
+    case "success":
+      boxColour = 'rgb(0,255,0)'; break;
+    case "fail":
+      boxColour = 'rgb(255,0,0)'; break;
+    case "skip":
+      boxColour = 'rgb(255,0,0)'; break;
+  }
+
+  if (currAttempt.statusCode != "skip") {
+    let weight = currAttempt.weight;
+    c.fillStyle = boxColour;
+    c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+    setFontSize(fontSize);
+    c.textBaseline = "middle";
+    c.fillStyle = 'rgb(0,0,0)';
+    let textTooShortInPx = width*canvas.width - c.measureText(weight).width;
+    c.fillText(weight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) *canvas.height);
+  } else {
+    c.fillStyle = boxColour;
+    c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+    setFontSize(min(determineFontSize("skip", width*canvas.width, height*canvas.height), fontSize));
+    c.textBaseline = "middle";
+    c.fillStyle = 'rgb(0,0,0)';
+    let textTooShortInPx = width*canvas.width - c.measureText("skip").width;
+    c.fillText("skip", x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+  }
+}
+
+background.src = canvasBackground;
+
+background.onload = function() {
+  init();
+  window.addEventListener('resize', renderInfo, false);
+}
