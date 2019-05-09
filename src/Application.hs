@@ -43,6 +43,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Admin
+import Handler.Livestreaminfo
 import Handler.Frontend
 import Handler.Overview
 import Handler.Stecker

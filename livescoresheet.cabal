@@ -80,6 +80,7 @@ library
       Foundation
       Handler.Common
       Handler.Admin
+      Handler.Livestreaminfo
       Handler.Frontend
       Handler.Jury
       Handler.Stecker
