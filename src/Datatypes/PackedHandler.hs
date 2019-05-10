@@ -22,9 +22,6 @@ newtype PackedHandlerLock    = Lock (MVar ())
 class HasPackedHandlerLock site where
   getPackedHandlerLock :: site -> PackedHandlerLock
 
-unpack :: PackedHandlerFor site a -> HandlerFor site a
-unpack (Packed h) = h
-
 runDB :: (YesodPersist site) => YesodDB site a -> PackedHandlerFor site a
 runDB = Packed . Y.runDB
 
