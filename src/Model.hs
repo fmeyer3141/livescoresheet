@@ -53,6 +53,8 @@ data Lifter = Lifter { lifterName        :: !Text
                      , lifterClub        :: !Text
                      } deriving (Show, Eq)
 
+type ELifter = (Key Lifter', Lifter)
+
 data LifterBackup = LifterBackup { lifterBackupLifter  :: !Lifter
                                  , lifterBackupVersion :: !Int    }
 
@@ -102,11 +104,11 @@ type LifterAttemptInfo = (Text, Text, Text, Int, Maybe AttemptNr, Double, [(Plat
 data FrontendMessage = LifterFrontendMessage Value
                      | LifterSteckerMessage Value
                      | LifterLiveStreamMessage Value
+                         -- The bool indicates whether the frontend
+                         -- shows the result in an overlay or not at all
                      | JuryResultMessage Value Bool
                      | JuryFrontendInfoMessage Value
                      | SteckerInfoMessage Value
-                         -- The bool indicates whether the frontend
-                         -- shows the result in an overlay or not at all
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> res ^. (unpackLens'NT l)) <$> meetType

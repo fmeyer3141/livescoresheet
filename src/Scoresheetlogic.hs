@@ -146,16 +146,26 @@ getNextLifters = getNextLiftersWithf id
 getNextLifterInGroup :: MeetState -> [Lifter] -> Maybe Lifter
 getNextLifterInGroup ms l = (getNextLifters ms l) !! 0
 
-getNext2LiftersInGroup :: MeetState -> [Lifter] -> (Maybe Lifter, Maybe Lifter)
-getNext2LiftersInGroup ms l = let n = getNextLifters ms l in (n !! 0, n !! 1)
+getNext2LiftersInGroupWithf :: (a -> Lifter) -> MeetState -> [a] -> (Maybe a, Maybe a)
+getNext2LiftersInGroupWithf f ms l = let n = getNextLiftersWithf f ms l in (n !! 0, n !! 1)
 
--- compare on lifterName to allow for prognosed placings
-getPlacing :: Lifter -> [Lifter] -> Placing
-getPlacing l ls =
-  let liftersInClass = filter ((==) (getClass l) . getClass) ls in
-  let liftersWithPlacings = zip [1..] $ sortBy cmpLifterTotalAndBw liftersInClass in
-  let mpl = safeHead $ map fst $ filter ((==) (lifterName l) . lifterName . snd) liftersWithPlacings in
+getNext2LiftersInGroup :: MeetState -> [Lifter] -> (Maybe Lifter, Maybe Lifter)
+getNext2LiftersInGroup = getNext2LiftersInGroupWithf id
+
+getPlacingWithfAndEq :: Eq b => (a -> Lifter) -> (a -> b) -> a -> [a] -> Placing
+getPlacingWithfAndEq f eq el els =
+  let liftersInClass      = filter ((==) (getClass $ f el) . getClass . f) els in
+  let liftersWithPlacings = zip [1..] $ sortBy (cmpLifterTotalAndBw `on` f) liftersInClass in
+
+  let mpl = safeHead $ map fst $ filter ((==) (eq el) . eq . snd) liftersWithPlacings in
   fromMaybe 0 mpl
+
+getPlacing :: Lifter -> [Lifter] -> Placing
+getPlacing = getPlacingWithfAndEq id id
+
+--compare on lifterkey to get a prognosed placing
+getPlacingELifter :: ELifter -> [ELifter] -> Placing
+getPlacingELifter = getPlacingWithfAndEq snd fst
 
 showTotal :: Lifter -> Text
 showTotal l = case getTotalLifter l of

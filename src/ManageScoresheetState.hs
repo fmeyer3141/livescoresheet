@@ -9,7 +9,6 @@ module ManageScoresheetState ( getDataFromDB
                              , getELiftersInGroupFromDB
                              , getCurrMeetStateFromDB
                              , fEntityVal
-                             , pushDataFromDBToChannel
                              , getFrontendMessagesFromData
                              , pushRefereeStateToChannel
                              , getLiftersFromDB
@@ -84,9 +83,9 @@ updateMeetState MeetState {..} =
            , MeetStateCurrDiscipline =. meetStateCurrDiscipline])
   *> pushDataFromDBToChannel
 
-getDataFromDB :: PackedHandler (MeetState, [Lifter])
+getDataFromDB :: PackedHandler (MeetState, [(Key Lifter', Lifter)])
 getDataFromDB =
-  (,) <$> getCurrMeetStateFromDB <*> getLiftersFromDB
+  (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
 
 updateLiftersInDBWithGroupNr :: GroupNr -> [(Key Lifter', Lifter)] -> PackedHandler ()
 updateLiftersInDBWithGroupNr groupNr = updateLiftersInDB . filter ((==) groupNr . lifterGroup . snd)
@@ -180,23 +179,25 @@ pushInChannel m = packHandler $ do
   wChan <- appFrontendChannel <$> getYesod
   atomically $ writeTChan wChan m
 
-
-pushDataToChannel :: (MeetState, [Lifter]) -> PackedHandler ()
+pushDataToChannel :: (MeetState, [(Key Lifter', Lifter)]) -> PackedHandler ()
 pushDataToChannel = mapM_ pushInChannel . getFrontendMessagesFromData
 
-getFrontendMessagesFromData :: (MeetState, [Lifter]) -> [FrontendMessage]
-getFrontendMessagesFromData (ms, ls) =
-  let next2Lifters = getNext2LiftersInGroup ms ls in
-  let nextLifter = fst next2Lifters in
-  let nWeight = nextLifter >>= nextWeight ms in
-  let nextNextLifter = snd next2Lifters in
-  let nnWeight = nextNextLifter >>= nextWeight ms in
-  let helpF = liftA2 (,) in
+getFrontendMessagesFromData :: (MeetState, [(Key Lifter', Lifter)]) -> [FrontendMessage]
+getFrontendMessagesFromData (ms, els) =
+  let ls              = snd <$> els in
+  let next2Lifters    = getNext2LiftersInGroupWithf (snd) ms els in
+  let nextELifter     = fst next2Lifters in
+  let nextLifter      = snd <$> nextELifter in
+  let nWeight         = nextLifter >>= nextWeight ms in
+  let nextNextELifter = snd next2Lifters in
+  let nextNextLifter  = snd <$> nextNextELifter in
+  let nnWeight        = nextNextLifter >>= nextWeight ms in
+  let helpF           = liftA2 (,) in
 
   [computeFrontendDataChan (ms, ls)] ++
-  (case nextLifter of
-    Just nL   ->
-        [computeLivestreamInfoChan ms nL ls] ++
+  (case nextELifter of
+    Just (e,nL)   ->
+        [computeLivestreamInfoChan ms (e,nL) els] ++
         (case nWeight of
           Just nW   -> [computeJuryInfoDataChan ms nL nW]
           _         -> [] )

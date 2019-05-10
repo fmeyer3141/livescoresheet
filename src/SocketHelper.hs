@@ -9,6 +9,7 @@ import qualified Data.List as L
 import Import
 import Control.Lens ((^.), (%~))
 import Scoresheetlogic
+import qualified Data.List as L
 
 -- Admin
 computeRefereeChan :: (Maybe LifterAttemptInfo, RefereeResult, Bool) -> FrontendMessage
@@ -16,34 +17,36 @@ computeRefereeChan (lAttInfo,res,b) = JuryResultMessage
                                         (toJSON ("JuryData" :: Text, lAttInfo, res))
                                         b
 
-getPrognosedPlacing :: MeetState -> Lifter -> [Lifter] -> Placing
-getPrognosedPlacing ms l ls =
-  fromMaybe 0 $ (\l' -> getPlacing l' ls) <$> updateLifterAttempt
+getPrognosedPlacing :: MeetState -> ELifter -> [ELifter] -> Placing
+getPrognosedPlacing ms (k,l) els =
+  fromMaybe 0 $ (\els' -> getPlacingELifter (k,l) els') <$> newEls
+
   where
-    updateLifterAttempt :: Maybe Lifter
+    newEls = (:) <$> updateLifterAttempt <*> pure (L.deleteBy (\(k',_) (k'',_) -> k' == k'') (k,l) els)
+    updateLifterAttempt :: Maybe ELifter
     updateLifterAttempt = do
       Lens'NT discLens <- L.lookup (meetStateCurrDiscipline ms) meetType
       aNr <- nextAttemptNr ms l
       let attempt = getAttempt aNr $ (lifterRes l) ^. discLens
       ma  <- validateAttemptDummy attempt
       let res = discLens %~ (setDiscipline aNr ma) $ lifterRes l
-      Just $ l { lifterRes = res }
+      trace ("DEBUGGGGGG" ++ show (show res)) $ Just $ (k, l { lifterRes = res } )
 
-getLivestreamInfo :: MeetState -> Lifter -> [Lifter] -> Value
-getLivestreamInfo ms l@Lifter {..} ls = object [ "lifterName" .= lifterName
-                                               , "lifterClub" .= lifterClub
-                                               , "lifterAgeclass" .= show lifterAgeclass
-                                               , "lifterWeightclass" .= show lifterWeightclass
-                                               , "currentDiscipline" .= meetStateCurrDiscipline ms
-                                               , "results" .= lifterRes
-                                               , "sex" .= show lifterSex
-                                               , "total" .= getTotalLifter l
-                                               , "raw" .= lifterRaw
-                                               , "placing" .= getPlacing l ls
-                                               , "progPlacing" .= (1 :: Int)]
+getLivestreamInfo :: MeetState -> ELifter -> [ELifter] -> Value
+getLivestreamInfo ms (k,l@Lifter {..}) els = object [ "lifterName" .= lifterName
+                                                    , "lifterClub" .= lifterClub
+                                                    , "lifterAgeclass" .= show lifterAgeclass
+                                                    , "lifterWeightclass" .= show lifterWeightclass
+                                                    , "currentDiscipline" .= meetStateCurrDiscipline ms
+                                                    , "results" .= lifterRes
+                                                    , "sex" .= show lifterSex
+                                                    , "total" .= getTotalLifter l
+                                                    , "raw" .= lifterRaw
+                                                    , "placing" .= getPlacing l (snd <$> els)
+                                                    , "progPlacing" .= getPrognosedPlacing ms (k,l) els ]
 
 -- second argument is next lifter
-computeLivestreamInfoChan ::  MeetState -> Lifter -> [Lifter] -> FrontendMessage
+computeLivestreamInfoChan ::  MeetState -> ELifter -> [ELifter] -> FrontendMessage
 computeLivestreamInfoChan ms nextLifter lifters  =
     LifterLiveStreamMessage $ toJSON ("LifterInfoData" :: Text, getLivestreamInfo ms nextLifter lifters)
 
