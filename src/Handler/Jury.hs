@@ -66,8 +66,10 @@ markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler Lift
 markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   let weight = sum $ map (\(RefereeDecision r b y) -> if null $ filter id [r,b,y] then 1 else -1)
                          [le,ma,ri] :: Int
-  elifters  <- getELiftersFromDB
+
   meetState <- getCurrMeetStateFromDB
+  elifters <- getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
+
   let eCurrLifter = getCurrELifter meetState elifters
   let currDiscipline = meetStateCurrDiscipline meetState
 
