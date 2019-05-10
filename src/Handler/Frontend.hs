@@ -45,8 +45,8 @@ computeFrontendData (JuryResult (lAttInfo,refRes,True)) = Just $ toJSON ("JuryDa
 computeFrontendData (JuryResult _)                      = Nothing
 
 
-getFrontendR :: Bool -> Bool -> Handler Html
-getFrontendR showJury updateFrontendDiscView = do
+getFrontendR :: Bool -> Handler Html
+getFrontendR showJury = do
     addHeader "Access-Control-Allow-Origin" "*"
     webSockets $ dataSocket computeFrontendData
     defaultLayout $ do
@@ -57,7 +57,7 @@ getFrontendR showJury updateFrontendDiscView = do
       $(widgetFile "frontend")
 
 getBeamerR :: Handler Html
-getBeamerR = redirect $ FrontendR True True
+getBeamerR = redirect $ FrontendR True
 
 getFrontendDefR :: Handler Html
-getFrontendDefR = redirect $ FrontendR False False
+getFrontendDefR = redirect $ FrontendR False

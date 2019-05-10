@@ -19,7 +19,7 @@
 /beamer               BeamerR         GET
 /jury/#RefereePlaces  JuryR           GET POST
 /undo                 UndoR           GET
-/frontend/#Bool/#Bool FrontendR       GET
+/frontend/#Bool       FrontendR       GET
 /stecker              SteckerR        GET
 /table.tex            TableR          GET
 /urkunden.csv         UrkundenR       GET
