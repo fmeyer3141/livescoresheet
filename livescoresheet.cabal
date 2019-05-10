@@ -75,6 +75,7 @@ library
     cpp-options: -DDEVELOPMENT
   else
     ghc-options: -Wall -fwarn-tabs -O2 -fexpose-all-unfoldings -fspecialise-aggressively
+    default-extensions: ApplicativeDo
   exposed-modules:
       Application
       Foundation
