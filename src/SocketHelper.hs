@@ -4,8 +4,6 @@
 
 module SocketHelper where
 
-import qualified Data.List as L
-
 import Import
 import Control.Lens ((^.), (%~))
 import Scoresheetlogic
@@ -30,7 +28,7 @@ getPrognosedPlacing ms (k,l) els =
       let attempt = getAttempt aNr $ (lifterRes l) ^. discLens
       ma  <- validateAttemptDummy attempt
       let res = discLens %~ (setDiscipline aNr ma) $ lifterRes l
-      trace ("DEBUGGGGGG" ++ show (show res)) $ Just $ (k, l { lifterRes = res } )
+      Just $ (k, l { lifterRes = res } )
 
 getLivestreamInfo :: MeetState -> ELifter -> [ELifter] -> Value
 getLivestreamInfo ms (k,l@Lifter {..}) els = object [ "lifterName" .= lifterName
