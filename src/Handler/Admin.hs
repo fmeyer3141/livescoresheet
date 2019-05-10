@@ -31,6 +31,7 @@ import           Text.RE.TDFA.Text
 
 import Control.Lens ((^.))
 import Control.Lens.Setter
+import System.Random.Shuffle
 import ManageScoresheetState
 import PackedHandler (atomicallyUnpackHandler)
 import Misc
@@ -132,7 +133,7 @@ lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
   (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
   (resRes, resView) <- resForm lifterRes
-  let lifterResulting = Lifter lifterName lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
+  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
                                lifterRaw <$> groupRes <*> resRes <*> pure lifterClub
   let widget = [whamlet|
          <div class="lifterRow">
@@ -203,8 +204,10 @@ postCSVFormR = do
               (ARight datas) ->
                 do
                   let startGroupNr = P.head $ sort $ lifterGroup <$> datas
+                  lotNumbers <- liftIO $ shuffleM [1 .. length datas]
+                  let liftersWithLots = zipWith (\n l -> l {lifterLot = n}) lotNumbers datas
                   atomicallyUnpackHandler $
-                    resetDB *> initialSetupDB datas startGroupNr
+                    resetDB *> initialSetupDB liftersWithLots startGroupNr
                   logInfoN "load csv"
                   getAdminR
 
@@ -246,9 +249,9 @@ parseCSV rawFile =
 
 lifterParse :: UTCTime -> Row Text -> ApplEither [Text] Lifter
 lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name <$> safeRead age             <*> safeRead sex             <*> safeRead aclass <*> safeRead wclass
-                <*> safeRead weight          <*> safeRead raw             <*> safeRead flight
-                <*> pure (emptyResults time) <*> pure club
+    Lifter name 0 <$> safeRead age             <*> safeRead sex             <*> safeRead aclass <*> safeRead wclass
+                  <*> safeRead weight          <*> safeRead raw             <*> safeRead flight
+                  <*> pure (emptyResults time) <*> pure club
   where
     safeRead :: (Read a, Show a) => Text -> ApplEither [Text] a
     safeRead s = case P.reads $ T.unpack s of

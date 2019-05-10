@@ -76,7 +76,7 @@ cmpLifterGroupAndOrder :: MeetState -> Lifter -> Lifter -> Ordering
 cmpLifterGroupAndOrder s = cmpLifterOrder s .~. cmpLifterGroup (meetStateCurrGroupNr s)
 
 cmpLifterOrder :: MeetState -> Lifter -> Lifter -> Ordering
-cmpLifterOrder s = compareBodyweight .~. compareAttWeight .~. compareAttemptNr
+cmpLifterOrder s = (compare `on` lifterLot) .~. compareAttWeight .~. compareAttemptNr
     where
         compareMaybe :: (Ord a) => Maybe a -> Maybe a -> Ordering
         -- Nothing also kein Gewicht angegeben oder alle Versuche gemacht -> ans ende sortieren

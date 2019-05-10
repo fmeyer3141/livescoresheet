@@ -37,7 +37,7 @@ dbLifterTypes :: String
 dbLifterTypes = getLifterString "Lifter'" "" ++ "\n" ++ getLifterString "LifterBackup'" "version Int"
   where
     getLifterString name additional =
-      (name ++ "\n  " ++ additional ++  "\n  name Text\n  age Int\n  sex Bool\n  ageclass Int\n  weightclass Int\n"
+      (name ++ "\n  " ++ additional ++  "\n  name Text\n  lot Int\n  age Int\n  sex Bool\n  ageclass Int\n  weightclass Int\n"
        ++ "  weight Double\n  raw Bool\n  group Int\n" :: String) ++ thGenerated ++ final
     addIntendation = (++) "  "
     final = "\n  club Text\n  deriving Eq\n  deriving Show\n"
@@ -61,8 +61,8 @@ databaseScheme = do
 
 dbLifterConvFunctions :: Q [Dec]
 dbLifterConvFunctions = do
-  firstN@[nName, nAge, nSex, nAgeclass, nWeightclass, nWeight, nRaw, nGroup]
-    <- mapM newName ["lName", "lAge", "lSex", "lAgeclass", "lWeightclass", "lWeight", "lRaw", "lGroup"]
+  firstN@[nName, nLot, nAge, nSex, nAgeclass, nWeightclass, nWeight, nRaw, nGroup]
+    <- mapM newName ["lName", "lLot", "lAge", "lSex", "lAgeclass", "lWeightclass", "lWeight", "lRaw", "lGroup"]
   lClub  <- newName "lClub"
   lRes  <- newName "lRes"
 
@@ -74,11 +74,11 @@ dbLifterConvFunctions = do
   let allGenNames = concat $ concat disciplines :: [Name]
 
   let patternVars = VarP <$> (firstN ++ allGenNames ++ [lClub])
-  let firstConv  = [ VarE nName, VarE nAge, AppE (VarE $ mkName "sexFromDB") $ VarE nSex
+  let firstConv  = [ VarE nName, VarE nLot, VarE nAge, AppE (VarE $ mkName "sexFromDB") $ VarE nSex
                    , AppE (VarE $ mkName "ageclassFromDB") $ VarE nAgeclass
                    , AppE (VarE $ mkName "weightclassFromDB") $ VarE nWeightclass , VarE nWeight
                    , VarE nRaw, VarE nGroup ]
-  let firstConv'  = [ VarE nName, VarE nAge, AppE (VarE $ mkName "sexToDB") $ VarE nSex
+  let firstConv'  = [ VarE nName, VarE nLot, VarE nAge, AppE (VarE $ mkName "sexToDB") $ VarE nSex
                     , AppE (VarE $ mkName "ageclassToDB") $ VarE nAgeclass
                     , AppE (VarE $ mkName "weightclassToDB") $ VarE nWeightclass , VarE nWeight
                     , VarE nRaw, VarE nGroup ]

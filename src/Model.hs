@@ -41,6 +41,7 @@ type GroupNr = Int
 type Placing = Int
 
 data Lifter = Lifter { lifterName        :: !Text
+                     , lifterLot         :: !Int
                      , lifterAge         :: !Int
                      , lifterSex         :: !Sex
                      , lifterAgeclass    :: !Ageclass
@@ -124,6 +125,7 @@ instance ToJSON Lifter where
   toJSON Lifter {..} =
     object [
         "name" .= lifterName,
+        "lot" .= lifterLot,
         "age" .= lifterAge,
         "sex" .= (show lifterSex),
         "ageclass" .= (show lifterAgeclass),
