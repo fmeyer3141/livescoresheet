@@ -44,14 +44,16 @@ latexTemplate = "latexexport/template.tex"
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
 
-meetStateForm :: MeetState -> Html -> MForm Handler (FormResult MeetState, Widget)
-meetStateForm MeetState {..} = renderDivs $
-                               MeetState <$> areq (selectFieldList list) "CurrDiscipline" (Just meetStateCurrDiscipline)
-                                         <*> areq intField "GroupNr: " (Just meetStateCurrGroupNr)
+meetStateForm :: [GroupNr] -> MeetState -> Html -> MForm Handler (FormResult MeetState, Widget)
+meetStateForm gNrs MeetState {..} = renderDivs $
+                                    MeetState <$> areq (selectFieldList list) "CurrDiscipline" (Just meetStateCurrDiscipline)
+                                              <*> areq (selectFieldList gList) "GroupNr: " (Just meetStateCurrGroupNr)
   where
     double a = (a,a)
     list :: [(Text,Text)]
     list = map (double . fst) meetType
+    gList :: [(Text, Int)]
+    gList = (\g -> (T.pack $ show g, g)) <$> gNrs
 
 computeKariData :: FrontendMessage -> Maybe Value
 computeKariData (JuryResult (_,res,_)) = Just $ toJSON res
@@ -63,10 +65,15 @@ getAdminR = do
     addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
-    meetState <- atomicallyUnpackHandler getCurrMeetStateFromDB
-    eLifters  <- atomicallyUnpackHandler $ getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
+
+    (meetState, eLifters, groupNrs) <- atomicallyUnpackHandler $ do
+      ms <- getCurrMeetStateFromDB
+      eLs  <- getELiftersInGroupFromDB (meetStateCurrGroupNr ms)
+      gNrs <- getGroupNrsFromDB
+      pure (ms, eLs, gNrs)
+
     (lifterformWidget, lifterformEnctype) <- generateFormPost $ liftersForm meetState eLifters
-    (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm meetState
+    (meetStateFormWidget, meetStateEnctype) <- generateFormPost $ meetStateForm groupNrs meetState
 
     defaultLayout $ do
         setTitle "Welcome to the mighty Scoresheet"
@@ -232,8 +239,8 @@ postLifterFormR = do
 
 postMeetStateFormR :: Handler Html
 postMeetStateFormR = do
-  meetState <- atomicallyUnpackHandler getCurrMeetStateFromDB
-  ((res,_),_) <- runFormPost $ meetStateForm meetState
+  (meetState, groupNrs) <- atomicallyUnpackHandler $ (,) <$> getCurrMeetStateFromDB <*> getGroupNrsFromDB
+  ((res,_),_) <- runFormPost $ meetStateForm groupNrs meetState
   case res of
       FormSuccess ms ->
         atomicallyUnpackHandler (updateMeetState ms)

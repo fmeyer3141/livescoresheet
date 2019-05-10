@@ -35,6 +35,7 @@ library
     , containers
     , data-default
     , directory >=1.1
+    , esqueleto
     , extra
     , fast-logger >=2.2
     , file-embed

@@ -12,6 +12,7 @@ module ManageScoresheetState ( getDataFromDB
                              , pushDataFromDBToChannel
                              , pushRefereeStateToChannel
                              , getLiftersFromDB
+                             , getGroupNrsFromDB
                              , resetDB
                              , updateLiftersInDB
                              , updateLiftersInDBWithGroupNr
@@ -24,6 +25,7 @@ import Import
 import qualified Prelude as P
 import qualified Data.Foldable as F
 import qualified Data.Text as T
+import qualified Database.Esqueleto as E
 
 import Control.Lens
 import PackedHandler
@@ -35,6 +37,14 @@ resetDB = do
   runDB $ deleteWhere ([] :: [Filter Lifter'])
   runDB $ deleteWhere ([] :: [Filter LifterBackup'])
   runDB $ deleteWhere ([] :: [Filter MeetState])
+
+getGroupNrsFromDB :: PackedHandler [GroupNr]
+getGroupNrsFromDB =
+  do
+    ms <- runDB $ E.select $ E.distinct $ E.from $ \lifter' -> do
+            E.orderBy [E.asc (lifter' E.^. Lifter'Group)]
+            return (lifter' E.^. Lifter'Group)
+    pure $ E.unValue <$> ms
 
 initialSetupDB :: [Lifter] -> GroupNr -> PackedHandler ()
 initialSetupDB lifterList groupNr = void $
