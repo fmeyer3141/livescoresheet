@@ -10,6 +10,7 @@ module ManageScoresheetState ( getDataFromDB
                              , getCurrMeetStateFromDB
                              , fEntityVal
                              , pushDataFromDBToChannel
+                             , getFrontendMessagesFromData
                              , pushRefereeStateToChannel
                              , getLiftersFromDB
                              , getGroupNrsFromDB
@@ -29,6 +30,9 @@ import qualified Database.Esqueleto as E
 
 import Control.Lens
 import PackedHandler
+import SocketHelper
+
+import Scoresheetlogic
 
 type PackedHandler a = PackedHandlerFor App a
 
@@ -176,14 +180,34 @@ pushInChannel m = packHandler $ do
   wChan <- appFrontendChannel <$> getYesod
   atomically $ writeTChan wChan m
 
+
 pushDataToChannel :: (MeetState, [Lifter]) -> PackedHandler ()
-pushDataToChannel = pushInChannel . LifterUpdate
+pushDataToChannel = mapM_ pushInChannel . getFrontendMessagesFromData
+
+getFrontendMessagesFromData :: (MeetState, [Lifter]) -> [FrontendMessage]
+getFrontendMessagesFromData (ms, ls) =
+  let next2Lifters = getNext2LiftersInGroup ms ls in
+  let nextLifter = fst next2Lifters in
+  let nWeight = nextLifter >>= nextWeight ms in
+  let nextNextLifter = snd next2Lifters in
+  let nnWeight = nextNextLifter >>= nextWeight ms in
+  let helpF = liftA2 (,) in
+
+  [computeFrontendDataChan (ms, ls)] ++
+  (case nextLifter of
+    Just nL   ->
+        [computeLivestreamInfoChan ms nL ls] ++
+        (case nWeight of
+          Just nW   -> [computeJuryInfoDataChan ms nL nW]
+          _         -> [] )
+    _               -> [] )
+  ++ [computeSteckerDataChan ms (helpF nextLifter nWeight) (helpF nextNextLifter nnWeight)]
 
 pushDataFromDBToChannel :: PackedHandler ()
 pushDataFromDBToChannel = getDataFromDB >>= pushDataToChannel
 
 pushRefereeStateToChannel :: (Maybe LifterAttemptInfo, RefereeResult, Bool) -> PackedHandler ()
-pushRefereeStateToChannel = pushInChannel . JuryResult
+pushRefereeStateToChannel = pushInChannel . computeRefereeChan
 
 restoreBackup :: PackedHandler ()
 restoreBackup = do

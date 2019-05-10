@@ -11,9 +11,6 @@ import Sex
 
 type Class = (Ageclass, Sex, Weightclass, Bool)
 
-instance ToJSON Plate where
-  toJSON = toJSON . show
-
 isDQ :: Lifter -> Bool
 isDQ = or . map (and . map attemptFail . attemptsAsList) . resultList . lifterRes
 
@@ -159,3 +156,8 @@ getPlacing l ls =
   let liftersWithPlacings = zip [1..] $ sortBy cmpLifterTotalAndBw liftersInClass in
   let mpl = safeHead $ map fst $ filter ((==) (lifterName l) . lifterName . snd) liftersWithPlacings in
   fromMaybe 0 mpl
+
+showTotal :: Lifter -> Text
+showTotal l = case getTotalLifter l of
+                Just t -> pack $ show t
+                Nothing -> "D.Q."

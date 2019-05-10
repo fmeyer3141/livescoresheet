@@ -55,13 +55,13 @@ meetStateForm gNrs MeetState {..} = renderDivs $
     gList :: [(Text, Int)]
     gList = (\g -> (T.pack $ show g, g)) <$> gNrs
 
-computeKariData :: FrontendMessage -> Maybe Value
-computeKariData (JuryResult (_,res,_)) = Just $ toJSON res
-computeKariData _                      = Nothing
+sendKariData :: FrontendMessage -> Maybe Value
+sendKariData (JuryResultMessage v _) = Just v
+sendKariData _                       = Nothing
 
 getAdminR :: Handler Html
 getAdminR = do
-    webSockets $ dataSocket computeKariData
+    webSockets $ dataSocket sendKariData
     addHeader "Cache-Control" "no-cache, no-store, must-revalidate"
     maid <- maybeAuthId
     (formWidget, formEnctype) <- generateFormPost csvForm
@@ -331,11 +331,6 @@ createLifter inp l@(Lifter {..}) pl = F.foldl' (P.flip (P.$)) inp actions
         "2" -> Just $ f $ att2 disc
         "3" -> Just $ f $ att3 disc
         _ -> Nothing
-
-showTotal :: Lifter -> Text
-showTotal l = case getTotalLifter l of
-                Just t -> pack $ show t
-                Nothing -> "D.Q."
 
 escapeForLatex :: Text -> Text
 escapeForLatex = T.replace "&" "\\&"

@@ -9,23 +9,19 @@ module Handler.Stecker where
 import Import
 import Yesod.WebSockets
 
-import Scoresheetlogic
 import Misc
 import qualified Prelude as P
 
 test :: [(Plate,Int)] -- Jede Scheibe einmal und zwei 25er zum Layout testen
 test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
 
-computeSteckerData :: FrontendMessage -> Maybe Value
-computeSteckerData (LifterUpdate (ms, lifters)) =
-  Just $ toJSON $ doubleMap (map $ getLifterAttemptInfo ms) $ getNext2LiftersInGroup ms lifters
-
-computeSteckerData _                             = Nothing
-
+sendSteckerData :: FrontendMessage -> Maybe Value
+sendSteckerData (SteckerInfoMessage v) = Just v
+sendSteckerData _                      = Nothing
 
 getSteckerR :: Handler Html
 getSteckerR = do
-    webSockets $ dataSocket computeSteckerData
+    webSockets $ dataSocket sendSteckerData
     defaultLayout $ do
       setTitle "Steckeranzeige"
       $(widgetFile "stecker")

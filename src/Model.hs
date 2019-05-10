@@ -93,11 +93,18 @@ instance Show RefereeResult where
 
 data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
 
+instance ToJSON Plate where
+  toJSON = toJSON . show
+
 -- (lifterName, lifterClub, currDiscipline, currGroupNr, nextAttemptNr, nextWeight, plates)
 type LifterAttemptInfo = (Text, Text, Text, Int, Maybe AttemptNr, Double, [(Plate, Int)])
 
-data FrontendMessage = LifterUpdate (MeetState, [Lifter])
-                     | JuryResult (Maybe LifterAttemptInfo, RefereeResult, Bool)
+data FrontendMessage = LifterFrontendMessage Value
+                     | LifterSteckerMessage Value
+                     | LifterLiveStreamMessage Value
+                     | JuryResultMessage Value Bool
+                     | JuryFrontendInfoMessage Value
+                     | SteckerInfoMessage Value
                          -- The bool indicates whether the frontend
                          -- shows the result in an overlay or not at all
 

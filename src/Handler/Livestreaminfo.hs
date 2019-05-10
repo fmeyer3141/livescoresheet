@@ -8,20 +8,16 @@ module Handler.Livestreaminfo where
 
 import Import
 import Yesod.WebSockets
-
-import Scoresheetlogic
 import Misc
 
-computeLivestreamInfo :: FrontendMessage -> Maybe Value
-computeLivestreamInfo (LifterUpdate (ms, lifters))        =
-    (toJSON . (,) ("LifterInfoData" :: Text)) <$> (getNextLifterInGroup ms lifters >>= (\l -> getLivestreamInfo ms l lifters))
-
-computeLivestreamInfo (JuryResult (lAttInfo,refRes,True)) = Just $ toJSON ("JuryData" :: Text, lAttInfo, refRes)
-computeLivestreamInfo _                                   = Nothing
+sendLivestreamInfo :: FrontendMessage -> Maybe Value
+sendLivestreamInfo (LifterLiveStreamMessage v) = Just v
+sendLivestreamInfo (JuryResultMessage v True)  = Just v
+sendLivestreamInfo _                           = Nothing
 
 getLivestreaminfoR :: Handler Html
 getLivestreaminfoR = do
-    webSockets $ dataSocket computeLivestreamInfo
+    webSockets $ dataSocket sendLivestreamInfo
     defaultLayout $ do
       setTitle "Livestreaminfo"
       $(widgetFile "livestreaminfo")

@@ -11,52 +11,13 @@ import Network.WebSockets (ConnectionException (..))
 import Data.Aeson (encode)
 
 import Data.Text as T
-import qualified Data.List as L
-import Control.Lens ((%~), (^.))
 
 import ManageScoresheetState
-import Scoresheetlogic
 import PackedHandler
+import SocketHelper
 
 import Control.Monad.Logger
 
-getPrognosedPlacing :: MeetState -> Lifter -> [Lifter] -> Placing
-getPrognosedPlacing ms l ls =
-  fromMaybe 0 $ (\l' -> getPlacing l' ls) <$> updateLifterAttempt
-  where
-    updateLifterAttempt :: Maybe Lifter
-    updateLifterAttempt = do
-      Lens'NT discLens <- L.lookup (meetStateCurrDiscipline ms) meetType
-      aNr <- nextAttemptNr ms l
-      let attempt = getAttempt aNr $ (lifterRes l) ^. discLens
-      ma  <- validateAttemptDummy attempt
-      let res = discLens %~ (setDiscipline aNr ma) $ lifterRes l
-      Just $ l { lifterRes = res }
-
-
-getLifterAttemptInfo :: MeetState -> Lifter -> Maybe LifterAttemptInfo
-getLifterAttemptInfo ms l@Lifter {..} =
-  do
-    w             <- nextWeight ms l
-    return ( lifterName, lifterClub, meetStateCurrDiscipline ms
-           , meetStateCurrGroupNr ms, nextAttemptNr ms l, w, getPlates w)
-
-getLivestreamInfo :: MeetState -> Lifter -> [Lifter] -> Maybe Value
--- TODO
-getLivestreamInfo ms l@Lifter {..} ls = Just $ object [ "lifterName" .= lifterName
-                                                      , "lifterClub" .= lifterClub
-                                                      , "lifterAgeclass" .= show lifterAgeclass
-                                                      , "lifterWeightclass" .= show lifterWeightclass
-                                                      , "currentDiscipline" .= meetStateCurrDiscipline ms
-                                                      , "results" .= lifterRes
-                                                      , "sex" .= show lifterSex
-                                                      , "total" .= getTotalLifter l
-                                                      , "raw" .= lifterRaw
-                                                      , "placing" .= getPlacing l ls
-                                                      , "progPlacing" .= (1 :: Int)]
-
-doubleMap :: (a -> b) -> (a,a) -> (b,b)
-doubleMap f = bimap f f
 
 connectionError :: ConnectionException -> WebSocketsT Handler ()
 connectionError (ParseException s)   = $logError $ "ParseException " ++ T.pack s
@@ -71,8 +32,8 @@ dataSocket computeData = do
   dbData <- lift $ atomicallyUnpackHandler getDataFromDB
   juryStateRef <- appRefereeState <$> getYesod
   refState <- lift . atomicallyUnpackHandler . packHandler $ atomicModifyIORef' juryStateRef $ \a -> (a,a)
-  sendJSON $ LifterUpdate dbData
-  sendJSON $ JuryResult (Nothing, refState, False)
+  mapM_ sendJSON $ getFrontendMessagesFromData dbData
+  sendJSON $ computeRefereeChan (Nothing, refState, False)
   catch
     (race_
       (forever $ (atomically $ readTChan rChan) >>= sendJSON)

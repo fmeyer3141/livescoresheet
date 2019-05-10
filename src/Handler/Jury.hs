@@ -17,6 +17,8 @@ import ManageScoresheetState
 import PackedHandler
 import Misc
 
+import SocketHelper (getLifterAttemptInfo)
+
 colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
 colorForm = renderDivs $
   RefereeDecision <$> areq checkBoxField redFormat Nothing
@@ -32,15 +34,14 @@ prettyPrintPos PLeft  = "Seitenkampfrichter links"
 prettyPrintPos PMain  = "Hauptkampfrichter"
 prettyPrintPos PRight = "Seitenkampfrichter rechts"
 
-computeKariData :: FrontendMessage -> Maybe Value
-computeKariData (LifterUpdate (ms, lifters)) = Just . toJSON $
-                                               (getNextLifterInGroup ms lifters >>= getLifterAttemptInfo ms)
-computeKariData _                            = Nothing
+sendKariData :: FrontendMessage -> Maybe Value
+sendKariData (JuryFrontendInfoMessage v) = Just v
+sendKariData _                           = Nothing
 
 -- Did the Post work?
 getJuryR' :: RefereePlaces -> Maybe Bool -> Handler Html
 getJuryR' p mb = do
-  webSockets $ dataSocket computeKariData
+  webSockets $ dataSocket sendKariData
   (colorFormWidget, colorFormEnctype) <- generateFormPost colorForm
   defaultLayout $ do
     setTitle $ toHtml (prettyPrintPos p)
@@ -73,10 +74,11 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
   pure $ case eCurrLifter of
     Just (eId, l) ->
       do
-        attemptNr     <- nextAttemptNr meetState l
-        discLens      <- map snd $ L.find ((==) currDiscipline . fst) meetType
-        let attempt    = getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
-        lifterAttInfo <- getLifterAttemptInfo meetState l
+        attemptNr        <- nextAttemptNr meetState l
+        discLens         <- map snd $ L.find ((==) currDiscipline . fst) meetType
+        let attempt       = getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
+        attW             <- attemptWeight attempt
+        let lifterAttInfo = getLifterAttemptInfo meetState l attW
 
         if weight > 0 then
           -- Valid

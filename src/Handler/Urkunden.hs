@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import qualified Prelude as P
 import Ageclass
 import PackedHandler
+import Scoresheetlogic (showTotal)
 
 getUrkundenR :: Handler TypedContent
 getUrkundenR = do

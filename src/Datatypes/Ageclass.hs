@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Ageclass where
 
-import Database.Persist.TH
 import Prelude
 import Data.Text
 
