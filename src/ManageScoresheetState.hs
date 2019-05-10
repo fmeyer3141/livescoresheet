@@ -41,10 +41,10 @@ resetDB = do
 getGroupNrsFromDB :: PackedHandler [GroupNr]
 getGroupNrsFromDB =
   do
-    ms <- runDB $ E.select $ E.distinct $ E.from $ \lifter' -> do
-            E.orderBy [E.asc (lifter' E.^. Lifter'Group)]
-            return (lifter' E.^. Lifter'Group)
-    pure $ E.unValue <$> ms
+    gNrs <- runDB $ E.select $ E.distinct $ E.from $ \lifter' -> do
+              E.orderBy [E.asc (lifter' E.^. Lifter'Group)]
+              return (lifter' E.^. Lifter'Group)
+    pure $ E.unValue <$> gNrs
 
 initialSetupDB :: [Lifter] -> GroupNr -> PackedHandler ()
 initialSetupDB lifterList groupNr = void $
@@ -68,14 +68,6 @@ fEntityVal= map entityVal
 getLiftersFromDB :: PackedHandler [Lifter]
 getLiftersFromDB = (map snd) <$> getELiftersFromDB
 
-getEBackupLiftersFromDB :: PackedHandler [(Key LifterBackup', LifterBackup)]
-getEBackupLiftersFromDB = do
-  fromDB <- runDB $ selectList ([] :: [Filter LifterBackup']) []
-  pure $ map (\(Entity k lb) -> (k, toLifterBackup lb)) fromDB
-
-getBackupLiftersFromDB :: PackedHandler [LifterBackup]
-getBackupLiftersFromDB = (map snd) <$> getEBackupLiftersFromDB
-
 getCurrMeetStateFromDB :: PackedHandler MeetState
 getCurrMeetStateFromDB =
   let dbQuery =  runDB $ selectList ([] :: [Filter MeetState]) [] in
@@ -98,12 +90,13 @@ updateLiftersInDBWithGroupNr groupNr = updateLiftersInDB . filter ((==) groupNr 
 updateLiftersInDB :: [(Key Lifter', Lifter)] -> PackedHandler ()
 updateLiftersInDB args = do -- perform backup
   toBackup <- getLiftersFromDB
-  backVersion <- getLatestBackupVersion <$> getBackupLiftersFromDB
-  case backVersion of
+  backVersions <- getAllBackupVersions
+  let latestBackVersion = getLatestBackupVersionWithVersions backVersions
+  case latestBackVersion of
     Nothing -> backupLifter 0 toBackup
     Just x -> backupLifter (x+1) toBackup
   updateLiftersInDB' args
-  truncBackupHistory
+  truncBackupHistoryWithVersions backVersions
   -- update Frontends from DB in order to send consistent information
   -- (e.g. were the attempts up-to-date and therefore stored?)
   pushDataFromDBToChannel
@@ -152,20 +145,30 @@ updateLiftersInDB args = do -- perform backup
     modifyLens = (over . unpackLens'NT . snd) <$> meetType
     viewLens = (view . unpackLens'NT . snd) <$> meetType
 
-getLatestBackupVersion :: [LifterBackup] -> Maybe Int
-getLatestBackupVersion = safeHead . sortBy (flip compare) . map lifterBackupVersion
+getAllBackupVersions :: PackedHandler [Int]
+getAllBackupVersions =
+  do
+    bVs <- runDB $ E.select $ E.distinct $ E.from $ \lifterB' -> do
+             E.orderBy [E.desc (lifterB' E.^. LifterBackup'Version)]
+             return (lifterB' E.^. LifterBackup'Version)
+    pure $ E.unValue <$> bVs
+
+-- Ints already sorted descending
+getLatestBackupVersionWithVersions :: [Int] -> Maybe Int
+getLatestBackupVersionWithVersions = safeHead
+
+getLatestBackupVersion :: PackedHandler (Maybe Int)
+getLatestBackupVersion = map getLatestBackupVersionWithVersions getAllBackupVersions
 
 backupLifter :: Int -> [Lifter] -> PackedHandler ()
 backupLifter v =
   void . runDB . insertMany . map (\l -> toLifterBackup' $ LifterBackup l v)
 
-truncBackupHistory :: PackedHandler ()
-truncBackupHistory = do
-  backupDB <- runDB $ selectList [] [Desc LifterBackup'Version]
-  let backupVersions = group $ map (lifterBackup'Version . entityVal) backupDB
+truncBackupHistoryWithVersions :: [Int] -> PackedHandler ()
+truncBackupHistoryWithVersions backupVersions = do
   when (length backupVersions >= 10)
     (do
-      let deleteAfterVersion = P.head $ backupVersions P.!! 9
+      let deleteAfterVersion =  backupVersions P.!! 9
       runDB $ deleteWhere [LifterBackup'Version >. deleteAfterVersion])
 
 pushInChannel :: FrontendMessage -> PackedHandler ()
@@ -184,14 +187,22 @@ pushRefereeStateToChannel = pushInChannel . JuryResult
 
 restoreBackup :: PackedHandler ()
 restoreBackup = do
-  backups <- getBackupLiftersFromDB
-  let version = getLatestBackupVersion backups
+  version <- getLatestBackupVersion
   case version of
     Nothing -> pure ()
     Just v ->
-      let latestBackup = filter ((==) v . lifterBackupVersion) backups in
       runDB (deleteWhere ([] :: [Filter Lifter'])) -- truncate table
+      -- restore
+      *> insertVersion v
       *> runDB (deleteWhere [LifterBackup'Version ==. v])
       -- restore
-      *> (runDB . insertMany $ map (toLifter' . lifterBackupLifter) latestBackup)
       *> pushDataFromDBToChannel
+  where
+    insertVersion :: Int -> PackedHandler ()
+    insertVersion version = do
+      -- get BackupLifters
+      backupLifters <- runDB $
+        E.select $ E.from $ \lifterBackup' -> do
+          E.where_ (lifterBackup' E.^. LifterBackup'Version E.==. E.val version)
+          return $ lifterBackup'
+      runDB $ E.insertMany_ $ ((toLifter' . lifterBackupLifter . toLifterBackup . entityVal) <$> backupLifters)
