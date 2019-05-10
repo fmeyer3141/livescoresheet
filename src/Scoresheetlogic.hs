@@ -32,31 +32,26 @@ getTotalLifter lifter@(Lifter {..}) =
     True -> Nothing
     False -> Just . sum . map (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
-nextAttemptNr :: MeetState -> Lifter -> Maybe Int
+nextAttemptNr :: MeetState -> Lifter -> Maybe AttemptNr
 nextAttemptNr s l
-  | (attemptPending $ att1 d)  = Just 1
-  | (attemptPending $ att2 d)  = Just 2
-  | (attemptPending $ att3 d)  = Just 3
+  | (attemptPending $ att1 d)  = Just Attempt1
+  | (attemptPending $ att2 d)  = Just Attempt2
+  | (attemptPending $ att3 d)  = Just Attempt3
   | otherwise = Nothing
 
   where
     d :: Discipline
     d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
 
-attWeight:: MeetState -> Lifter -> Maybe Int -> Maybe Double
-attWeight s l att
-  | att == Just 1    = attemptWeight $ att1 d
-  | att == Just 2    = attemptWeight $ att2 d
-  | att == Just 3    = attemptWeight $ att3 d
-  | otherwise        = Nothing
-
+attWeight:: MeetState -> Lifter -> AttemptNr -> Maybe Double
+attWeight s l = attemptWeight . (flip getAttempt) d
   where
     d = getDisciplineFromLifter (meetStateCurrDiscipline s) l
 
 nextWeight :: MeetState -> Lifter -> Maybe Double
-nextWeight ms l = attWeight ms l $ nextAttemptNr ms l
+nextWeight ms l = nextAttemptNr ms l >>= attWeight ms l
 
-cmpLifterGroup :: Int -> Lifter -> Lifter -> Ordering
+cmpLifterGroup :: GroupNr -> Lifter -> Lifter -> Ordering
 cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l1 in prio gruppe
                              = LT
                        | (lifterGroup l2 == g) && (lifterGroup l1 /= g) -- nur l2 in prio gruppe
@@ -82,17 +77,9 @@ cmpLifterGroupAndOrder s = cmpLifterOrder s .~. cmpLifterGroup (meetStateCurrGro
 
 cmpLifterOrder :: MeetState -> Lifter -> Lifter -> Ordering
 cmpLifterOrder s = compareBodyweight .~. compareAttWeight .~. compareAttemptNr
--- cmpLifterOrder s l1 l2
---              | attemptNrl1 /= attemptNrl2
---                    = compareMaybe attemptNrl1 attemptNrl2
---              | weightl1 /= weightl2
---                    = compareMaybe weightl1 weightl2
---              | lifterWeight l1 /= lifterWeight l2
---                    = compare (lifterWeight l1) (lifterWeight l2)
---              | otherwise
---                    = EQ
     where
-        compareMaybe :: (Ord a) => Maybe a -> Maybe a -> Ordering -- Nothing also kein Gewicht angegeben oder alle Versuche gemacht -> ans ende sortieren
+        compareMaybe :: (Ord a) => Maybe a -> Maybe a -> Ordering
+        -- Nothing also kein Gewicht angegeben oder alle Versuche gemacht -> ans ende sortieren
         compareMaybe Nothing Nothing   = EQ
         compareMaybe (Just _) Nothing  = LT
         compareMaybe Nothing (Just _)  = GT

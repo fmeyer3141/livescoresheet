@@ -18,12 +18,20 @@ data Attempt = Unset UTCTime
              | Fail Weight UTCTime
              | Skip UTCTime deriving (Show, Read, Eq)
 
+data AttemptNr = Attempt1 | Attempt2 | Attempt3 deriving (Eq, Ord)
+
+instance ToJSON AttemptNr where
+  toJSON Attempt1 = toJSON (1 :: Int)
+  toJSON Attempt2 = toJSON (2 :: Int)
+  toJSON Attempt3 = toJSON (3 :: Int)
+
 instance ToJSON Attempt where
   toJSON (Unset _)     = object  ["statusCode" .= ("unset" :: Text)]
   toJSON (Todo w _)    = object  ["statusCode" .= ("todo" :: Text), "weight" .= show w]
   toJSON (Success w _) = object  ["statusCode" .= ("success" :: Text), "weight" .= show w]
   toJSON (Fail w _)    = object  ["statusCode" .= ("fail" :: Text), "weight" .= show w]
   toJSON (Skip _)      = object  ["statusCode" .= ("skip" :: Text)]
+
 data LiftModifier = MTodo | MGood | MFail | MSkip deriving Eq
 data Discipline = Discipline { att1 :: Attempt, att2 :: Attempt, att3 :: Attempt} deriving (Show, Read, Eq)
 
@@ -129,18 +137,16 @@ resultsTypeTH = do
       defBang = Bang NoSourceUnpackedness NoSourceStrictness
       attType = ConT ''Discipline
 
-setDiscipline :: Int -> Attempt -> Discipline -> Maybe Discipline
-setDiscipline 1 att d = Just $ d {att1 = att}
-setDiscipline 2 att d = Just $ d {att2 = att}
-setDiscipline 3 att d = Just $ d {att3 = att}
-setDiscipline _ _   _ = Nothing
+setDiscipline :: AttemptNr -> Attempt -> Discipline -> Discipline
+setDiscipline Attempt1 att d = d {att1 = att}
+setDiscipline Attempt2 att d = d {att2 = att}
+setDiscipline Attempt3 att d = d {att3 = att}
 
 markAttempt :: UTCTime -> Bool -> Attempt -> Maybe Attempt
 markAttempt t True  = validateAttempt t
 markAttempt t False = inValidateAttempt t
 
-getAttempt :: Int -> Discipline -> Maybe Attempt
-getAttempt 1 d = Just $ att1 d
-getAttempt 2 d = Just $ att2 d
-getAttempt 3 d = Just $ att3 d
-getAttempt _ _ = Nothing
+getAttempt :: AttemptNr -> Discipline -> Attempt
+getAttempt Attempt1 d = att1 d
+getAttempt Attempt2 d = att2 d
+getAttempt Attempt3 d = att3 d

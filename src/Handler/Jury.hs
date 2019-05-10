@@ -9,7 +9,7 @@ import Import
 import Yesod.WebSockets
 import qualified Data.Text as T
 import qualified Data.List as L
-import Control.Lens ((^.), (%%~))
+import Control.Lens ((^.), (%~))
 import Control.Monad.Logger
 
 import Scoresheetlogic
@@ -75,7 +75,7 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
       do
         attemptNr     <- nextAttemptNr meetState l
         discLens      <- map snd $ L.find ((==) currDiscipline . fst) meetType
-        attempt       <- getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
+        let attempt    = getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
         lifterAttInfo <- getLifterAttemptInfo meetState l
 
         if weight > 0 then
@@ -88,14 +88,14 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
     _       -> Nothing
 
     where
-      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> Int -> Lens'NT Results Discipline -> Bool ->
+      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> AttemptNr -> Lens'NT Results Discipline -> Bool ->
                           LifterAttemptInfo -> Maybe (PackedHandler LifterAttemptInfo)
       markLiftDBHelper el a an lsNT b attInfo =
         let ls = unpackLens'NT lsNT in
         let (eId, l) = el in
         do
           mA         <- markAttempt t b a
-          updResults <- ls %%~ (setDiscipline an mA) $ lifterRes l
+          let updResults = ls %~ (setDiscipline an mA) $ lifterRes l
           pure $ updateLiftersInDB
             [(eId, l {lifterRes = updResults })] *> pure attInfo
 

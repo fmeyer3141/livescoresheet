@@ -12,7 +12,7 @@ import Data.Aeson (encode)
 
 import Data.Text as T
 import qualified Data.List as L
-import Control.Lens ((%%~), (^.))
+import Control.Lens ((%~), (^.))
 
 import ManageScoresheetState
 import Scoresheetlogic
@@ -28,9 +28,9 @@ getPrognosedPlacing ms l ls =
     updateLifterAttempt = do
       Lens'NT discLens <- L.lookup (meetStateCurrDiscipline ms) meetType
       aNr <- nextAttemptNr ms l
-      attempt <- getAttempt aNr $ (lifterRes l) ^. discLens
+      let attempt = getAttempt aNr $ (lifterRes l) ^. discLens
       ma  <- validateAttemptDummy attempt
-      res <- discLens %%~ (setDiscipline aNr ma) $ lifterRes l
+      let res = discLens %~ (setDiscipline aNr ma) $ lifterRes l
       Just $ l { lifterRes = res }
 
 
