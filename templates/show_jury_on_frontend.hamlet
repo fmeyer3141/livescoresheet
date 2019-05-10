@@ -1,0 +1,8 @@
+<div #juryOverlay>
+  <div #juryOverlayContent>
+    <div #juryHeader>
+      <h1 align=center #juryh1>
+        Liftername - Gewicht - Versuch
+      <h2 align=center #juryh2>
+        Verein
+    <canvas #juryCanvas align=center>

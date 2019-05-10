@@ -1,13 +1,18 @@
-var url              = document.URL;
-url                  = url.replace("http:", "ws:").replace("https:", "wss:");
-var lifterInfo       = undefined;
-var canvas           = document.getElementById("lifterInfo");
-var c                = canvas.getContext('2d');
+var url                  = document.URL;
+url                      = url.replace("http:", "ws:").replace("https:", "wss:");
+var lifterInfo           = undefined;
+var canvas               = document.getElementById("lifterInfo");
+var c                    = canvas.getContext('2d');
 
-var fontColour       = 'rgb(240,220,220)';
+var fontColour           = 'rgb(240,220,220)';
 
-var canvasBackground = "@{StaticR chalk_hero_bg_jpg}";
-var background       = new Image();
+var canvasBackground     = "@{StaticR chalk_hero_bg_jpg}";
+var background           = new Image();
+
+var juryLifter           = undefined;
+var juryCards            = undefined;
+var juryWidthCoefficient = 0.95;
+var juryShowHeader       = false;
 
 function init() {
   console.log("init");
@@ -17,9 +22,16 @@ function init() {
       console.log("onmessage");
       console.log(data);
 
-      lifterInfo = data;
+      if (data[0] == "JuryData") {
+        console.log("JuryData");
+        juryLifter = data[1];
+        juryCards  = data[2];
+        showJury();
+      } else if (data[0] == "LifterInfoData") {
+        lifterInfo = data[1];
+        renderInfo();
+      }
 
-      renderInfo();
   };
 
   socket.onerror = function(e) {
@@ -43,6 +55,59 @@ function min (arg1, arg2) {
 
 function max (arg1, arg2) {
   return (arg1 > arg2 ? arg1 : arg2);
+}
+
+/**
+ * Draws a rounded rectangle using the current state of the canvas.
+ * If you omit the last three params, it will draw a rectangle
+ * outline with a 5 pixel border radius
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {Number} width The width of the rectangle
+ * @param {Number} height The height of the rectangle
+ * @param {Number} [radius = 5] The corner radius; It can also be an object
+ *                 to specify different radii for corners
+ * @param {Number} [radius.tl = 0] Top left
+ * @param {Number} [radius.tr = 0] Top right
+ * @param {Number} [radius.br = 0] Bottom right
+ * @param {Number} [radius.bl = 0] Bottom left
+ * @param {Boolean} [fill = false] Whether to fill the rectangle.
+ * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+ */
+function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+  if (typeof stroke == 'undefined') {
+    stroke = true;
+  }
+  if (typeof radius === 'undefined') {
+    radius = 5;
+  }
+  if (typeof radius === 'number') {
+    radius = {tl: radius, tr: radius, br: radius, bl: radius};
+  } else {
+    var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+    for (var side in defaultRadius) {
+      radius[side] = radius[side] || defaultRadius[side];
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + radius.tl, y);
+  ctx.lineTo(x + width - radius.tr, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+  ctx.lineTo(x + width, y + height - radius.br);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+  ctx.lineTo(x + radius.bl, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+  ctx.lineTo(x, y + radius.tl);
+  ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+  ctx.closePath();
+  if (fill) {
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.stroke();
+  }
+
 }
 
 function getTextHeight(size, font) {
@@ -157,6 +222,14 @@ function renderInfo() {
   let arrow = (lifterInfo.progPlacing < lifterInfo.placing) ? "↗" : "→";
   let arrowColor = (lifterInfo.progPlacing < lifterInfo.placing) ? 'rgb(0,255,0)' : 'rgb(255,165,0)';
 
+  let placingNrColour = placing => {
+    switch (placing) {
+      case 1: return 'rgb(255,215,0)'; //gold
+      case 2: return 'rgb(192,192,192)'; //silver
+      case 3: return 'rgb(205,127,50)'; //bronze
+      default: return fontColour;
+    }
+  }
   let placingWidth = (c.measureText(lifterInfo.placing).width)/width;
   let arrowWidth = (c.measureText(arrow).width)/width;
   let progPlacingWidth = (c.measureText(lifterInfo.progPlacing).width)/width;
@@ -164,13 +237,17 @@ function renderInfo() {
   let xRightBorder = headerSecBlockRelWidth +
                      ((1 + headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth);
   let x = xRightBorder - textWidth;
+
+  c.fillStyle = placingNrColour(lifterInfo.placing);
   c.fillText(lifterInfo.placing, x*width, headerFirstBlockRelHeight * height);
   c.fillStyle = arrowColor;
   x += placingWidth;
   c.fillText(arrow, x*width, headerFirstBlockRelHeight * height);
-  c.fillStyle = fontColour;
+  c.fillStyle = placingNrColour(lifterInfo.progPlacing);
   x += arrowWidth;
   c.fillText(lifterInfo.progPlacing, x*width, headerFirstBlockRelHeight * height);
+
+  c.fillStyle = fontColour;
 
   //draw lines - Vertical
   c.beginPath();
@@ -202,7 +279,8 @@ function renderInfo() {
 
   // draw lifterInfo Club
   let lifterClub = lifterInfo.lifterClub;
-  fSize = determineFontSize(lifterClub, headerSecBlockRelWidth * width, clubHeightToLifterBox * lifterBoxRelHeight * height);
+  fSize = min( determineFontSize(lifterClub, headerSecBlockRelWidth * width, clubHeightToLifterBox * lifterBoxRelHeight * height)
+             , fSize);
   setFontSize(fSize);
   c.fillStyle = fontColour;
   y += (clubHeightToLifterBox + lifterBoxInnerVertSpacing) * lifterBoxRelHeight;
@@ -303,7 +381,8 @@ function drawTotalBox (x, y, width, height, fontSize) {
     boxColour = fontColour;
   }
   c.fillStyle = boxColour;
-  c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+  c.strokeStyle = boxColour;
+  roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
 
   setFontSize(fontSize);
   c.textBaseline = "middle";
@@ -333,7 +412,8 @@ function drawBestAttemptBox(x, y, width, height, discNr, fontSize) {
     boxColour = fontColour;
   }
   c.fillStyle = boxColour;
-  c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+  c.strokeStyle = boxColour;
+  roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
 
   setFontSize(fontSize);
   c.textBaseline = "middle";
@@ -375,8 +455,9 @@ function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
 
   if (currAttempt.statusCode != "skip") {
     let weight = currAttempt.weight;
-    c.fillStyle = boxColour;
-    c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+    c.fillStyle  = boxColour;
+    c.strokeStyle = boxColour;
+    roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
     setFontSize(fontSize);
     c.textBaseline = "middle";
     c.fillStyle = 'rgb(0,0,0)';
@@ -384,7 +465,8 @@ function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
     c.fillText(weight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) *canvas.height);
   } else {
     c.fillStyle = boxColour;
-    c.fillRect(x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height);
+    c.strokeStyle = boxColour;
+    roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
     setFontSize(min(determineFontSize("skip", width*canvas.width, height*canvas.height), fontSize));
     c.textBaseline = "middle";
     c.fillStyle = 'rgb(0,0,0)';

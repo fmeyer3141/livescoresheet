@@ -13,10 +13,11 @@ import Scoresheetlogic
 import Misc
 
 computeLivestreamInfo :: FrontendMessage -> Maybe Value
-computeLivestreamInfo (LifterUpdate (ms, lifters)) =
-    getNextLifterInGroup ms lifters >>= (\l -> getLivestreamInfo ms l lifters)
+computeLivestreamInfo (LifterUpdate (ms, lifters))        =
+    (toJSON . (,) ("LifterInfoData" :: Text)) <$> (getNextLifterInGroup ms lifters >>= (\l -> getLivestreamInfo ms l lifters))
 
-computeLivestreamInfo _                             = Nothing
+computeLivestreamInfo (JuryResult (lAttInfo,refRes,True)) = Just $ toJSON ("JuryData" :: Text, lAttInfo, refRes)
+computeLivestreamInfo _                                   = Nothing
 
 getLivestreaminfoR :: Handler Html
 getLivestreaminfoR = do
@@ -24,3 +25,4 @@ getLivestreaminfoR = do
     defaultLayout $ do
       setTitle "Livestreaminfo"
       $(widgetFile "livestreaminfo")
+      $(widgetFile "show_jury_on_frontend")
