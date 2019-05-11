@@ -149,8 +149,8 @@ function determineFontSize(txt, maxWidth, maxHeight) {
 
 
 function renderInfo() {
-  let height                     = window.innerHeight-1;
-  let width                      = window.innerWidth-1;
+  let height                     = window.innerHeight;
+  let width                      = window.innerWidth;
 
   let disciplineString           = lifterInfo.currentDiscipline;
   let headerDescrString                = undefined;
