@@ -153,7 +153,7 @@ function renderInfo() {
   let width                      = window.innerWidth;
 
   let disciplineString           = lifterInfo.currentDiscipline;
-  let headerDescrString                = undefined;
+  let headerDescrString          = undefined;
   let ageclass                   = lifterInfo.lifterAgeclass;
 
 
@@ -173,8 +173,13 @@ function renderInfo() {
   let lifterBoxRelHeight         = 1 - headerFirstBlockRelHeight - 2*verticalSpacing;
   let lifterBoxInnerVertSpacing  = 0.05;
 
-  canvas.height                  = height;
-  canvas.width                   = width;
+  canvas.height                  = window.devicePixelRatio*height;
+  canvas.width                   = window.devicePixelRatio*width;
+
+  canvas.style.height                  = height + "px";
+  canvas.style.width                   = width + "px";
+
+  c.scale(window.devicePixelRatio, window.devicePixelRatio);
 
   c.fillStyle = c.createPattern(background, "repeat");
   c.fillRect(0, 0, width, height);
