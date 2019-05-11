@@ -161,6 +161,7 @@ function renderInfo() {
   let headerMiddleToHorizSpacing = 2;
 
   let verticalSpacing            = 0.05;
+  let verticalSpacingSecond      = 0.025;
 
   let headerFirstBlockRelHeight  = 0.2;
   let headerFirstBlockRelWidth   = 0.2;
@@ -170,7 +171,7 @@ function renderInfo() {
 
   let nameHeightToLifterBox      = 0.28;
   let clubHeightToLifterBox      = 0.8*nameHeightToLifterBox;
-  let lifterBoxRelHeight         = 1 - headerFirstBlockRelHeight - 2*verticalSpacing;
+  let lifterBoxRelHeight         = 1 - headerFirstBlockRelHeight - verticalSpacing - verticalSpacingSecond;
   let lifterBoxInnerVertSpacing  = 0.05;
 
   canvas.height                  = window.devicePixelRatio*height;
@@ -258,7 +259,7 @@ function renderInfo() {
   c.beginPath();
   x = ((1 + 0.5 * headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth) * width;
   c.moveTo(x, linePadding*height);
-  c.lineTo(x, (1 - linePadding) * height);
+  c.lineTo(x, (1 - verticalSpacingSecond) * height);
   c.strokeStyle = 'rgb(255,255,255)';
   c.lineWidth = 0.0025 * width;
   c.stroke();
@@ -317,7 +318,7 @@ function renderInfo() {
                                              , bestAttemptBoxHeight * lifterBoxRelHeight*height);
 
   x = headerHorizSpacing;
-  y = headerFirstBlockRelHeight + verticalSpacing + lifterBoxInnerVertSpacing * lifterBoxRelHeight;
+  y = headerFirstBlockRelHeight + verticalSpacing;
   for (let i = 0; i<nrDisciplines; ++i) {
     drawBestAttemptBox( x, y, bestAttemptBoxWidth, bestAttemptBoxHeight * lifterBoxRelHeight
                       , i, bestAttemptFontSize);
