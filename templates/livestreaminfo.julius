@@ -373,6 +373,9 @@ function oneSuccessInEveryDisc () {
 function drawTotalBox (x, y, width, height, fontSize) {
   let totalWeight = lifterInfo.total;
   let boxColour    = undefined;
+
+  let cWidth  = canvas.width/window.devicePixelRatio;
+  let cHeight = canvas.height/window.devicePixelRatio;
   // failed discipline
   if (totalWeight == null) {
     totalWeight = "D.Q.";
@@ -387,18 +390,21 @@ function drawTotalBox (x, y, width, height, fontSize) {
   }
   c.fillStyle = boxColour;
   c.strokeStyle = boxColour;
-  roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
+  roundRect(c,x*cWidth, y*cHeight, width*cWidth, height*cHeight, 0.011*cWidth, true, true);
 
   setFontSize(fontSize);
   c.textBaseline = "middle";
   c.fillStyle = 'rgb(0,0,0)';
-  let textTooShortInPx = width*canvas.width - c.measureText(totalWeight).width;
-  c.fillText(totalWeight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+  let textTooShortInPx = width*cWidth - c.measureText(totalWeight).width;
+  c.fillText(totalWeight, x*cWidth + 0.5*textTooShortInPx, (y + 0.5*height) * cHeight);
 }
 
 function drawBestAttemptBox(x, y, width, height, discNr, fontSize) {
   let currDiscipline     = lifterInfo.results[discNr][1];
   let currDisciplineName = lifterInfo.results[discNr][0];
+
+  let cWidth  = canvas.width / window.devicePixelRatio;
+  let cHeight = canvas.height / window.devicePixelRatio;
   let discWeight = undefined;
   let boxColour   = undefined;
   // failed discipline
@@ -418,17 +424,21 @@ function drawBestAttemptBox(x, y, width, height, discNr, fontSize) {
   }
   c.fillStyle = boxColour;
   c.strokeStyle = boxColour;
-  roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
+  roundRect(c,x*cWidth, y*cHeight, width*cWidth, height*cHeight, 0.011*cWidth, true, true);
 
   setFontSize(fontSize);
   c.textBaseline = "middle";
   c.fillStyle = 'rgb(0,0,0)';
-  let textTooShortInPx = width*canvas.width - c.measureText(discWeight).width;
-  c.fillText(discWeight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+  let textTooShortInPx = width*cWidth - c.measureText(discWeight).width;
+  c.fillText(discWeight, x*cWidth + 0.5*textTooShortInPx, (y + 0.5*height) * cHeight);
 }
 
 function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
+  let cWidth  = canvas.width/window.devicePixelRatio;
+  let cHeight = canvas.height/window.devicePixelRatio;
+
   let currDiscipline = undefined;
+
   for (let i = 0; i<lifterInfo.results.length; ++i) {
     if (lifterInfo.results[i][0] == lifterInfo.currentDiscipline)
       currDiscipline = lifterInfo.results[i];
@@ -458,26 +468,22 @@ function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
       boxColour = 'rgb(255,0,0)'; break;
   }
 
+  c.fillStyle  = boxColour;
+  c.strokeStyle = boxColour;
+  roundRect(c,x*cWidth, y*cHeight, width*cWidth, height*cHeight, 0.011*cWidth, true, true);
+  c.textBaseline = "middle";
+  c.fillStyle = 'rgb(0,0,0)';
+  let fillAttText = undefined;
+
   if (currAttempt.statusCode != "skip") {
     let weight = currAttempt.weight;
-    c.fillStyle  = boxColour;
-    c.strokeStyle = boxColour;
-    roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
-    setFontSize(fontSize);
-    c.textBaseline = "middle";
-    c.fillStyle = 'rgb(0,0,0)';
-    let textTooShortInPx = width*canvas.width - c.measureText(weight).width;
-    c.fillText(weight, x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) *canvas.height);
+    fillAttText = weight;
   } else {
-    c.fillStyle = boxColour;
-    c.strokeStyle = boxColour;
-    roundRect(c,x*canvas.width, y*canvas.height, width*canvas.width, height*canvas.height, 0.011*canvas.width, true, true);
-    setFontSize(min(determineFontSize("skip", width*canvas.width, height*canvas.height), fontSize));
-    c.textBaseline = "middle";
-    c.fillStyle = 'rgb(0,0,0)';
-    let textTooShortInPx = width*canvas.width - c.measureText("skip").width;
-    c.fillText("skip", x*canvas.width + 0.5*textTooShortInPx, (y + 0.5*height) * canvas.height);
+    fillAttText = "skip";
   }
+  setFontSize(min(determineFontSize(fillAttText, width*cWidth, height*cHeight), fontSize));
+  let textTooShortInPx = width*cWidth - c.measureText(fillAttText).width;
+  c.fillText(fillAttText, x*cWidth + 0.5*textTooShortInPx, (y + 0.5*height) * cHeight);
 }
 
 background.src = canvasBackground;
