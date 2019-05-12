@@ -121,7 +121,10 @@ instance ToJSON Plate where
   toJSON = toJSON . show
 
 -- (lifterName, lifterClub, currDiscipline, currGroupNr, nextAttemptNr, nextWeight, plates)
-type LifterAttemptInfo = (Text, Text, Text, Int, Maybe AttemptNr, Double, [(Plate, Int)])
+type LifterAttemptInfo = (Text, Text, Text, Int, AttemptNr, Double, [(Plate, Int)])
+
+lifterAttemptInfoName :: LifterAttemptInfo -> Text
+lifterAttemptInfoName (n, _, _, _, _, _, _) = n
 
 data FrontendMessage = LifterFrontendMessage   !Value
                      | LifterSteckerMessage    !Value

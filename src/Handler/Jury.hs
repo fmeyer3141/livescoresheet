@@ -40,15 +40,18 @@ sendKariData (JuryFrontendInfoMessage v) = Just v
 sendKariData _                           = Nothing
 
 -- Did the Post work?
-getJuryR' :: RefereePlaces -> Maybe Bool -> Handler Html
+-- Nothing -> Nothing marked last time
+-- Just Nothing -> Error
+-- Just $ Just attInfo -> success
+getJuryR' :: RefereePlaces -> Maybe (Maybe LifterAttemptInfo) -> Handler Html
 getJuryR' p mb = do
   webSockets $ dataSocket sendKariData
   (colorFormWidget, colorFormEnctype) <- generateFormPost colorForm
   defaultLayout $ do
     setTitle $ toHtml (prettyPrintPos p)
     case mb of
-      Just True -> [whamlet| Die Daten wurden gespeichert |]
-      Just False -> [whamlet| Konnte Versuchsergebnis nicht eintragen |]
+      Just (Just attInfo) -> [whamlet| Die Fehlerkarten wurden gespeichert für #{lifterAttemptInfoName attInfo}|]
+      Just (Nothing) -> [whamlet| Konnte Versuchsergebnis nicht eintragen |]
       Nothing -> pure ()
 
     $(widgetFile "kari")
@@ -63,9 +66,19 @@ allDecEntered _                                        = False
 getCurrELifter :: MeetState -> [(Key Lifter', Lifter)] -> Maybe (Key Lifter', Lifter)
 getCurrELifter ms els = (getNextLiftersWithf snd ms els) !! 0
 
-
 unpackRefereeDecision :: RefereeDecision p -> (Bool,Bool,Bool)
 unpackRefereeDecision d = (red d,blue d,yellow d)
+
+getLifterInfoFromDB :: PackedHandler (Maybe LifterAttemptInfo)
+getLifterInfoFromDB = do
+  meetState <- getCurrMeetStateFromDB
+  elifters <- getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
+  pure $ do
+    l <- snd <$> getCurrELifter meetState elifters
+    attemptNr        <- nextAttemptNr meetState l
+    let attempt       = getAttempt attemptNr $ getDisciplineFromLifter (meetStateCurrDiscipline meetState) l
+    attW             <- attemptWeight attempt
+    pure $ getLifterAttemptInfo meetState l attW
 
 markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler LifterAttemptInfo))
 markLift t (RefereeResult (Just le, Just ma, Just ri)) = do
@@ -135,11 +148,13 @@ postJuryR' p = do
         *> (markLift time refereeState >>=
              (\markRes -> case markRes of
                Just act ->
-                (act >>= (\lAttInfo -> pushRefereeStateToChannel (Just lAttInfo, refereeState, True)))
-                *> pure True--perform marking action
-               Nothing  -> logInfoN "Error marking Lifter" *> pure False)) -- TODO log error
+                do
+                  lAttInfo <- act --perform marking action
+                  pushRefereeStateToChannel (Just lAttInfo, refereeState, True)
+                  pure (Just lAttInfo)
+               Nothing  -> logInfoN "Error marking Lifter" *> pure Nothing )) -- TODO log error
       else
-        pushRefereeStateToChannel (Nothing, refereeState, False) *> pure True)
+        pushRefereeStateToChannel (Nothing, refereeState, False) *> getLifterInfoFromDB)
 
      >>= (getJuryR' (fromSing p) . Just) -- show success
 
