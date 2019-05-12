@@ -3,6 +3,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 module Handler.Jury where
 
@@ -53,15 +54,10 @@ getJuryR' p mb = do
       Just (Just attInfo) -> [whamlet| Die Fehlerkarten wurden gespeichert für #{lifterAttemptInfoName attInfo}|]
       Just (Nothing) -> [whamlet| Konnte Versuchsergebnis nicht eintragen |]
       Nothing -> pure ()
-
     $(widgetFile "kari")
 
 getJuryR :: RefereePlaces -> Handler Html
 getJuryR p  = getJuryR' p Nothing
-
-allDecEntered :: RefereeResult -> Bool
-allDecEntered (RefereeResult (Just _, Just _, Just _)) = True
-allDecEntered _                                        = False
 
 getCurrELifter :: MeetState -> [(Key Lifter', Lifter)] -> Maybe (Key Lifter', Lifter)
 getCurrELifter ms els = (getNextLiftersWithf snd ms els) !! 0
@@ -80,90 +76,63 @@ getLifterInfoFromDB = do
     attW             <- attemptWeight attempt
     pure $ getLifterAttemptInfo meetState l attW
 
-markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler LifterAttemptInfo))
-markLift t (RefereeResult (Just le, Just ma, Just ri)) = do
+type FinalRefereeDecision = (RefereeDecision 'PLeft, RefereeDecision 'PMain, RefereeDecision 'PRight)
+
+markLift :: UTCTime -> FinalRefereeDecision -> PackedHandler (Maybe LifterAttemptInfo)
+markLift t (le, ma, ri) = do
   let weight = sum $ map (\(r,b,y) -> if null $ filter id [r,b,y] then 1 else -1)
                          ([unpackRefereeDecision le, unpackRefereeDecision ma, unpackRefereeDecision ri]) :: Int
 
   meetState <- getCurrMeetStateFromDB
   elifters <- getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
-
   let eCurrLifter = getCurrELifter meetState elifters
   let currDiscipline = meetStateCurrDiscipline meetState
 
-  pure $ case eCurrLifter of
-    Just (eId, l) ->
-      do
-        attemptNr        <- nextAttemptNr meetState l
-        discLens         <- map snd $ L.find ((==) currDiscipline . fst) meetType
-        let attempt       = getAttempt attemptNr $ (lifterRes l) ^. (unpackLens'NT discLens)
-        attW             <- attemptWeight attempt
-        let lifterAttInfo = getLifterAttemptInfo meetState l attW
+  pure $ do
+    (eId,l)          <- eCurrLifter
+    attemptNr        <- nextAttemptNr meetState l
+    Lens'NT discLens <- map snd $ L.find ((==) currDiscipline . fst) meetType
+    let attempt       = getAttempt attemptNr $ (lifterRes l) ^. discLens
+    attW             <- attemptWeight attempt
+    markedAtt        <- markAttempt t (weight > 0) attempt
 
-        if weight > 0 then
-          -- Valid
-          markLiftDBHelper (eId, l) attempt attemptNr discLens True lifterAttInfo
-        else
-          -- Invalid
-          markLiftDBHelper (eId, l) attempt attemptNr discLens False lifterAttInfo
+    let updResults = discLens %~ (setDiscipline attemptNr markedAtt) $ lifterRes l
+    _ <- pure $ updateLiftersInDB [(eId, l {lifterRes = updResults })]
+    pure $ getLifterAttemptInfo meetState l attW
 
-    _       -> Nothing
-
-    where
-      markLiftDBHelper :: (Key Lifter', Lifter) -> Attempt -> AttemptNr -> Lens'NT Results Discipline -> Bool ->
-                          LifterAttemptInfo -> Maybe (PackedHandler LifterAttemptInfo)
-      markLiftDBHelper el a an lsNT b attInfo =
-        let ls = unpackLens'NT lsNT in
-        let (eId, l) = el in
-        do
-          mA         <- markAttempt t b a
-          let updResults = ls %~ (setDiscipline an mA) $ lifterRes l
-          pure $ updateLiftersInDB
-            [(eId, l {lifterRes = updResults })] *> pure attInfo
-
-markLift _ _ = pure Nothing
-
--- TODO: is there a better way too do this?
 postJuryR :: RefereePlaces -> Handler Html
-postJuryR p  = withSomeSing p (postJuryR')
-
-postJuryR' :: SRefereePlaces a -> Handler Html
-postJuryR' p = do
+postJuryR pl = withSomeSing pl $ \p -> do
   ((res,_), _) <- runFormPost colorForm
   case res of
-    FormSuccess colors -> (atomicallyUnpackHandler $ do
-      time <- liftIO getCurrentTime
-      ioRef <- appRefereeState <$> getYesodPacked
-      refereeState <- atomicModifyIORef' ioRef $
-        \s -> let checkForReset r = if allDecEntered r then (emptyRefereeResult,r) else (r,r) in
-        checkForReset $ updateRefereeResultByPos p (Just colors) s
-        --case p of
-          --PLeft  -> updateRefereeResultByPos --s { refereeLeft  = Just colors }
-          --PMain  -> s { refereeMain  = Just colors }
-          --PRight -> s { refereeRight = Just colors }
+    FormSuccess colors ->
+      do
+        markRes <- atomicallyUnpackHandler $ do
+          time <- liftIO getCurrentTime
+          ioRef <- appRefereeState <$> getYesodPacked
+          refereeState <- atomicModifyIORef' ioRef $ resetHelper . updateRefereeResultByPos p (Just colors)
+          logInfoN $ "Referee State: " ++ (T.pack $ show refereeState)
+          case refereeState of
+            (s,Just (l,m,r)) -> do
+              logInfoN "All referee decisions entered"
+              markRes <- markLift time (l,m,r)
+              case markRes of
+                Just lAttInfo -> pushRefereeStateToChannel (Just lAttInfo, s, True)
+                Nothing  -> logInfoN "Error marking Lifter"
+              pure markRes
+            (s,_) -> pushRefereeStateToChannel (Nothing, s, False) *> getLifterInfoFromDB
 
-      logInfoN $ "Referee State: " ++ (T.pack $ show refereeState)
-      if allDecEntered refereeState then
-        logInfoN "All referee decisions entered"
-        *> (markLift time refereeState >>=
-             (\markRes -> case markRes of
-               Just act ->
-                do
-                  lAttInfo <- act --perform marking action
-                  pushRefereeStateToChannel (Just lAttInfo, refereeState, True)
-                  pure (Just lAttInfo)
-               Nothing  -> logInfoN "Error marking Lifter" *> pure Nothing )) -- TODO log error
-      else
-        pushRefereeStateToChannel (Nothing, refereeState, False) *> getLifterInfoFromDB)
-
-     >>= (getJuryR' (fromSing p) . Just) -- show success
+        getJuryR' (fromSing p) $ Just markRes -- show success
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]
 
+  where
+    resetHelper :: RefereeResult -> (RefereeResult, (RefereeResult, Maybe FinalRefereeDecision))
+    resetHelper (RefereeResult (Just l, Just m, Just r)) = (emptyRefereeResult, (emptyRefereeResult, Just (l,m,r)))
+    resetHelper s                                        = (s,(s,Nothing))
+
 getResetKariR :: Handler Html
 getResetKariR = do
   ioRef <- appRefereeState <$> getYesod
-  atomicallyUnpackHandler . packHandler $ atomicModifyIORef' ioRef $ const ( emptyRefereeResult
-                                                                           , ())
+  atomicallyUnpackHandler . packHandler $ atomicModifyIORef' ioRef $ const (emptyRefereeResult, ())
   redirect AdminR
