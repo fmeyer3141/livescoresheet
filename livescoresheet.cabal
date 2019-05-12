@@ -52,6 +52,7 @@ library
     , regex
     , safe
     , shakespeare >=2.0
+    , singletons
     , stm
     , template-haskell
     , text >=0.11

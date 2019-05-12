@@ -9,6 +9,11 @@
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE EmptyCase                  #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE InstanceSigs               #-}
 
 module Model ( module MeetTypesTH
              , module THApplStage1
@@ -27,6 +32,8 @@ import THApplStage2
 import MeetTypesTH
 import Data.Maybe (fromJust)
 import qualified Prelude as P
+import qualified Data.Proxy as Pr
+import Data.Singletons.TH
 import Control.Lens ((^.))
 
 import qualified Data.Text as T
@@ -63,7 +70,11 @@ $(dbLifterConvFunctions)
 fromLifterList :: [Lifter] -> [Lifter']
 fromLifterList = map toLifter'
 
-data RefereePlaces  = PLeft | PMain | PRight deriving (Show, Eq, Read)
+$(singletons [d|
+  data RefereePlaces  = PLeft | PMain | PRight deriving (Show, Eq, Read)
+  |])
+
+data RefereeDecision (pos :: RefereePlaces) = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
 
 instance PathPiece RefereePlaces where
   toPathPiece = T.pack . show
@@ -72,26 +83,37 @@ instance PathPiece RefereePlaces where
       (p, ""):_ -> Just p
       _         -> Nothing
 
-data RefereeDecision = RefereeDecision { red :: Bool, blue :: Bool, yellow :: Bool }
 
-instance ToJSON RefereeDecision where
+instance ToJSON (RefereeDecision p) where
   toJSON RefereeDecision {..} = toJSON (red,blue,yellow)
 
-instance Show RefereeDecision where
+instance Show (RefereeDecision p) where
   show (RefereeDecision r b y) = show . filter snd $ zip (["r","b","y"] :: [[Char]]) [r,b,y]
 
-data RefereeResult = RefereeResult { refereeLeft  :: Maybe RefereeDecision
-                                   , refereeMain  :: Maybe RefereeDecision
-                                   , refereeRight :: Maybe RefereeDecision }
+data RefereeResult = RefereeResult (Maybe (RefereeDecision PLeft), Maybe (RefereeDecision PMain),Maybe (RefereeDecision PRight))
 
 instance ToJSON RefereeResult where
-  toJSON RefereeResult {..} = toJSON (refereeLeft, refereeMain, refereeRight)
+  toJSON (RefereeResult t) = toJSON t
+
+instance Show (RefereeResult) where
+  show (RefereeResult (l,m,r)) = "[" ++ show l ++ "," ++ show m ++ "," ++ show r ++ "]"
+
+getRefereeResultByPos :: SRefereePlaces p -> RefereeResult -> Maybe (RefereeDecision p)
+getRefereeResultByPos p (RefereeResult (l,m,r)) =
+  case p of
+    SPLeft  -> l
+    SPMain  -> m
+    SPRight -> r
+
+updateRefereeResultByPos :: SRefereePlaces p -> Maybe (RefereeDecision p) -> RefereeResult -> RefereeResult
+updateRefereeResultByPos p newResult (RefereeResult (l,m,r)) =
+  case p of
+    SPLeft  -> RefereeResult (newResult,m,r)
+    SPMain  -> RefereeResult (l,newResult,r)
+    SPRight -> RefereeResult (l,m,newResult)
 
 emptyRefereeResult :: RefereeResult
-emptyRefereeResult = RefereeResult Nothing Nothing Nothing
-
-instance Show RefereeResult where
-  show (RefereeResult l m r) = show [l,m,r]
+emptyRefereeResult = RefereeResult (Nothing, Nothing, Nothing)
 
 data Plate = Plate25 | Plate20 | Plate15 | Plate10 | Plate5 | Plate2_5 | Plate1_25 deriving (Show, Enum)
 

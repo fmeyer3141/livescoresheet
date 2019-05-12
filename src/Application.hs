@@ -69,7 +69,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
     appFrontendChannel <- atomically newBroadcastTChan
-    appRefereeState <- newIORef $ RefereeResult Nothing Nothing Nothing
+    appRefereeState <- newIORef $ RefereeResult (Nothing, Nothing, Nothing)
     packedHandlerLock <- newPackHandlerLock
 
     -- We need a log function to create a connection pool. We need a connection

@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Handler.Jury where
 
@@ -11,7 +12,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import Control.Lens ((^.), (%~))
 import Control.Monad.Logger
-
+import Data.Singletons
 import Scoresheetlogic
 import ManageScoresheetState
 import PackedHandler
@@ -19,7 +20,7 @@ import Misc
 
 import SocketHelper (getLifterAttemptInfo)
 
-colorForm :: Html -> MForm Handler (FormResult RefereeDecision, Widget)
+colorForm :: Html -> MForm Handler (FormResult (RefereeDecision p), Widget)
 colorForm = renderDivs $
   RefereeDecision <$> areq checkBoxField redFormat Nothing
                   <*> areq checkBoxField blueFormat Nothing
@@ -53,19 +54,23 @@ getJuryR' p mb = do
     $(widgetFile "kari")
 
 getJuryR :: RefereePlaces -> Handler Html
-getJuryR p = getJuryR' p Nothing
+getJuryR p  = getJuryR' p Nothing
 
 allDecEntered :: RefereeResult -> Bool
-allDecEntered (RefereeResult (Just _) (Just _) (Just _)) = True
-allDecEntered _                                          = False
+allDecEntered (RefereeResult (Just _, Just _, Just _)) = True
+allDecEntered _                                        = False
 
 getCurrELifter :: MeetState -> [(Key Lifter', Lifter)] -> Maybe (Key Lifter', Lifter)
 getCurrELifter ms els = (getNextLiftersWithf snd ms els) !! 0
 
+
+unpackRefereeDecision :: RefereeDecision p -> (Bool,Bool,Bool)
+unpackRefereeDecision d = (red d,blue d,yellow d)
+
 markLift :: UTCTime -> RefereeResult -> PackedHandler (Maybe (PackedHandler LifterAttemptInfo))
-markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
-  let weight = sum $ map (\(RefereeDecision r b y) -> if null $ filter id [r,b,y] then 1 else -1)
-                         [le,ma,ri] :: Int
+markLift t (RefereeResult (Just le, Just ma, Just ri)) = do
+  let weight = sum $ map (\(r,b,y) -> if null $ filter id [r,b,y] then 1 else -1)
+                         ([unpackRefereeDecision le, unpackRefereeDecision ma, unpackRefereeDecision ri]) :: Int
 
   meetState <- getCurrMeetStateFromDB
   elifters <- getELiftersInGroupFromDB (meetStateCurrGroupNr meetState)
@@ -105,8 +110,12 @@ markLift t (RefereeResult (Just le) (Just ma) (Just ri)) = do
 
 markLift _ _ = pure Nothing
 
+-- TODO: is there a better way too do this?
 postJuryR :: RefereePlaces -> Handler Html
-postJuryR p = do
+postJuryR p  = withSomeSing p (postJuryR')
+
+postJuryR' :: SRefereePlaces a -> Handler Html
+postJuryR' p = do
   ((res,_), _) <- runFormPost colorForm
   case res of
     FormSuccess colors -> (atomicallyUnpackHandler $ do
@@ -114,10 +123,11 @@ postJuryR p = do
       ioRef <- appRefereeState <$> getYesodPacked
       refereeState <- atomicModifyIORef' ioRef $
         \s -> let checkForReset r = if allDecEntered r then (emptyRefereeResult,r) else (r,r) in
-        checkForReset $ case p of
-          PLeft  -> s { refereeLeft  = Just colors }
-          PMain  -> s { refereeMain  = Just colors }
-          PRight -> s { refereeRight = Just colors }
+        checkForReset $ updateRefereeResultByPos p (Just colors) s
+        --case p of
+          --PLeft  -> updateRefereeResultByPos --s { refereeLeft  = Just colors }
+          --PMain  -> s { refereeMain  = Just colors }
+          --PRight -> s { refereeRight = Just colors }
 
       logInfoN $ "Referee State: " ++ (T.pack $ show refereeState)
       if allDecEntered refereeState then
@@ -131,7 +141,7 @@ postJuryR p = do
       else
         pushRefereeStateToChannel (Nothing, refereeState, False) *> pure True)
 
-     >>= (getJuryR' p . Just) -- show success
+     >>= (getJuryR' (fromSing p) . Just) -- show success
 
     FormFailure (t:_) -> defaultLayout [whamlet| Error #{t}|]
     _                 -> defaultLayout [whamlet| Unknown Form Error |]
