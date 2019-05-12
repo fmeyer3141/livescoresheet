@@ -88,7 +88,7 @@ markLift t (le, ma, ri) = do
   let eCurrLifter = getCurrELifter meetState elifters
   let currDiscipline = meetStateCurrDiscipline meetState
 
-  pure $ do
+  maybe (pure Nothing) (\(act, aInfo) -> act *> pure (pure aInfo)) $ do
     (eId,l)          <- eCurrLifter
     attemptNr        <- nextAttemptNr meetState l
     Lens'NT discLens <- map snd $ L.find ((==) currDiscipline . fst) meetType
@@ -97,8 +97,7 @@ markLift t (le, ma, ri) = do
     markedAtt        <- markAttempt t (weight > 0) attempt
 
     let updResults = discLens %~ (setDiscipline attemptNr markedAtt) $ lifterRes l
-    _ <- pure $ updateLiftersInDB [(eId, l {lifterRes = updResults })]
-    pure $ getLifterAttemptInfo meetState l attW
+    pure (updateLiftersInDB [(eId, l {lifterRes = updResults })], getLifterAttemptInfo meetState l attW)
 
 postJuryR :: RefereePlaces -> Handler Html
 postJuryR pl = withSomeSing pl $ \p -> do
@@ -128,8 +127,8 @@ postJuryR pl = withSomeSing pl $ \p -> do
 
   where
     resetHelper :: RefereeResult -> (RefereeResult, (RefereeResult, Maybe FinalRefereeDecision))
-    resetHelper (RefereeResult (Just l, Just m, Just r)) = (emptyRefereeResult, (emptyRefereeResult, Just (l,m,r)))
-    resetHelper s                                        = (s,(s,Nothing))
+    resetHelper rr@(RefereeResult (Just l, Just m, Just r)) = (emptyRefereeResult, (rr, Just (l,m,r)))
+    resetHelper s                                           = (s,(s,Nothing))
 
 getResetKariR :: Handler Html
 getResetKariR = do
