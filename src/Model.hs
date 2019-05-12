@@ -32,7 +32,6 @@ import THApplStage2
 import MeetTypesTH
 import Data.Maybe (fromJust)
 import qualified Prelude as P
-import qualified Data.Proxy as Pr
 import Data.Singletons.TH
 import Control.Lens ((^.))
 
@@ -90,7 +89,8 @@ instance ToJSON (RefereeDecision p) where
 instance Show (RefereeDecision p) where
   show (RefereeDecision r b y) = show . filter snd $ zip (["r","b","y"] :: [[Char]]) [r,b,y]
 
-data RefereeResult = RefereeResult (Maybe (RefereeDecision PLeft), Maybe (RefereeDecision PMain),Maybe (RefereeDecision PRight))
+data RefereeResult = RefereeResult ( Maybe (RefereeDecision 'PLeft), Maybe (RefereeDecision 'PMain)
+                                   , Maybe (RefereeDecision 'PRight))
 
 instance ToJSON RefereeResult where
   toJSON (RefereeResult t) = toJSON t

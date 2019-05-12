@@ -39,7 +39,6 @@ dbLifterTypes = getLifterString "Lifter'" "" ++ "\n" ++ getLifterString "LifterB
     getLifterString name additional =
       (name ++ "\n  " ++ additional ++  "\n  name Text\n  lot Int\n  age Int\n  sex Bool\n  ageclass Int\n  weightclass Int\n"
        ++ "  weight Double\n  raw Bool\n  group Int\n" :: String) ++ thGenerated ++ final
-    addIntendation = (++) "  "
     final = "\n  club Text\n  deriving Eq\n  deriving Show\n"
 
     thGenerated = L.intercalate "\n" $ do
@@ -85,7 +84,7 @@ dbLifterConvFunctions = do
 
   let pattern = ConP (mkName "Lifter'") $ patternVars
 
-  let firstAppl exp fConv = L.foldl' (\l p -> AppE l p) exp fConv
+  let firstAppl exp' fConv = L.foldl' (\l p -> AppE l p) exp' fConv
   let disciplinesAppl = AppE (firstAppl (ConE $ mkName "Lifter") firstConv) $
                          L.foldl (\d dp -> AppE d $  L.foldl' applAttempt (ConE $ mkName "Discipline") dp)
                                  (ConE $ mkName "Results")
@@ -106,14 +105,11 @@ dbLifterConvFunctions = do
   let toLifter'Body = NormalB $ AppE applResults' (VarE lClub)
   let toLifter'Clause = [Clause [toLifter'Pattern] toLifter'Body []]
 
-  let lifterVar = mkName "lLifter"
   let toLifterBackup'Pattern = ConP (mkName "LifterBackup") $
                                 [ ConP (mkName "Lifter") $ VarP <$> firstN ++ [lRes, lClub]
                                 , VarP versionVar ]
-  let applDisciplines c d = M.foldM (applAttempt' d lRes) c [1..3]
-  let applResults conE = M.foldM applDisciplines conE meetType
-  applResults' <- applResults $ firstAppl (AppE (ConE $ mkName "LifterBackup'") (VarE versionVar)) firstConv'
-  let toLifterBackup'Body = NormalB $ AppE applResults' (VarE lClub)
+  applResults'' <- applResults $ firstAppl (AppE (ConE $ mkName "LifterBackup'") (VarE versionVar)) firstConv'
+  let toLifterBackup'Body = NormalB $ AppE applResults'' (VarE lClub)
   let toLifterBackup'Clause = [Clause [toLifterBackup'Pattern] toLifterBackup'Body []]
 
   let updateLifter'LIdV = mkName "lId"
@@ -150,7 +146,7 @@ dbLifterConvFunctions = do
                           (AppE (VarE $ mkName $ "att" ++ show aNr)
                             (AppE (VarE $ mkName discName) (VarE rName)))
 
-        let letAppl = L.foldl' (\c n -> AppE c (VarE n)) c localNames
+        let letAppl = L.foldl' (\c' n -> AppE c' (VarE n)) c localNames
         pure $ LetE [ValD (TupP tupP) letBody []] letAppl
 
       applPersistAss :: String -> Exp -> Exp
@@ -158,7 +154,7 @@ dbLifterConvFunctions = do
 
       createFinalUpdateExp :: [Exp] -> [(Exp -> Exp, [Exp])] -> Exp
       createFinalUpdateExp additional l =
-        let (f, es) = L.foldl1' (\(f,es) (f',es') -> (f . f', es ++ es')) l :: (Exp -> Exp, [Exp]) in
+        let (f, es) = L.foldl1' (\(f',es') (f'',es'') -> (f' . f'', es' ++ es'')) l :: (Exp -> Exp, [Exp]) in
         f $ ListE (es ++ additional)
 
       createAllLetsAndUpdateOps :: Exp -> Q [(Exp -> Exp, [Exp])]
