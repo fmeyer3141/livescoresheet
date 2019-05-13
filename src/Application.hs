@@ -38,6 +38,7 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              mkRequestLogger, outputFormat)
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
                                              toLogStr)
+import Network.Wai.Handler.WarpTLS          (runTLS)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -166,8 +167,13 @@ appMain = do
     -- Generate a WAI Application from the foundation
     app <- makeApplication foundation
 
+    let tlsSettings = appTLSSettings settings
+
     -- Run the application with Warp
-    runSettings (warpSettings foundation) app
+    maybe
+      (runSettings (warpSettings foundation) app)
+      (\tls -> runTLS tls (warpSettings foundation) app)
+      tlsSettings
 
 
 --------------------------------------------------------------

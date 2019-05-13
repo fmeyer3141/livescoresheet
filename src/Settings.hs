@@ -22,6 +22,7 @@ import Network.Wai.Handler.Warp    (HostPreference)
 import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
+import Network.Wai.Handler.WarpTLS (TLSSettings, tlsSettings)
 
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
@@ -58,6 +59,7 @@ data AppSettings = AppSettings
 
     , appAuthDummyLogin         :: Bool
     -- ^ Indicate if auth dummy login should be enabled.
+    , appTLSSettings            :: Maybe TLSSettings
     }
 
 data MeetSettings = MeetSettings { meetTypeStr :: [Text] }
@@ -88,6 +90,10 @@ instance FromJSON AppSettings where
         appAnalytics              <- o .:? "analytics"
 
         appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= dev
+
+        tlsSettingsTuple          <- o .:? "tls-settings"
+
+        let appTLSSettings = uncurry tlsSettings <$> tlsSettingsTuple
 
         return AppSettings {..}
 

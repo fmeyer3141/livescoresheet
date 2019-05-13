@@ -63,6 +63,7 @@ library
     , wai-extra >=3.0
     , wai-logger >=2.2
     , warp >=3.0 && <3.3
+    , warp-tls
     , websockets
     , yaml >=0.8
     , yesod >=1.4.3
