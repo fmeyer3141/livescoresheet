@@ -126,14 +126,14 @@ type LifterAttemptInfo = (Text, Text, Text, Int, Maybe AttemptNr, Double, [(Plat
 lifterAttemptInfoName :: LifterAttemptInfo -> Text
 lifterAttemptInfoName (n, _, _, _, _, _, _) = n
 
-data FrontendMessage = LifterFrontendMessage   !Value
-                     | LifterSteckerMessage    !Value
-                     | LifterLiveStreamMessage !Value
+data FrontendMessage = LifterFrontendMessage   Value
+                     | LifterSteckerMessage    Value
+                     | LifterLiveStreamMessage Value
                          -- The bool indicates whether the frontend
                          -- shows the result in an overlay or not at all
-                     | JuryResultMessage       !Value Bool
-                     | JuryFrontendInfoMessage !Value
-                     | SteckerInfoMessage      !Value
+                     | JuryResultMessage       Value Bool
+                     | JuryFrontendInfoMessage Value
+                     | SteckerInfoMessage      Value
 
 resultList :: Results -> [Discipline]
 resultList res = (\(_,l) -> res ^. (unpackLens'NT l)) <$> meetType
