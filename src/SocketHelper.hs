@@ -62,25 +62,19 @@ computeJuryInfoDataChan ms l w = JuryFrontendInfoMessage $ toJSON $ getLifterAtt
 computeFrontendDataChan :: (MeetState, [Lifter]) -> FrontendMessage
 computeFrontendDataChan (ms, lifters) =
   do
-     let groupNr = meetStateCurrGroupNr ms
-     let lifterGroupList = filter (\l -> lifterGroup l == groupNr) lifters :: [Lifter]
-     let nextLifters = sortBy (cmpLifterOrder ms) lifterGroupList
-     let nextLiftersFiltered = filter (\l -> isJust $ nextWeight ms l) nextLifters
-     let nextLiftersOutput = map (\l -> (lifterName l, nextWeight ms l, nextAttemptNr ms l))
-                                 nextLiftersFiltered
-     let mc = getClass <$> safeHead nextLiftersFiltered
-     let liftersSortedByClass = case mc of
-                                  (Just c) -> sortBy (cmpLifterClassPrio c) lifters
-                                  Nothing  -> sortBy cmpLifterClass lifters
-     let liftersGroupedByClass = map (sortBy cmpLifterTotalAndBw) $ L.groupBy (\l l' -> getClass l == getClass l') liftersSortedByClass
-     let liftersOverview = map (map $ \l -> (isNext (safeHead nextLiftersFiltered) l,l, showTotal l))
-                               liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
+     let nextLifters           = getNextLifters ms lifters
+     let nextLiftersOutput     = map (\l -> (lifterName l, nextWeight ms l, nextAttemptNr ms l)) $
+                                  getNextLifters ms lifters
+     let mc                    = getClass <$> safeHead nextLifters
+
+     let liftersSortedByClass  = maybe (sortBy cmpLifterClass)
+                                      (sortBy . cmpLifterClassPrio) mc $ lifters
+
+     let liftersGroupedByClass = sortBy cmpLifterTotalAndBw <$> L.groupBy ((==) `on` getClass) liftersSortedByClass
+     let showLifter l          = (maybe False (== l) $ safeHead nextLifters,l, showTotal l)
+     let liftersOverview       = map showLifter <$> liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
      LifterFrontendMessage $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput, meetStateCurrDiscipline ms, fst <$> meetType))
-     where
-        isNext :: Maybe Lifter -> Lifter -> Bool
-        isNext (Just l') l = l == l'
-        isNext _ _         = False
 
 computeSteckerDataChan :: MeetState -> Maybe (Lifter, Double) -> Maybe (Lifter, Double) -> FrontendMessage
 computeSteckerDataChan ms m1 m2 =
