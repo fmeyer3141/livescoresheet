@@ -23,7 +23,8 @@
       <div .divTableHeading>
         <div .divTableRow>
           <div .divTableHead .widthName>Name
-          <div .divTableHead .widthNumber>Gruppe
+          <div .divTableHead .widthSmallNumber>Los
+          <div .divTableHead .widthSmallNumber>Gruppe
           $forall d<- (map fst meetType)
             <div .divTableHead .widthNumber .discHead#{d}>#{d} 1
             <div .divTableHead .widthNumber .discHead#{d}>#{d} 2

@@ -74,8 +74,9 @@ div.nextLifterTable {
 .divTableFoot { display: table-footer-group;}
 .divTableBody { display: table-row-group;}
 
-.widthName { width: 20%;}
-.widthNumber { width: 10%;}
+.widthName { width: 15%;}
+.widthNumber { width: 7.5%;}
+.widthSmallNumber { width: 7.5%;}
 
 .invisible { display : none;}
 

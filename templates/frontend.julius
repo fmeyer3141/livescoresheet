@@ -153,6 +153,7 @@ function showRanking(arr) {
 
       let rowElements = [
       highlightFirst($(`<div> ${lifter.name} </div>`)),
+      $(`<div> ${lifter.lot} </div>`),
       $(`<div> ${lifter.group} </div>`),
       ];
 
