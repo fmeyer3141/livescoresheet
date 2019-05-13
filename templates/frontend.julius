@@ -185,13 +185,29 @@ function showRanking(arr) {
 }
 
 // aktualisiert die Disziplinscheckboxen wenn im Adminpanel die Disziplin geaendert wird
+// dies geschieht jedoch nur, wenn nur die aktuelle Disziplin selektiert ist. So kann z.B. auf dem Beamer
+// immer alles angezeigt werden, wenn dies gewünscht ist.
 function updateCheckboxes(currentDiscipline, disciplinesArr) {
   if(currentDiscipline == lastDiscipline) return;
+
+  let resetCheckboxes = true;
+  disciplinesArr.forEach(d => {
+    let checkboxChecked = $("#check" + d).prop("checked");
+    if (d == lastDiscipline) {
+      resetCheckboxes = resetCheckboxes && checkboxChecked;
+    } else {
+      resetCheckboxes = resetCheckboxes && !checkboxChecked;
+    }
+  });
+
+  // Die Checkboxen werden auch bei der Initialisierung an die aktuelle Disziplin angepasst
+  if (!resetCheckboxes && lastDiscipline != "")
+    return;
 
   disciplinesArr.forEach(d => {
     let $checkbox = $("#check" + d);
     $checkbox.prop('checked', d == currentDiscipline);
-  })
+  });
   lastDiscipline = currentDiscipline;
 
   showSelectedDisciplines();
