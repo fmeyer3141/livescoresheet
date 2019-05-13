@@ -15,6 +15,7 @@ import Control.Lens ((^.), (%~))
 import Control.Monad.Logger
 import Data.Singletons
 import Scoresheetlogic
+import Data.Time.Clock.POSIX
 import ManageScoresheetState
 import PackedHandler
 import Misc
@@ -78,7 +79,7 @@ getLifterInfoFromDB = do
 
 type FinalRefereeDecision = (RefereeDecision 'PLeft, RefereeDecision 'PMain, RefereeDecision 'PRight)
 
-markLift :: UTCTime -> FinalRefereeDecision -> PackedHandler (Maybe LifterAttemptInfo)
+markLift :: AttemptTime -> FinalRefereeDecision -> PackedHandler (Maybe LifterAttemptInfo)
 markLift t (le, ma, ri) = do
   let weight = sum $ map (\(r,b,y) -> if null $ filter id [r,b,y] then 1 else -1)
                          ([unpackRefereeDecision le, unpackRefereeDecision ma, unpackRefereeDecision ri]) :: Int
@@ -106,7 +107,7 @@ postJuryR pl = withSomeSing pl $ \p -> do
     FormSuccess colors ->
       do
         markRes <- atomicallyUnpackHandler $ do
-          time <- liftIO getCurrentTime
+          time <- realToFrac <$> liftIO getPOSIXTime
           ioRef <- appRefereeState <$> getYesodPacked
           refereeState <- atomicModifyIORef' ioRef $ resetHelper . updateRefereeResultByPos p (Just colors)
           logInfoN $ "Referee State: " ++ (T.pack $ show refereeState)

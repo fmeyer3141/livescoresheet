@@ -26,6 +26,7 @@ import qualified Data.List as L
 import qualified Data.Foldable as F
 import qualified Prelude as P
 
+import Data.Time.Clock.POSIX
 import           Text.RE.Replace
 import           Text.RE.TDFA.Text
 
@@ -101,11 +102,11 @@ attemptForm dDescr att = do
     succType = [("Todo", MTodo), ("Good", MGood), ("Fail", MFail), ("Skip", MSkip)]
     createAttempt weight suc t =
       case (weight, suc) of
-        (Just w, MGood) -> Success w t
-        (Just w, MFail) -> Fail w t
-        (Just w, MTodo) -> Todo w t
-        (_, MSkip)      -> Skip t
-        (_, _)          -> Unset t
+        (Just w, MGood) -> Attempt (Success w) t
+        (Just w, MFail) -> Attempt (Fail w)    t
+        (Just w, MTodo) -> Attempt (Todo w)    t
+        (_, MSkip)      -> Attempt Skip        t
+        (_, _)          -> Attempt Unset       t
 
 disciplineForm :: Text -> Discipline -> MForm Handler (FormResult Discipline, Widget)
 disciplineForm dDescr Discipline { .. } =
@@ -203,7 +204,7 @@ postCSVFormR = do
     handleFile typ rawFile
       |typ=="text/csv" = do
         csv <- liftIO $ parseCSV rawFile
-        time <- liftIO $ getCurrentTime
+        time <- realToFrac <$> liftIO getPOSIXTime
         case fromNullable csv of
           Just csvNonEmpty ->
             let dataSet = sequenceA $ (lifterParse time) <$> tail csvNonEmpty in
@@ -254,7 +255,7 @@ parseCSV rawFile =
     runResourceT $ runConduit $
     rawFile .| intoCSV defCSVSettings .| sinkList --defCSVSettings means , seperator and " to enclose fields
 
-lifterParse :: UTCTime -> Row Text -> ApplEither [Text] Lifter
+lifterParse :: AttemptTime -> Row Text -> ApplEither [Text] Lifter
 lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
     Lifter name 0 <$> safeRead age             <*> safeRead sex             <*> safeRead aclass <*> safeRead wclass
                   <*> safeRead weight          <*> safeRead raw             <*> safeRead flight
@@ -344,14 +345,14 @@ displ :: Weight -> Text
 displ = pack . show
 
 showAttemptWeight :: Attempt -> Text
-showAttemptWeight (Success w _) = displ w
-showAttemptWeight (Fail w _)    = displ w
-showAttemptWeight (Todo w _)    = displ w
+showAttemptWeight (Attempt (Success w) _) = displ w
+showAttemptWeight (Attempt (Fail w)    _) = displ w
+showAttemptWeight (Attempt (Todo w)    _) = displ w
 showAttemptWeight _             = ""
 
 showGoodLift :: Attempt -> Text
-showGoodLift (Success _ _) = "1"
-showGoodLift (Fail _ _)    = "-1"
+showGoodLift (Attempt (Success _) _) = "1"
+showGoodLift (Attempt (Fail _)    _) = "-1"
 showGoodLift _             = "0"
 
 calcWilks :: Lifter -> Text

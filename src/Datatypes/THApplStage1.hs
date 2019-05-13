@@ -47,7 +47,7 @@ emptyResultsTH = do
     let resultsName         = mkName "Results"
     let apps = genApps discs
     pure $
-      [ SigD emptyResultsName (AppT (AppT ArrowT $ ConT $ mkName "UTCTime") $ ConT resultsName)
+      [ SigD emptyResultsName (AppT (AppT ArrowT $ ConT $ mkName "AttemptTime") $ ConT resultsName)
       , ValD (VarP emptyResultsName) (NormalB apps) []]
 
     where

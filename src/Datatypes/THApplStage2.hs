@@ -44,7 +44,7 @@ dbLifterTypes = getLifterString "Lifter'" "" ++ "\n" ++ getLifterString "LifterB
     thGenerated = L.intercalate "\n" $ do
       d <- meetDiscs
       a <- [1..3]
-      (p,t) <- [(1, "Int"), (2, "Double"), (3, "UTCTime")]
+      (p,t) <- [(1, "Int"), (2, "Double"), (3, "AttemptTime")]
       pure ("  "++ (getDisciplineResultFieldName d a p) ++" "++t)
 
 getDisciplineResultFieldName :: String -> Int -> Int -> String

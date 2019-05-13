@@ -31,6 +31,7 @@ import Control.Lens
 import PackedHandler
 import SocketHelper
 
+import Data.Time.Clock.POSIX
 import Scoresheetlogic
 
 type PackedHandler a = PackedHandlerFor App a
@@ -107,11 +108,11 @@ updateLiftersInDB args = do -- perform backup
   where
     updateLiftersInDB' :: [(Key Lifter', Lifter)] -> PackedHandler ()
     updateLiftersInDB' args' = do
-      time <- liftIO getCurrentTime
+      time <- realToFrac <$> liftIO getPOSIXTime
       liftersInDB <- getELiftersFromDB
       sequence_ $ (updatePr time liftersInDB) <$> args'
 
-    updatePr :: UTCTime -> [(Key Lifter', Lifter)] -> (Key Lifter', Lifter) -> PackedHandler ()
+    updatePr :: AttemptTime -> [(Key Lifter', Lifter)] -> (Key Lifter', Lifter) -> PackedHandler ()
     updatePr t els el@(lId, l) = do
       let res = find ((==) lId . fst) els
       case res of
@@ -120,20 +121,20 @@ updateLiftersInDB args = do -- perform backup
 
     -- Entity Lifter consisting of the first two tuple elements
     -- is the old version from the db, Lifter contains the (perhaps) new attributes
-    updateLifterInDB :: UTCTime -> ((Key Lifter', Lifter), Lifter) -> PackedHandler ()
+    updateLifterInDB :: AttemptTime -> ((Key Lifter', Lifter), Lifter) -> PackedHandler ()
     updateLifterInDB t ((lId, l), l') = do
       runDB $
         updateLifter' lId (lifterGroup l') $ updateLifterRes t (lifterRes l) (lifterRes l')
     -- store/keep the newest entry in the DB
-    updateLifterRes :: UTCTime -> Results -> Results -> Results
+    updateLifterRes :: AttemptTime -> Results -> Results -> Results
     updateLifterRes t res res' =
       F.foldl' (\r' (v,m) -> m (updateLifterDisc t (v res)) r') res' $ zip viewLens modifyLens
-    updateLifterDisc :: UTCTime -> Discipline -> Discipline -> Discipline
+    updateLifterDisc :: AttemptTime -> Discipline -> Discipline -> Discipline
     updateLifterDisc t d d' = Discipline { att1 = processAtt t (att1 d) (att1 d')
                                          , att2 = processAtt t (att2 d) (att2 d')
                                          , att3 = processAtt t (att3 d) (att3 d') }
 
-    processAtt :: UTCTime -> Attempt -> Attempt -> Attempt
+    processAtt :: AttemptTime -> Attempt -> Attempt -> Attempt
     processAtt t a a' =
       let (b,newer) = keepNewer a a' in
       if b then attSetChangedDate t newer else newer
