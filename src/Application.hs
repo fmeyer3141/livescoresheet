@@ -154,12 +154,7 @@ develMain = develMainHelper getApplicationDev
 appMain :: IO ()
 appMain = do
     -- Get the settings from all relevant sources
-    settings <- loadYamlSettingsArgs
-        -- fall back to compile-time values, set to [] to require values at runtime
-        [configSettingsYmlValue]
-
-        -- allow environment variables to override
-        useEnv
+    settings <- getAppSettings
 
     -- Generate the foundation from the settings
     foundation <- makeFoundation settings

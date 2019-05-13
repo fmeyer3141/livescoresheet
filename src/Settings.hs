@@ -60,6 +60,7 @@ data AppSettings = AppSettings
     , appAuthDummyLogin         :: Bool
     -- ^ Indicate if auth dummy login should be enabled.
     , appTLSSettings            :: Maybe TLSSettings
+    , clientSessionKey          :: String
     }
 
 data MeetSettings = MeetSettings { meetTypeStr :: [Text] }
@@ -94,6 +95,8 @@ instance FromJSON AppSettings where
         tlsSettingsTuple          <- o .:? "tls-settings"
 
         let appTLSSettings = uncurry tlsSettings <$> tlsSettingsTuple
+
+        clientSessionKey          <- o .: "client-session-key"
 
         return AppSettings {..}
 
