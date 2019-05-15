@@ -22,12 +22,11 @@ module ManageScoresheetState ( getDataFromDB
 
 import Import
 
-import qualified Prelude as P
 import qualified Data.Foldable as F
 import qualified Data.Text as T
 import qualified Database.Esqueleto as E
 
-import Control.Lens
+import Control.Lens (view, over)
 import PackedHandler
 import SocketHelper
 
@@ -51,8 +50,9 @@ getGroupNrsFromDB =
     pure $ E.unValue <$> gNrs
 
 initialSetupDB :: [Lifter] -> GroupNr -> PackedHandler ()
-initialSetupDB lifterList groupNr = void $
-  runDB (insertMany $ fromLifterList lifterList)
+initialSetupDB lifterList groupNr =
+  resetDB
+  *> runDB (insertMany $ fromLifterList lifterList)
   *> (runDB $ insert $ emptyMeetState { meetStateCurrGroupNr = groupNr })
   *> pushDataFromDBToChannel
 
@@ -75,7 +75,7 @@ getLiftersFromDB = (map snd) <$> getELiftersFromDB
 getCurrMeetStateFromDB :: PackedHandler MeetState
 getCurrMeetStateFromDB =
   let dbQuery =  runDB $ selectList ([] :: [Filter MeetState]) [] in
-  fromMaybe emptyMeetState . fEntityVal . safeHead <$> dbQuery
+  fromMaybe emptyMeetState . fEntityVal . headMay <$> dbQuery
 
 updateMeetState :: MeetState -> PackedHandler ()
 updateMeetState MeetState {..} =
@@ -94,7 +94,7 @@ updateLiftersInDBWithGroupNr groupNr = updateLiftersInDB . filter ((==) groupNr 
 updateLiftersInDB :: [(Key Lifter', Lifter)] -> PackedHandler ()
 updateLiftersInDB args = do -- perform backup
   toBackup <- getLiftersFromDB
-  backVersions <- getAllBackupVersions
+  backVersions <- getAllBackupVersionsDesc
   let latestBackVersion = getLatestBackupVersionWithVersions backVersions
   case latestBackVersion of
     Nothing -> backupLifter 0 toBackup
@@ -149,8 +149,8 @@ updateLiftersInDB args = do -- perform backup
     modifyLens = (over . unpackLens'NT . snd) <$> meetType
     viewLens = (view . unpackLens'NT . snd) <$> meetType
 
-getAllBackupVersions :: PackedHandler [Int]
-getAllBackupVersions =
+getAllBackupVersionsDesc :: PackedHandler [Int]
+getAllBackupVersionsDesc =
   do
     bVs <- runDB $ E.select $ E.distinct $ E.from $ \lifterB' -> do
              E.orderBy [E.desc (lifterB' E.^. LifterBackup'Version)]
@@ -159,10 +159,10 @@ getAllBackupVersions =
 
 -- Ints already sorted descending
 getLatestBackupVersionWithVersions :: [Int] -> Maybe Int
-getLatestBackupVersionWithVersions = safeHead
+getLatestBackupVersionWithVersions = headMay
 
 getLatestBackupVersion :: PackedHandler (Maybe Int)
-getLatestBackupVersion = map getLatestBackupVersionWithVersions getAllBackupVersions
+getLatestBackupVersion = map getLatestBackupVersionWithVersions getAllBackupVersionsDesc
 
 backupLifter :: Int -> [Lifter] -> PackedHandler ()
 backupLifter v =
@@ -170,10 +170,10 @@ backupLifter v =
 
 truncBackupHistoryWithVersions :: [Int] -> PackedHandler ()
 truncBackupHistoryWithVersions backupVersions = do
-  when (length backupVersions >= 10)
-    (do
-      let deleteAfterVersion =  backupVersions P.!! 9
-      runDB $ deleteWhere [LifterBackup'Version >. deleteAfterVersion])
+  maybe (pure ())
+    (\deleteBeforeVersion ->
+      runDB $ deleteWhere [LifterBackup'Version <. deleteBeforeVersion])
+    (backupVersions !! 9)
 
 pushInChannel :: FrontendMessage -> PackedHandler ()
 pushInChannel m = packHandler $ do

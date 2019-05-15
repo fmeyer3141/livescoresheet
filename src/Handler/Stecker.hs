@@ -10,10 +10,9 @@ import Import
 import Yesod.WebSockets
 
 import Misc
-import qualified Prelude as P
 
 test :: [(Plate,Int)] -- Jede Scheibe einmal und zwei 25er zum Layout testen
-test = zip [Plate25,Plate20 .. Plate1_25] (2 : P.repeat 1)
+test = zip [Plate25,Plate20 .. Plate1_25] (2 : repeat 1)
 
 sendSteckerData :: FrontendMessage -> Maybe Value
 sendSteckerData (SteckerInfoMessage v) = Just v

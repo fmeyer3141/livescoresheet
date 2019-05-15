@@ -151,7 +151,7 @@ getDisciplineFromLifter n Lifter {..} = fromJust $ P.lookup n $ zip disciplineNa
 
 emptyMeetState :: MeetState
 emptyMeetState =
-  MeetState { meetStateCurrDiscipline = fst . P.head $ meetType
+  MeetState { meetStateCurrDiscipline = fst . unsafeHead $ meetType
             , meetStateCurrGroupNr = 0
             }
 
@@ -176,3 +176,11 @@ instance ToJSON Results where
 
 disciplinesAsList :: Results -> [Discipline]
 disciplinesAsList res = (\(_,Lens'NT l) -> res ^. l) <$> meetType
+
+(!!) :: [a] -> Int -> Maybe a
+(!!) (x:xs) i =
+  case compare i 0 of
+    LT -> Nothing
+    EQ -> Just x
+    GT -> xs !! (i-1)
+(!!) []     _ = Nothing

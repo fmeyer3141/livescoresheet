@@ -88,10 +88,10 @@ csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 attemptForm :: Text -> Attempt -> MForm Handler (FormResult Attempt, Widget)
 attemptForm dDescr att = do
-  (timeRes,timeView)      <- mreq hiddenField fieldFormat $ Just (show $ attGetChangedTime att)
+  (timeRes,timeView)      <- mreq (hiddenFieldDouble) fieldFormat $ Just (attGetChangedTime att)
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
   (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
-  let attRes = createAttempt <$> weightRes <*> succRes <*> (P.read <$> timeRes)
+  let attRes = createAttempt <$> weightRes <*> succRes <*> timeRes
   return (attRes, [whamlet|
                     <div .attempt .discCell#{dDescr}>
                       ^{fvInput timeView} ^{fvInput weightView} ^{fvInput succView} |])
@@ -107,6 +107,12 @@ attemptForm dDescr att = do
         (Just w, MTodo) -> Attempt (Todo w)    t
         (_, MSkip)      -> Attempt Skip        t
         (_, _)          -> Attempt Unset       t
+    hiddenFieldDouble :: Field Handler Double
+    hiddenFieldDouble =
+      doubleField { fieldView = \theId name attrs val _isReq -> toWidget [hamlet|
+        $newline never
+        <input type="hidden" id="#{theId}" name="#{name}" *{attrs} value="#{either id  (T.pack . show) $ val}">
+      |] }
 
 disciplineForm :: Text -> Discipline -> MForm Handler (FormResult Discipline, Widget)
 disciplineForm dDescr Discipline { .. } =
@@ -166,7 +172,7 @@ liftersForm meetState eLifterList extra = do
   let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (snd <$> sortedList) viewList :: [[(Lifter,Widget)]]
   let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
                                                               <div .gruppenBezeichner>
-                                                                  Gruppe #{lifterGroup $ P.fst $ P.head l}
+                                                                  Gruppe #{lifterGroup $ fst $ unsafeHead l}
                                                             |]) l :: Widget --Gruppe ausgeben
   let combinedWidgets = F.foldl' (>>) ([whamlet|
                                       |]) (map combineWidgets1 widgetsAndLifter) :: Widget
@@ -211,11 +217,11 @@ postCSVFormR = do
             case dataSet of
               (ARight datas) ->
                 do
-                  let startGroupNr = P.head $ sort $ lifterGroup <$> datas
+                  let startGroupNr = unsafeHead $ sort $ lifterGroup <$> datas
                   lotNumbers <- liftIO $ shuffleM [1 .. length datas]
                   let liftersWithLots = zipWith (\n l -> l {lifterLot = n}) lotNumbers datas
                   atomicallyUnpackHandler $
-                    resetDB *> initialSetupDB liftersWithLots startGroupNr
+                    initialSetupDB liftersWithLots startGroupNr
                   logInfoN "load csv"
                   getAdminR
 
@@ -265,7 +271,7 @@ lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
     safeRead s = case P.reads $ T.unpack s of
                    [(t, "")] -> pure t
                    t         -> ALeft . pure $ "Error reading " ++ s ++ " in str " ++ T.intercalate ", " r
-                                            ++ " result: "  ++ (T.pack $  show t)
+                                            ++ " result: "  ++ (T.pack $ show t)
 
 lifterParse _ input = error ("Wrong number of entries in: " ++ show input)
 
@@ -278,7 +284,7 @@ getUndoR = do
 -- LATEX EXPORT
 
 getLatexTemplate :: IO Text
-getLatexTemplate = fmap pack $ P.readFile latexTemplate
+getLatexTemplate = readFileUtf8 latexTemplate
 
 -- contentText -> klasse -> lifters -> out
 composeClass :: Text -> Text -> Text -> Text
@@ -299,7 +305,7 @@ getLifterText = getInnerText "LIFTERSTART" "LIFTEREND"
 
 -- Lifter -> lifterText -> place -> output
 createLifter :: Text -> Lifter -> Int -> Text
-createLifter inp l@(Lifter {..}) pl = F.foldl' (P.flip (P.$)) inp actions
+createLifter inp l@(Lifter {..}) pl = F.foldl' (flip ($)) inp actions
   where
     actions :: [Text -> Text]
     actions = [ \src -> replaceAllCaptures TOP replWeight $ src *=~ attemptRegex
@@ -427,9 +433,9 @@ getTableR = do
   let mkClass = composeClass contentText
   liftersFromDB <- atomicallyUnpackHandler getLiftersFromDB
   let liftersTexts = map (T.strip . unlines . map (\(pl,l) -> createLifter lifterText l pl)) $ liftersWithPlacings liftersFromDB :: [Text]
-  let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . P.head)
+  let classAndLifters = zip (map ((\l -> createKlasse (lifterRaw l, lifterSex l, lifterAgeclass l, lifterWeightclass l)) . unsafeHead)
                          (liftersGrouped liftersFromDB))
                           liftersTexts :: [(Text,Text)] -- [(Klassentext,Liftertext)]
-  let classBlocks = map (P.uncurry mkClass) classAndLifters :: [Text]
+  let classBlocks = map (uncurry mkClass) classAndLifters :: [Text]
   --return $ TypedContent "text/plain" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ (unlines classBlocks) ++ wafter
   return $ TypedContent "application/x-latex" $ toContent $ let (wbefore,wafter) = getWrapper input in wbefore ++ unlines classBlocks ++ wafter

@@ -65,13 +65,13 @@ computeFrontendDataChan (ms, lifters) =
      let nextLifters           = getNextLifters ms lifters
      let nextLiftersOutput     = map (\l -> (lifterName l, nextWeight ms l, nextAttemptNr ms l)) $
                                   getNextLifters ms lifters
-     let mc                    = getClass <$> safeHead nextLifters
+     let mc                    = getClass <$> headMay nextLifters
 
      let liftersSortedByClass  = maybe (sortBy cmpLifterClass)
                                       (sortBy . cmpLifterClassPrio) mc $ lifters
 
      let liftersGroupedByClass = sortBy cmpLifterTotalAndBw <$> L.groupBy ((==) `on` getClass) liftersSortedByClass
-     let showLifter l          = (maybe False (== l) $ safeHead nextLifters,l, showTotal l)
+     let showLifter l          = (maybe False (== l) $ headMay nextLifters,l, showTotal l)
      let liftersOverview       = map showLifter <$> liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next
      LifterFrontendMessage $ toJSON ("SheetData" :: Text, (liftersOverview, nextLiftersOutput, meetStateCurrDiscipline ms, fst <$> meetType))

@@ -3,7 +3,6 @@
 module Sex where
 
 import Database.Persist.TH
-import Prelude
 
 data Sex = Male | Female
     deriving (Show, Read, Eq, Ord)

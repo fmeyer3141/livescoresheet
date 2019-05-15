@@ -126,14 +126,6 @@ getPlates w = getPlateHelper Plate25 (w-25) -- Klemmen und Stange abziehen
     getPlateHelper Plate1_25 w1
       = let (n, _) = numplates w1 (2*1.25) in pure (Plate1_25, n)
 
-(!!) :: [a] -> Int -> Maybe a
-(!!) (x:xs) i =
-  case compare i 0 of
-    LT -> Nothing
-    EQ -> Just x
-    GT -> xs !! (i-1)
-(!!) []     _ = Nothing
-
 getNextLiftersWithf :: (a -> Lifter) -> MeetState -> [a] -> [a]
 getNextLiftersWithf f s lifterList = filter (\l -> Nothing /= nextWeight s (f l))
                                      $ sortBy (\l l' -> cmpLifterOrder s (f l) (f l'))
@@ -157,7 +149,7 @@ getPlacingWithfAndEq f eq el els =
   let liftersInClass      = filter ((==) (getClass $ f el) . getClass . f) els in
   let liftersWithPlacings = zip [1..] $ sortBy (cmpLifterTotalAndBw `on` f) liftersInClass in
 
-  let mpl = safeHead $ map fst $ filter ((==) (eq el) . eq . snd) liftersWithPlacings in
+  let mpl = headMay $ map fst $ filter ((==) (eq el) . eq . snd) liftersWithPlacings in
   fromMaybe 0 mpl
 
 getPlacing :: Lifter -> [Lifter] -> Placing
