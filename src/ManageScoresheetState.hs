@@ -22,11 +22,11 @@ module ManageScoresheetState ( getDataFromDB
 
 import Import
 
-import qualified Data.Foldable as F
 import qualified Data.Text as T
 import qualified Database.Esqueleto as E
 
-import Control.Lens (view, over)
+import Control.Monad.State (execState)
+import Control.Lens ((^.), (%=))
 import PackedHandler
 import SocketHelper
 
@@ -127,8 +127,10 @@ updateLiftersInDB args = do -- perform backup
         updateLifter' lId (lifterGroup l') $ updateLifterRes t (lifterRes l) (lifterRes l')
     -- store/keep the newest entry in the DB
     updateLifterRes :: AttemptTime -> Results -> Results -> Results
-    updateLifterRes t res res' =
-      F.foldl' (\r' (v,m) -> m (updateLifterDisc t (v res)) r') res' $ zip viewLens modifyLens
+    updateLifterRes t res = execState $
+      forM_ (snd <$> meetType) $ \(Lens'NT l) ->
+        l %= (updateLifterDisc t (res ^. l))
+
     updateLifterDisc :: AttemptTime -> Discipline -> Discipline -> Discipline
     updateLifterDisc t d d' = Discipline { att1 = processAtt t (att1 d) (att1 d')
                                          , att2 = processAtt t (att2 d) (att2 d')
@@ -146,8 +148,6 @@ updateLiftersInDB args = do -- perform backup
         LT -> (False, att)
         EQ -> (False, att')
         GT -> (True,  att')
-    modifyLens = (over . unpackLens'NT . snd) <$> meetType
-    viewLens = (view . unpackLens'NT . snd) <$> meetType
 
 getAllBackupVersionsDesc :: PackedHandler [Int]
 getAllBackupVersionsDesc =
