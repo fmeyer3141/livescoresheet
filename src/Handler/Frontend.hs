@@ -27,6 +27,7 @@ getFrontendR showJury = do
       let juryCode = if showJury then "showJury(data[0], data[1]);" else "" :: Text
       let discNames = fst <$> meetType :: [Text]
       $(widgetFile "show_jury_on_frontend")
+      $(widgetFile "formatweight")
       $(widgetFile "frontend")
 
 getBeamerR :: Handler Html
