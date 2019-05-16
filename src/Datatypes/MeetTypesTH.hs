@@ -9,7 +9,7 @@ import ClassyPrelude.Yesod
 import Language.Haskell.TH
 import Settings
 import Yesod.Default.Config2
-import Data.Text as T
+import qualified Data.Text as T
 
 type Weight = Double
 -- Store time as Double with getPOSIXTime for better db performance
@@ -146,3 +146,33 @@ getAttempt :: AttemptNr -> Discipline -> Attempt
 getAttempt Attempt1 d = att1 d
 getAttempt Attempt2 d = att2 d
 getAttempt Attempt3 d = att3 d
+
+meetTypeTH :: Q [Dec]
+meetTypeTH = do
+    discs <- liftIO readDisciplines
+    let meetTypeName = mkName "meetType"
+    let conName      = mkName "MeetType"
+    pure $
+      [ SigD meetTypeName (ConT conName)
+      , ValD (VarP meetTypeName) (NormalB (ListE (tuples $ T.unpack <$> discs)) ) [] ]
+
+    where
+      genTuple discName = TupE [ LitE (StringL discName), AppE (ConE $ mkName "Lens'NT") $ VarE (mkName ("disc" ++ discName)) ]
+      tuples discs = map genTuple discs
+
+apFlipped :: Applicative f => f a -> f (a -> b) -> f b
+apFlipped = flip (<*>)
+
+emptyResultsTH :: Q [Dec]
+emptyResultsTH = do
+    discs <- liftIO readDisciplines
+    let emptyResultsName    = mkName "emptyResults"
+    let resultsName         = mkName "Results"
+    let apps = genApps discs
+    pure $
+      [ SigD emptyResultsName (AppT (AppT ArrowT $ ConT $ mkName "AttemptTime") $ ConT resultsName)
+      , ValD (VarP emptyResultsName) (NormalB apps) []]
+
+    where
+      genApps []     = AppE (VarE $ mkName "pure")  $ ConE (mkName "Results")
+      genApps (_:ds) = AppE (AppE (VarE $ mkName "apFlipped") (VarE $ mkName "emptyDiscipline")) $ genApps ds

@@ -1,17 +1,18 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE UnicodeSyntax #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE UnicodeSyntax             #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE BlockArguments            #-}
+{-# LANGUAGE StandaloneDeriving        #-}
 
-module THApplStage2 where
+module THApplStage where
 import MeetTypesTH
-import THApplStage1
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import ClassyPrelude.Yesod
+import Control.Lens (makeLenses, Lens', (^.))
 import qualified Prelude as P
 import qualified Data.Text as T
 import qualified Data.List as L
@@ -19,8 +20,23 @@ import qualified Data.Char as C
 
 import qualified Control.Monad as M
 
+$(resultsTypeTH)
+$([d| deriving instance Show Results |])
+$([d| deriving instance Read Results |])
+$([d| deriving instance Eq Results |])
+derivePersistField ("Results")
+makeLenses ''Results
+
+-- (DisciplineName, Lens' )
+newtype Lens'NT s a = Lens'NT { unpackLens'NT :: Lens' s a }
+type MeetTypeEntry  = (Text, Lens'NT Results Discipline)
+type MeetType       = [MeetTypeEntry]
+
 $(meetTypeTH)
 $(emptyResultsTH)
+
+instance ToJSON Results where
+  toJSON res = toJSON $ (\(n,l) -> (n, res ^. (unpackLens'NT l))) <$> meetType
 
 meetDiscs :: [String]
 meetDiscs = map (firstLowercase . T.unpack . fst) meetType

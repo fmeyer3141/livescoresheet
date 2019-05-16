@@ -16,8 +16,7 @@
 {-# LANGUAGE InstanceSigs               #-}
 
 module Model ( module MeetTypesTH
-             , module THApplStage1
-             , module THApplStage2
+             , module THApplStage
              , module ApplEither
              , module Model)
   where
@@ -27,8 +26,7 @@ import Sex
 import Ageclass
 import ApplEither
 import Weightclass
-import THApplStage1
-import THApplStage2
+import THApplStage
 import MeetTypesTH
 import Data.Maybe (fromJust)
 import qualified Prelude as P
@@ -170,9 +168,6 @@ instance ToJSON Lifter where
         "results" .= toJSON lifterRes,
         "club" .= lifterClub
       ]
-
-instance ToJSON Results where
-  toJSON res = toJSON $ (\(n,l) -> (n, res ^. (unpackLens'NT l))) <$> meetType
 
 disciplinesAsList :: Results -> [Discipline]
 disciplinesAsList res = (\(_,Lens'NT l) -> res ^. l) <$> meetType
