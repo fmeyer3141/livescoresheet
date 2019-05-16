@@ -163,21 +163,17 @@ lifterForm (lId, Lifter {..}) = do
 
 liftersForm :: MeetState -> [(Key Lifter', Lifter)] -> Html -> MForm Handler (FormResult [(Key Lifter', Lifter)], Widget)
 liftersForm meetState eLifterList extra = do
-  let sortedList = sortBy (\l l' -> cmpLifterGroupAndOrder meetState (snd l) (snd l')) eLifterList
+  let sortedList = sortBy (cmpLifterGroupAndOrder meetState `on` snd) eLifterList
   list <- forM sortedList lifterForm
-  let reslist = fmap fst list :: [FormResult (Key Lifter', Lifter)]
-  let res0 = (catMaybes $ map formEval reslist) :: [(Key Lifter', Lifter)]
-  let viewList =  fmap snd list :: [Widget] --Liste der Widgets der einzelnen Lifter Formulare holen und mit Linebreak trennen
   -- Combine Widgets and Lifters and then group by liftergroups
-  let widgetsAndLifter = L.groupBy (\(l1,_) (l2,_) -> lifterGroup l1 == lifterGroup l2) $ zip (snd <$> sortedList) viewList :: [[(Lifter,Widget)]]
-  let combineWidgets1 l = F.foldl' (\w1 (_,w2) -> (w1 >> w2)) ([whamlet|
-                                                              <div .gruppenBezeichner>
-                                                                  Gruppe #{lifterGroup $ fst $ unsafeHead l}
-                                                            |]) l :: Widget --Gruppe ausgeben
-  let combinedWidgets = F.foldl' (>>) ([whamlet|
-                                      |]) (map combineWidgets1 widgetsAndLifter) :: Widget
-                                      -- Liste zu einem Widget zusammenfügen und extra ding an den Anfang setzen
-  let framedFrom = ([whamlet|
+  let liftersAndWidgets = L.groupBy ((==) `on` (lifterGroup . fst)) $
+                            zip (snd <$> sortedList) (snd <$> list)
+  let combineWidgets1 l = ([whamlet|
+                            <div .gruppenBezeichner>
+                              Gruppe #{lifterGroup $ fst $ unsafeHead l}
+                          |]) *> (F.sequenceA_ (snd <$> l)) :: Widget --Gruppe ausgeben
+  let combinedWidgets = F.sequenceA_ (map combineWidgets1 liftersAndWidgets) :: Widget
+  let framedForm = ([whamlet|
                 #{extra}
                 <div #lifterForm>
                   <div #lifterFormHeaderRow>
@@ -189,14 +185,7 @@ liftersForm meetState eLifterList extra = do
                       <span .lifterAttemptHeaderEnd .lifterFormHeader .discHead#{d}> #{d} 3
                   ^{combinedWidgets}
               |])
-  if (elem Nothing (map formEval reslist))
-  then return (FormMissing, framedFrom)
-  else return (pure res0, framedFrom)
-
-  where
-    formEval :: FormResult a -> Maybe a -- Eingegebenen Wert aus dem Formresult Funktor 'herausholen'
-    formEval (FormSuccess s) = Just s
-    formEval _               = Nothing
+  pure (sequenceA $ fst <$> list, framedForm)
 
 postCSVFormR :: Handler Html
 postCSVFormR = do
