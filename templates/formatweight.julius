@@ -1,0 +1,6 @@
+function formatWeight (nr) {
+
+  var toReturn = nr.toString().replace(/\.0+$/g,"");
+  console.log(toReturn);
+  return toReturn;
+}

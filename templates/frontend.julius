@@ -92,12 +92,6 @@ function getNextLifterJson(lifter) {
   return lifterJson;
 }
 
-function formatWeight (nr) {
-  var toReturn = nr.toString().replace(/\.0+$/g,"");
-  console.log(toReturn);
-  return toReturn;
-}
-
 /** Aufbau des Arrays:
  * arr[i] -> Gruppe i
  * arr[i][0] -> Tupel: (isNextLifter, Lifter)
@@ -170,7 +164,7 @@ function showRanking(arr) {
 
       rowElements = rowElements.concat(
         [
-          showTotal(total, $(`<div>${total} </div>`)),
+          showTotal(total, $(`<div>${formatWeight(total)} </div>`)),
           $(`<div> ${lifter.club} </div>`)
         ]
       )
