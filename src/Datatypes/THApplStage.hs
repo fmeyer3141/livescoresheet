@@ -142,11 +142,26 @@ dbLifterConvFunctions = do
                             updateLifter'UpdateOps
   let updateLifter'Clause = [Clause updateLifter'Pattern updateLifter'Body []]
 
+  let funType n l r = SigD (mkName n) (AppT (AppT ArrowT (ConT $ mkName l)) (ConT $ mkName r))
+  -- updateLifter'Type :: Key Lifter' -> GroupNr -> Results -> ReaderT SqlBackend (HandlerFor App) ()
+  let keyLifter'Type = AppT (ConT $ mkName "Key") (ConT $ mkName "Lifter'")
+  let monadIOmType = ForallT [] [AppT (ConT $ mkName "MonadIO") (VarT $ mkName "m")]
+  let readerTSqlBackendHandlerType = AppT (AppT (AppT (ConT $ mkName "ReaderT") (ConT $ mkName "SqlBackend"))
+                                       (VarT $ mkName "m")) (TupleT 0)
+  let updateLifter'Type = SigD (mkName "updateLifter'") $ monadIOmType $
+                            AppT (AppT ArrowT keyLifter'Type)
+                                 (AppT (AppT ArrowT (ConT $ mkName "GroupNr"))
+                                       (AppT
+                                          (AppT ArrowT (ConT $ mkName "Results"))
+                                          (readerTSqlBackendHandlerType) ))
+
   pure
-    [ FunD (mkName "updateLifter'") updateLifter'Clause
-    , FunD (mkName "toLifter") clause, FunD (mkName "toLifterBackup") clauseBackup
-    , FunD (mkName "toLifter'") toLifter'Clause
-    , FunD (mkName "toLifterBackup'") toLifterBackup'Clause]
+    [ updateLifter'Type
+    , FunD (mkName "updateLifter'") updateLifter'Clause
+    , funType "toLifter" "Lifter'" "Lifter", FunD (mkName "toLifter") clause
+    , funType "toLifterBackup" "LifterBackup'" "LifterBackup", FunD (mkName "toLifterBackup") clauseBackup
+    , funType "toLifter'" "Lifter" "Lifter'", FunD (mkName "toLifter'") toLifter'Clause
+    , funType "toLifterBackup'" "LifterBackup" "LifterBackup'", FunD (mkName "toLifterBackup'") toLifterBackup'Clause]
 
     where
       applAttempt :: Exp -> [Name] -> Exp

@@ -95,8 +95,7 @@ library
       Import
       Import.NoFoundation
       MeetTypesTH
-      THApplStage1
-      THApplStage2
+      THApplStage
       Model
       Misc
       Settings
