@@ -24,3 +24,4 @@
 /table.tex            TableR          GET
 /urkunden.csv         UrkundenR       GET
 /livestreaminfo       LivestreaminfoR GET
+/showall              ShowallR        GET

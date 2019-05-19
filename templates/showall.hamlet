@@ -1,0 +1,7 @@
+<iframe src="/admin" height="600px" width="50%">
+<iframe src="/frontend/True" height="600px" width="49%">
+<iframe src="/jury/PLeft" height="600px" width="20%">
+<iframe src="/jury/PMain" height="600px" width="20%">
+<iframe src="/jury/PRight" height="600px" width="20%">
+<iframe src="/stecker" height="600px" width="20%">
+<iframe src="/livestreaminfo" height="600px" width="19%">
