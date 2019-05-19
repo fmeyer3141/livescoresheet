@@ -7,6 +7,49 @@ var defMessage = "Kein nächster Lifter vorhanden";
 var $lifterInfo = $("#lifterInfo");
 var $attemptInfo = $("#attemptInfo");
 
+//Wertungsanzeige
+var discipline;
+var $verdictBox =  $("#divWertung");
+var $verdict =  $("#hWertung")[0];
+var $verdictList =  $("#ulWertungListe");
+var verdictItems =
+{
+  "Squat" : {
+    "Red" : ["Tiefe nicht erreicht"],
+    "Blue" : ["Keine aufrechte Stellung eingenommen"],
+    "Yellow" : ["Signale nicht beachtet",
+                "Fußbewegung",
+                "Abwärtsbewegung",
+                "Scheibenstecker haben unterstützt",
+                "Auf Oberschenkeln abgestützt",
+                "Hantel fallengelassen",
+                "Sonstige Fehler"],
+  },
+  "Bench" : {
+    "Red" : ["Hantel hat Brust/Bauch nicht erreicht",
+             "Hantel hat Gürtel berührt"],
+    "Blue" : ["Abwärtsbewegung",
+              "Ellbogen nicht durchgedrückt"],
+    "Yellow" : ["Signale nicht beachtet",
+                "Anstoßen/ Einsinken nach Stopp",
+                "Drückposition geändert während des Vorgangs",
+                "Scheibenstecker haben unterstützt",
+                "Füße haben Bankkontakt",
+                "Hantelständer zur Unterstützung genutzt",
+                "Sonstige Fehler"],
+  },
+  "Deadlift" : {
+    "Red" : ["Knie nicht durchgedrückt",
+             "Kein aufrechtes Stehen mit den Schultern nach hinten zeigend"],
+    "Blue" : ["Abwärtsbewegung",
+              "Hitching"],
+    "Yellow" : ["Signale nicht beachtet",
+                "Hantel fallengelassen",
+                "Fußbewegung",
+                "Sonstige Fehler"],
+  },
+}
+
 function init() {
   // console.log("init");
   socket = new WebSocket(url);
@@ -30,6 +73,9 @@ function init() {
       attemptWeight: lifterArr[5]
     };
 
+    discipline = lifter.discipline;
+    updateVerdict();
+
     $attemptInfo.text(lifter.attemptWeight + "Kg im " + lifter.attemptNumber + ". Versuch " +
                       "(" + lifter.discipline + ")");
     $lifterInfo.text(lifter.name + " vom " + lifter.club);
@@ -47,6 +93,51 @@ function init() {
   }
 }
 
-init();
 
+$("#formMain :checkbox").change(function() {
+  updateVerdict();
+});
+
+
+
+/**
+ * Analysiert die Wertung des Kampfrichters durch Auswertung der Checkboxen
+ * und aktualisiert die Wertungsanzeige entsprechend der Auswahl.
+ */
+function updateVerdict(showRed, showBlue, showYellow) {
+  var showRed    = $("#cbRedCard")[0].checked;
+  var showBlue   = $("#cbBlueCard")[0].checked;
+  var showYellow = $("#cbYellowCard")[0].checked;
+
+  if(showRed + showBlue + showYellow == 0)
+  {
+    $verdict.textContent = "Gültig";
+    $verdictList.empty();
+    $verdictBox.removeClass("attemptIsInValid");
+    $verdictBox.addClass("attemptIsValid");
+  }
+  else
+  {
+    $verdictBox.removeClass("attemptIsValid");
+    $verdictBox.addClass("attemptIsInValid");
+
+    $verdict.textContent = "Ungültig";
+    $verdictList.empty();
+
+    let cards = [];
+    if(showRed) cards.push("Red");
+    if(showBlue) cards.push("Blue");
+    if(showYellow) cards.push("Yellow");
+
+    cards.forEach(card => {
+      verdictItems[discipline][card].forEach(verdictItem => {
+        $verdictList.append($("<li>").append(verdictItem));
+      });
+    });
+
+  }
+}
+
+
+init();
 

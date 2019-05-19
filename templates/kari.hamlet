@@ -5,7 +5,8 @@
   <h4 #hWertung>
     Wertung
   <p #pWertung>
-<form method=post action@{AdminR} enctype=#{colorFormEnctype} class="formMain">
+  <ul #ulWertungListe>
+<form method=post action@{AdminR} enctype=#{colorFormEnctype} id="formMain">
   ^{colorFormWidget}
   <button #btnConfirm type=submit> Absenden 
 

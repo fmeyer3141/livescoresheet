@@ -16,6 +16,14 @@ h2
   font-size: 16pt;
 }
 
+#divWertung
+{
+  display: inline-block;
+  width: 85%;
+  border: 2px solid #111111;
+  border-radius: 3px;
+}
+
 label
 {
   width: 65%;
@@ -79,8 +87,23 @@ input[type=checkbox]:checked:after
   line-height: 50pt;
 }
 
-.formMain
+body
 {
   text-align: center;
+}
+
+.attemptIsValid
+{
+  background-color: #98FB98A0;
+}
+
+.attemptIsInValid
+{
+  background-color: #FF4136A0;
+}
+
+#ulWertungListe
+{
+  text-align: left;
 }
 
