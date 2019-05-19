@@ -1,12 +1,12 @@
 <h1> #{prettyPrintPos p}
 <p #attemptInfo>
 <p #lifterInfo>
+<form method=post action@{AdminR} enctype=#{colorFormEnctype} id="formMain">
+  ^{colorFormWidget}
+  <br />
+  <button #btnConfirm type=submit> Absenden 
 <div #divWertung>
   <h4 #hWertung>
     Wertung
   <p #pWertung>
   <ul #ulWertungListe>
-<form method=post action@{AdminR} enctype=#{colorFormEnctype} id="formMain">
-  ^{colorFormWidget}
-  <button #btnConfirm type=submit> Absenden 
-

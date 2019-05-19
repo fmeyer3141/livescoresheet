@@ -19,11 +19,32 @@ h2
 #divWertung
 {
   display: inline-block;
-  width: 85%;
+  width: 210pt;
   border: 2px solid #111111;
   border-radius: 3px;
 }
 
+#cbRedCard
+{
+  background-color: #FF4136;
+}
+
+#cbBlueCard
+{
+  background-color: #0074D9;
+}
+
+#cbYellowCard
+{
+  background-color: #FFDC00;
+}
+
+
+.required
+{
+  display: inline-block;
+}
+/*
 label
 {
   width: 65%;
@@ -32,7 +53,6 @@ label
   border: 2px solid #111111;
   border-radius: 3px;
 }
-
 label[for="cbRedCard"]
 {
   background-color: #FF4136;
@@ -50,13 +70,16 @@ label[for="cbYellowCard"]
   background-color: #FFDC00;
   color: #FFDC00;
 }
+*/
 
 input[type=checkbox]
 {
   -webkit-appearance: none;
   top: 19pt;
   width: 50pt;
-  height: 50pt;
+  height: 70pt;
+  margin-left: 15pt;
+  margin-right: 15pt;
   border: 2px solid #111111;
   border-radius: 3px;
 	position: relative;
@@ -77,12 +100,12 @@ input[type=checkbox]:checked:after
 
 #btnConfirm
 {
-  margin-top: 0.5em;
+  margin-top: 1.0em;
+  margin-bottom: 1.0em;
   letter-spacing: 1px;
   font-size: 36pt;
   color: black; 
-  min-width: 300px;
-  width: 65%;
+  width: 210pt;
   height: 50pt;
   line-height: 50pt;
 }
