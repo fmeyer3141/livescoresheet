@@ -3,6 +3,7 @@ h1, h2, h3, h4, label, p{
   letter-spacing: 1px;
   font-weight: bold;
   color: black; 
+  text-align: center;
 }
 
 h1
@@ -17,8 +18,6 @@ h2
 
 label
 {
-  margin-bottom: 1em;
-  margin-left: 1em;
   width: 65%;
   height: 50pt;
   line-height: 50pt;
@@ -70,13 +69,18 @@ input[type=checkbox]:checked:after
 
 #btnConfirm
 {
+  margin-top: 0.5em;
   letter-spacing: 1px;
   font-size: 36pt;
   color: black; 
-  margin-top: 0.5em;
-  margin-left: 10%;
-  width: 80%;
+  min-width: 300px;
+  width: 65%;
   height: 50pt;
   line-height: 50pt;
+}
+
+.formMain
+{
+  text-align: center;
 }
 
