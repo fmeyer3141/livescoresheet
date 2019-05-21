@@ -12,7 +12,6 @@
 module Foundation where
 
 import PackedHandler
-import Data.FileEmbed (embedFile)
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
@@ -32,14 +31,14 @@ import qualified Data.Text as T
 usernameAdmin :: Text
 usernameAdmin = "admin"
 
-passwordAdmin :: Text
-passwordAdmin = (T.init . decodeUtf8) $(embedFile "config/passAdmin") -- Zeilenumbruch entfernen
+passwordAdmin :: IO Text
+passwordAdmin = T.init . decodeUtf8 <$> readFile "config/passAdmin" -- Zeilenumbruch entfernen
 
 usernameKari :: Text
 usernameKari = "kari"
 
-passwordKari :: Text
-passwordKari = (T.init . decodeUtf8) $(embedFile "config/passKari") -- Zeilenumbruch entfernen
+passwordKari :: IO Text
+passwordKari = (T.init . decodeUtf8) <$> readFile "config/passKari" -- Zeilenumbruch entfernen
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -221,9 +220,9 @@ instance YesodAuth App where
     -- authHttpManager = getHttpManager
 
 instance YesodAuthHardcoded App where
-  validatePassword u p = return $ (u==usernameAdmin && p==passwordAdmin)
-                               || (u==usernameKari  && p==passwordKari)
-  doesUserNameExist  = return . (==) "admin"
+  validatePassword u p = liftIO $ if u == "admin" then (== p) <$> passwordAdmin else (== p) <$> passwordKari
+
+  doesUserNameExist    = pure . liftA2 (||) ("kari" ==) ("admin" ==)
 
 
 instance YesodAuthPersist App where
