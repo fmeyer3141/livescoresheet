@@ -4,7 +4,9 @@ var lifterInfo           = undefined;
 var canvas               = document.getElementById("lifterInfo");
 var c                    = canvas.getContext('2d');
 
-var fontColour           = 'rgb(240,220,220)';
+var fontColour           = 'rgb(255,255,255)';
+var boxGreen             = 'rgb(0,255,0)';
+var boxRed               = 'rgb(255,0,0)';
 
 var canvasBackground     = "@{StaticR chalk_hero_bg_jpg}";
 var background           = new Image();
@@ -226,7 +228,7 @@ function renderInfo() {
   // Draw ranking
   // if the current lifter will succeed at her next attempt does this improve her placing? Display a corresponding arrow
   let arrow = (lifterInfo.progPlacing < lifterInfo.placing) ? "↗" : "→";
-  let arrowColor = (lifterInfo.progPlacing < lifterInfo.placing) ? 'rgb(0,255,0)' : 'rgb(255,165,0)';
+  let arrowColor = (lifterInfo.progPlacing < lifterInfo.placing) ? boxGreen : 'rgb(255,165,0)';
 
   let placingNrColour = placing => {
     switch (placing) {
@@ -382,10 +384,10 @@ function drawTotalBox (x, y, width, height, fontSize) {
   // failed discipline
   if (totalWeight == null) {
     totalWeight = "D.Q.";
-    boxColour = 'rgb(255,0,0)';
+    boxColour = boxRed;
   }
   else if (oneSuccessInEveryDisc()) {
-    boxColour = 'rgb(0,255,0)';
+    boxColour = boxGreen;
   }
   // not finished
   else {
@@ -413,12 +415,12 @@ function drawBestAttemptBox(x, y, width, height, discNr, fontSize) {
   // failed discipline
   if (allAttemptsFailed (currDiscipline)) {
     discWeight = 0.0;
-    boxColour = 'rgb(255,0,0)';
+    boxColour = boxRed;
   }
   else if (atLeastOneSuccess(currDiscipline)) {
     discWeight = max ( max (getAttemptWeight(currDiscipline.att1), getAttemptWeight(currDiscipline.att2))
                      , getAttemptWeight (currDiscipline.att3) );
-    boxColour = 'rgb(0,255,0)';
+    boxColour = boxGreen;
   }
   // discipline is ongoing
   else {
@@ -464,11 +466,11 @@ function drawCurrAttemptBox(x, y, width, height, attemptNr, fontSize) {
     case "todo":
       boxColour = fontColour; break;
     case "success":
-      boxColour = 'rgb(0,255,0)'; break;
+      boxColour = boxGreen; break;
     case "fail":
-      boxColour = 'rgb(255,0,0)'; break;
+      boxColour = boxRed; break;
     case "skip":
-      boxColour = 'rgb(255,0,0)'; break;
+      boxColour = boxRed; break;
   }
 
   c.fillStyle  = boxColour;
