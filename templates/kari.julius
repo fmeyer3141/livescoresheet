@@ -138,6 +138,11 @@ function updateVerdict(showRed, showBlue, showYellow) {
   }
 }
 
+function logout () {
+  if (confirm ("Wirklich ausloggen?")) {
+    window.location.href = "@{AuthR LogoutR}";
+  }
+}
 
 init();
 

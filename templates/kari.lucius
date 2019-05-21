@@ -130,3 +130,6 @@ body
   text-align: left;
 }
 
+#spacing {
+  min-height: 10em;
+}

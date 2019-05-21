@@ -1,12 +1,18 @@
 <h1> #{prettyPrintPos p}
 <p #attemptInfo>
 <p #lifterInfo>
-<form method=post action@{AdminR} enctype=#{colorFormEnctype} id="formMain">
+<form method=post action=@{JuryR p} enctype=#{colorFormEnctype} id="formMain">
   ^{colorFormWidget}
   <br />
-  <button #btnConfirm type=submit> Absenden 
+  <button #btnConfirm type=submit> Absenden
 <div #divWertung>
   <h4 #hWertung>
     Wertung
   <p #pWertung>
   <ul #ulWertungListe>
+
+<div #spacing>
+
+<div #logOut>
+  <button onClick=logout()>
+    Logout!
