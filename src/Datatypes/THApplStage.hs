@@ -130,13 +130,13 @@ dbLifterConvFunctions = do
   let toLifterBackup'Clause = [Clause [toLifterBackup'Pattern] toLifterBackup'Body []]
 
   let updateLifter'LIdV = mkName "lId"
-  let updateLifter'GroupV = mkName "lGroup"
+  let updateLifter'WeightV = mkName "lWeight"
   let updateLifter'ResV = mkName "lResults"
-  let updateLifter'Vars = [updateLifter'LIdV, updateLifter'GroupV, updateLifter'ResV]
+  let updateLifter'Vars = [updateLifter'LIdV, updateLifter'WeightV, updateLifter'ResV]
   let updateLifter'Pattern = VarP <$> updateLifter'Vars
-  let updateLifter'Group = applPersistAss "Lifter'Group" (VarE updateLifter'GroupV)
+  let updateLifter'Weight = applPersistAss "Lifter'Weight" (VarE updateLifter'WeightV)
   updateLifter'UpdateOps <- createAllLetsAndUpdateOps (VarE updateLifter'ResV)
-                              >>= (pure . createFinalUpdateExp [updateLifter'Group])
+                              >>= (pure . createFinalUpdateExp [updateLifter'Weight])
   let updateLifter'Body = NormalB $ AppE (AppE (VarE $ mkName "updateWhere")
                             (ListE [InfixE (Just $ ConE $ mkName "Lifter'Id")
                                       (VarE $ mkName "==.") (Just $ VarE updateLifter'LIdV)]))
@@ -151,7 +151,7 @@ dbLifterConvFunctions = do
                                        (VarT $ mkName "m")) (TupleT 0)
   let updateLifter'Type = SigD (mkName "updateLifter'") $ monadIOmType $
                             AppT (AppT ArrowT keyLifter'Type)
-                                 (AppT (AppT ArrowT (ConT $ mkName "GroupNr"))
+                                 (AppT (AppT ArrowT (ConT $ mkName "Double"))
                                        (AppT
                                           (AppT ArrowT (ConT $ mkName "Results"))
                                           (readerTSqlBackendHandlerType) ))

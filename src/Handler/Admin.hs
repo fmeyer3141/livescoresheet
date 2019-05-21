@@ -145,16 +145,16 @@ resForm res =
 lifterForm :: (Key Lifter', Lifter) -> MForm Handler (FormResult (Key Lifter', Lifter), Widget)
 lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
-  (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
+  (weightRes, weightView) <- mreq doubleField fieldFormat $ Just lifterWeight
   (resRes, resView) <- resForm lifterRes
-  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass
-                               lifterOutOfCompetition lifterWeight lifterRaw
-                               <$> groupRes <*> resRes <*> pure lifterClub
+  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass lifterOutOfCompetition
+                               <$> weightRes <*> pure lifterRaw <*> pure lifterGroup
+                               <*> resRes    <*> pure lifterClub
   let widget = [whamlet|
          <div class="lifterRow">
            <span class="lifterName"> #{lifterName}
            ^{fvInput idView}
-           ^{fvInput groupView}
+           ^{fvInput weightView}
            ^{resView}
   |]
   return ((,) <$> idRes <*> lifterResulting, widget)
@@ -179,7 +179,7 @@ liftersForm meetState eLifterList extra = do
                 <div #lifterForm>
                   <div #lifterFormHeaderRow>
                     <span #lifterNameHeader .lifterFormHeader> Name
-                    <span #lifterGroupHeader .lifterFormHeader> Gruppe
+                    <span #lifterGroupHeader .lifterFormHeader> Gewicht
                     $forall d <- map fst meetType
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 1
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 2

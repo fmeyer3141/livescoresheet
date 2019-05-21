@@ -124,7 +124,7 @@ updateLiftersInDB args = do -- perform backup
     updateLifterInDB :: AttemptTime -> ((Key Lifter', Lifter), Lifter) -> PackedHandler ()
     updateLifterInDB t ((lId, l), l') = do
       runDB $
-        updateLifter' lId (lifterGroup l') $ updateLifterRes t (lifterRes l) (lifterRes l')
+        updateLifter' lId (lifterWeight l') $ updateLifterRes t (lifterRes l) (lifterRes l')
     -- store/keep the newest entry in the DB
     updateLifterRes :: AttemptTime -> Results -> Results -> Results
     updateLifterRes t res = execState $
