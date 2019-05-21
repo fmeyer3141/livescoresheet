@@ -145,8 +145,9 @@ function showRanking(arr) {
 
       let highlightFirst = cell => {if(isNext) cell.addClass("firstRow"); return cell;};
 
+      let oOCString = (lifter.outOfCompetition == "True") ? "&nbsp;[AK]" : "";
       let rowElements = [
-      highlightFirst($(`<div> ${lifter.name} </div>`)),
+      highlightFirst($(`<div> ${lifter.name}<span id="outOfCompetition">${oOCString}</span></div>`)),
       $(`<div> ${lifter.lot} </div>`),
       $(`<div> ${lifter.group} </div>`),
       ];

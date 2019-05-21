@@ -147,8 +147,9 @@ lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
   (groupRes, groupView) <- mreq intField fieldFormat $ Just lifterGroup
   (resRes, resView) <- resForm lifterRes
-  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass lifterWeight
-                               lifterRaw <$> groupRes <*> resRes <*> pure lifterClub
+  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass
+                               lifterOutOfCompetition lifterWeight lifterRaw
+                               <$> groupRes <*> resRes <*> pure lifterClub
   let widget = [whamlet|
          <div class="lifterRow">
            <span class="lifterName"> #{lifterName}
@@ -251,10 +252,11 @@ parseCSV rawFile =
     rawFile .| intoCSV defCSVSettings .| sinkList --defCSVSettings means , seperator and " to enclose fields
 
 lifterParse :: AttemptTime -> Row Text -> ApplEither [Text] Lifter
-lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club] =
-    Lifter name 0 <$> safeRead age             <*> safeRead sex             <*> safeRead aclass <*> safeRead wclass
-                  <*> safeRead weight          <*> safeRead raw             <*> safeRead flight
-                  <*> pure (emptyResults time) <*> pure club
+lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club,outOfCompetition] =
+    Lifter name 0 <$> safeRead age             <*> safeRead sex              <*> safeRead aclass
+                  <*> safeRead wclass          <*> safeRead outOfCompetition <*> safeRead weight
+                  <*> safeRead raw             <*> safeRead flight           <*> pure (emptyResults time)
+                  <*> pure club
   where
     safeRead :: (Read a, Show a) => Text -> ApplEither [Text] a
     safeRead s = case P.reads $ T.unpack s of
@@ -407,7 +409,7 @@ liftersWithPlacings :: [Lifter] -> [[(Int,Lifter)]]
 liftersWithPlacings lifters = map (zip [1..]) (liftersGrouped lifters)
 
 liftersGrouped :: [Lifter] -> [[Lifter]]
-liftersGrouped lifters = map (L.sortBy (cmpLifterTotalAndBw)) $
+liftersGrouped lifters = map (L.sortBy (cmpLifterPlacing)) $
                              L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
                         (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted
   where

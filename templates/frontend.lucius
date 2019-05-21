@@ -20,6 +20,10 @@ h3 {
   display: inline-block;
 }
 
+#outOfCompetition {
+  color: rgb(255,0,0);
+}
+
 #divGroupSelector{
   display: inline-block;
   margin-left: 1cm;

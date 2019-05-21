@@ -59,15 +59,24 @@ cmpLifterGroup g l1 l2 | (lifterGroup l1 == g) && (lifterGroup l2 /= g) -- nur l
                              = EQ
 
 -- Größtes Total ist minimal hier -- dieser Lifter steht 'oben'
-compareTotal :: Lifter -> Lifter -> Ordering
-compareTotal l l' = (flip compare) (getTotalLifter l) (getTotalLifter l')
+cmpTotal :: Lifter -> Lifter -> Ordering
+cmpTotal l l' = (flip compare) (getTotalLifter l) (getTotalLifter l')
 
 -- minimales Bodyweight ist minimal -- dieser Lifter steht 'oben'
-compareBodyweight :: Lifter -> Lifter -> Ordering
-compareBodyweight l l' = compare (lifterWeight l) (lifterWeight l')
+cmpBodyweight :: Lifter -> Lifter -> Ordering
+cmpBodyweight l l' = compare (lifterWeight l) (lifterWeight l')
 
 cmpLifterTotalAndBw :: Lifter -> Lifter -> Ordering
-cmpLifterTotalAndBw = compareBodyweight .~. compareTotal
+cmpLifterTotalAndBw = cmpBodyweight .~. cmpTotal
+
+cmpOutOfCompetition :: Lifter -> Lifter -> Ordering
+cmpOutOfCompetition l l' = case (lifterOutOfCompetition l, lifterOutOfCompetition l') of
+  (False, True) -> LT
+  (True, False) -> GT
+  _             -> EQ
+
+cmpLifterPlacing :: Lifter -> Lifter -> Ordering
+cmpLifterPlacing = cmpLifterTotalAndBw .~. cmpOutOfCompetition
 
 cmpLifterGroupAndOrder :: MeetState -> Lifter -> Lifter -> Ordering
 cmpLifterGroupAndOrder s = cmpLifterOrder s .~. cmpLifterGroup (meetStateCurrGroupNr s)
@@ -147,10 +156,11 @@ getNext2LiftersInGroup = getNext2LiftersInGroupWithf id
 getPlacingWithfAndEq :: Eq b => (a -> Lifter) -> (a -> b) -> a -> [a] -> Placing
 getPlacingWithfAndEq f eq el els =
   let liftersInClass      = filter ((==) (getClass $ f el) . getClass . f) els in
-  let liftersWithPlacings = zip [1..] $ sortBy (cmpLifterTotalAndBw `on` f) liftersInClass in
+  let liftersWithPlacings = map (\(p,l) -> if lifterOutOfCompetition (f l) then (Nothing,l) else (Just p,l))
+                            $ zip [1..] $ sortBy (cmpLifterTotalAndBw `on` f) liftersInClass in
 
   let mpl = headMay $ map fst $ filter ((==) (eq el) . eq . snd) liftersWithPlacings in
-  fromMaybe 0 mpl
+  fromMaybe (Just 0) mpl
 
 getPlacing :: Lifter -> [Lifter] -> Placing
 getPlacing = getPlacingWithfAndEq id id

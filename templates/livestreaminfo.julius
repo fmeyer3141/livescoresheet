@@ -213,7 +213,7 @@ function renderInfo() {
   c.fillText(disciplineString, headerHorizSpacing * width, headerFirstBlockRelHeight * height);
 
   // Draw headerDescrString
-  let headerDescrStringFontSize = headerDescrString + "  99↗99";
+  let headerDescrStringFontSize = headerDescrString + "  a.K.↗a.K.";
   fSize = min(determineFontSize( headerDescrStringFontSize, headerSecBlockRelWidth * width
                                , headerFirstBlockRelHeight*height), fSize);
 
@@ -236,22 +236,24 @@ function renderInfo() {
       default: return fontColour;
     }
   }
-  let placingWidth = (c.measureText(lifterInfo.placing).width)/width;
-  let arrowWidth = (c.measureText(arrow).width)/width;
-  let progPlacingWidth = (c.measureText(lifterInfo.progPlacing).width)/width;
-  let textWidth = placingWidth + arrowWidth + progPlacingWidth;
-  let xRightBorder = headerSecBlockRelWidth +
-                     ((1 + headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth);
+  let lifterPlacing     = (lifterInfo.placing == null)     ? "a.K." : lifterInfo.placing;
+  let lifterProgPlacing = (lifterInfo.progPlacing == null) ? "a.K." : lifterInfo.progPlacing;
+  let placingWidth      = (c.measureText(lifterPlacing).width)/width;
+  let arrowWidth        = (c.measureText(arrow).width)/width;
+  let progPlacingWidth  = (c.measureText(lifterProgPlacing).width)/width;
+  let textWidth         = placingWidth + arrowWidth + progPlacingWidth;
+  let xRightBorder      = headerSecBlockRelWidth +
+                            ((1 + headerMiddleToHorizSpacing) * headerHorizSpacing + headerFirstBlockRelWidth);
   let x = xRightBorder - textWidth;
 
-  c.fillStyle = placingNrColour(lifterInfo.placing);
-  c.fillText(lifterInfo.placing, x*width, headerFirstBlockRelHeight * height);
+  c.fillStyle = placingNrColour(lifterPlacing);
+  c.fillText(lifterPlacing, x*width, headerFirstBlockRelHeight * height);
   c.fillStyle = arrowColor;
   x += placingWidth;
   c.fillText(arrow, x*width, headerFirstBlockRelHeight * height);
-  c.fillStyle = placingNrColour(lifterInfo.progPlacing);
+  c.fillStyle = placingNrColour(lifterProgPlacing);
   x += arrowWidth;
-  c.fillText(lifterInfo.progPlacing, x*width, headerFirstBlockRelHeight * height);
+  c.fillText(lifterProgPlacing, x*width, headerFirstBlockRelHeight * height);
 
   c.fillStyle = fontColour;
 

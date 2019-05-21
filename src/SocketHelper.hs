@@ -17,7 +17,7 @@ computeRefereeChan (lAttInfo,res,b) = JuryResultMessage
 
 getPrognosedPlacing :: MeetState -> ELifter -> [ELifter] -> Placing
 getPrognosedPlacing ms (k,l) els =
-  fromMaybe 0 $ (\els' -> getPlacingELifter (k,l) els') <$> newEls
+  fromMaybe (Just 0) $ (\els' -> getPlacingELifter (k,l) els') <$> newEls
 
   where
     newEls = (:) <$> updateLifterAttempt <*> pure (L.deleteBy (\(k',_) (k'',_) -> k' == k'') (k,l) els)
@@ -70,7 +70,7 @@ computeFrontendDataChan (ms, lifters) =
      let liftersSortedByClass  = maybe (sortBy cmpLifterClass)
                                       (sortBy . cmpLifterClassPrio) mc $ lifters
 
-     let liftersGroupedByClass = sortBy cmpLifterTotalAndBw <$> L.groupBy ((==) `on` getClass) liftersSortedByClass
+     let liftersGroupedByClass = sortBy cmpLifterPlacing <$> L.groupBy ((==) `on` getClass) liftersSortedByClass
      let showLifter l          = (maybe False (== l) $ headMay nextLifters,l, showTotal l)
      let liftersOverview       = map showLifter <$> liftersGroupedByClass:: [[(Bool,Lifter,Text)]]
      -- The Bool indicates if the Lifter is the next

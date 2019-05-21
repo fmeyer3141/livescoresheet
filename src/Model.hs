@@ -42,19 +42,20 @@ import qualified Data.Text as T
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(databaseScheme) -- $(persistFileWith lowerCaseSettings "config/models")
 
 type GroupNr = Int
-type Placing = Int
+type Placing = Maybe Int -- Nothing on outOfCompetition
 
-data Lifter = Lifter { lifterName        :: !Text
-                     , lifterLot         :: !Int
-                     , lifterAge         :: !Int
-                     , lifterSex         :: !Sex
-                     , lifterAgeclass    :: !Ageclass
-                     , lifterWeightclass :: !Weightclass
-                     , lifterWeight      :: !Double
-                     , lifterRaw         :: !Bool
-                     , lifterGroup       :: !GroupNr
-                     , lifterRes         :: !Results
-                     , lifterClub        :: !Text
+data Lifter = Lifter { lifterName             :: !Text
+                     , lifterLot              :: !Int
+                     , lifterAge              :: !Int
+                     , lifterSex              :: !Sex
+                     , lifterAgeclass         :: !Ageclass
+                     , lifterWeightclass      :: !Weightclass
+                     , lifterOutOfCompetition :: !Bool
+                     , lifterWeight           :: !Double
+                     , lifterRaw              :: !Bool
+                     , lifterGroup            :: !GroupNr
+                     , lifterRes              :: !Results
+                     , lifterClub             :: !Text
                      } deriving (Show, Eq)
 
 type ELifter = (Key Lifter', Lifter)
@@ -162,6 +163,7 @@ instance ToJSON Lifter where
         "sex" .= (show lifterSex),
         "ageclass" .= (show lifterAgeclass),
         "weightclass" .= (show lifterWeightclass),
+        "outOfCompetition" .= (show lifterOutOfCompetition),
         "weight" .= lifterWeight,
         "raw" .= lifterRaw,
         "group" .= lifterGroup,
