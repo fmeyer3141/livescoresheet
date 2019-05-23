@@ -1,2 +1,2 @@
-Name,Age,Sex,Ageclass,Weightclass,Weight,Raw,Group
-Equipment Chetah,20,Male,Junior,+120,300,False,10,AKS
+Name,Age,Sex,Ageclass,Weightclass,Weight,Raw,Group,Club, Out of Comp
+Equipment Chetah,20,Male,Junior,+120,300,False,10,AKS, False
