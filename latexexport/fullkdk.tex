@@ -1,0 +1,61 @@
+\documentclass[]{scrartcl}
+\usepackage[a4paper, left=0.5cm, right=5cm, top=0.5cm,landscape]{geometry}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{booktabs}
+\usepackage{ulem}
+\definecolor{failred}{RGB}{255,60,60}
+
+\newcommand{\renderliftcell}[2]{
+  \ifnum #1>0
+    \cellcolor{green} #2
+  \else
+    \ifnum #1<0
+      \cellcolor{failred} \sout{#2}
+    \else
+      ---
+    \fi
+  \fi
+}
+\newcommand{\renderplacing}[2]{
+  \ifnum #1>0   %out of Competition
+    a.K.
+  \else
+    \ifnum #1<0 %DQ
+      \textcolor{red}{DQ}
+    \else
+      #2
+    \fi
+  \fi
+}
+
+\begin{document}
+\section*{LM KDK NRW}
+WEBSTART
+
+CONTENTSTART
+\subsection*{KLASSE}
+\begin{tabular}{lp{4cm}p{4cm}llcccccccccrr}
+  \midrule
+  \textbf{Pl.} & \textbf{Name} & \textbf{Verein} & \textbf{Alter} & \textbf{Gewicht} &
+  \textbf{1.} & \textbf{2.} & \textbf{3.} &
+  \textbf{1.} & \textbf{2.} & \textbf{3.} &
+  \textbf{1.} & \textbf{2.} & \textbf{3.} &
+  \textbf{Total} & \textbf{Punkte} \\
+  \midrule
+LIFTERS
+\end{tabular}
+CONTENTEND
+
+LIFTERSTART
+\renderplacing{PLACINGINFO}{PLACE} & NAME & CLUB & AGE & BW &
+\renderliftcell{GOOD_Squat_1}{ATTEMPT_Squat_1} & \renderliftcell{GOOD_Squat_2}{ATTEMPT_Squat_2} & \renderliftcell{GOOD_Squat_3}{ATTEMPT_Squat_3} &
+\renderliftcell{GOOD_Bench_1}{ATTEMPT_Bench_1} & \renderliftcell{GOOD_Bench_2}{ATTEMPT_Bench_2} & \renderliftcell{GOOD_Bench_3}{ATTEMPT_Bench_3} &
+\renderliftcell{GOOD_Deadlift_1}{ATTEMPT_Deadlift_1} & \renderliftcell{GOOD_Deadlift_2}{ATTEMPT_Deadlift_2} & \renderliftcell{GOOD_Deadlift_3}{ATTEMPT_Deadlift_3} &
+TOTAL & WILKS\\
+\midrule
+LIFTEREND
+
+WEBEND
+\end{document}

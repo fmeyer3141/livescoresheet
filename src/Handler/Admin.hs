@@ -39,8 +39,8 @@ import Misc
 
 import Control.Monad.Logger
 
-latexTemplate :: String
-latexTemplate = "latexexport/template.tex"
+latexTemplate :: AppSettings -> String
+latexTemplate settings = "latexexport/" ++ appLatexTemplateName settings
 
 newtype FileForm = FileForm
     { fileInfo :: FileInfo }
@@ -274,8 +274,8 @@ getUndoR = do
 
 -- LATEX EXPORT
 
-getLatexTemplate :: IO Text
-getLatexTemplate = readFileUtf8 latexTemplate
+getLatexTemplate :: AppSettings -> IO Text
+getLatexTemplate = readFileUtf8 . latexTemplate
 
 -- contentText -> klasse -> lifters -> out
 composeClass :: Text -> Text -> Text -> Text
@@ -305,13 +305,8 @@ createLifter inp l@(Lifter {..}) pl = F.foldl' (flip ($)) inp actions
                 [("NAME", lifterName )
                 ,("AGE", pack $ show lifterAge )
                 ,("BW", pack $ show lifterWeight )
-                --,("ATTEMPT1",showAttempt $ lifterAttemptDL1Weight )
-                --,("ATTEMPT2",showAttempt $ lifterAttemptDL2Weight )
-                --,("ATTEMPT3",showAttempt $ lifterAttemptDL3Weight )
-                --,("GOOD1", goodLift $ lifterAttemptDL1Success )
-                --,("GOOD2", goodLift $ lifterAttemptDL2Success )
-                --,("GOOD3", goodLift $ lifterAttemptDL3Success )
-                ,("WILKS", calcWilks l)
+                ,("WILKS", showWilks lifterSex (getTotalLifter l) lifterWeight)
+                ,("PLACINGINFO", showPlacingInfo l)
                 ,("PLACE", showPlacing l pl)
                 ,("CLUB", escapeForLatex $ lifterClub )
                 ,("TOTAL", showTotal l)])
@@ -336,7 +331,7 @@ escapeForLatex = T.replace "&" "\\&"
 showPlacing :: Lifter -> Int -> Text -- Check if bombout
 showPlacing l pl = case getTotalLifter l of
                      Just _ -> pack $ show $ pl
-                     Nothing -> "D.Q."
+                     Nothing -> ""
 
 displ :: Weight -> Text
 displ = pack . show
@@ -347,15 +342,23 @@ showAttemptWeight (Attempt (Fail w)    _) = displ w
 showAttemptWeight (Attempt (Todo w)    _) = displ w
 showAttemptWeight _             = ""
 
+showPlacingInfo :: Lifter -> Text
+showPlacingInfo l@Lifter{..} =
+  case (lifterOutOfCompetition, getTotalLifter l) of
+    (True, _)        -> "1" -- a.K.
+    (False, Just _)  -> "0"
+    (False, Nothing) -> "-1" --DQ
+
 showGoodLift :: Attempt -> Text
 showGoodLift (Attempt (Success _) _) = "1"
 showGoodLift (Attempt (Fail _)    _) = "-1"
-showGoodLift _             = "0"
+showGoodLift _                       = "0"
 
-calcWilks :: Lifter -> Text
-calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
-                fromIntegral $ (round :: Double -> Int) $
-                (*) 1000 $ ((fromRational $ wilks * total) :: Double)
+showWilks :: Sex -> Maybe Double -> Double -> Text
+showWilks _   Nothing      _          = ""
+showWilks sex (Just total) bodyweight = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
+                                          fromIntegral $ (round :: Double -> Int) $
+                                          (*) 1000 $ ((fromRational $ wilks * tot) :: Double)
   where
     am :: Rational
     am = -216.0475144
@@ -381,11 +384,9 @@ calcWilks l = pack $ show $ ((flip (/)) 1000 :: Double -> Double) $
     ef =47.31582E-06
     ff :: Rational
     ff = -9.054E-08
-    total = toRational $ case getTotalLifter l of
-                           Just x -> x
-                           Nothing -> 0
-    bw = toRational $ lifterWeight l
-    wilks = case lifterSex l of
+    tot = toRational total
+    bw = toRational bodyweight
+    wilks = case sex of
               Male -> 500/(am + bm*bw + cm*bw^(2::Int) + dm*bw^(3::Int) + em*bw^(4::Int) + fm*bw^(5::Int))
               Female -> 500/(af + bf*bw + cf*bw^(2::Int) + df*bw^(3::Int) + ef*bw^(4::Int) + ff*bw^(5::Int))
 
@@ -418,7 +419,8 @@ liftersGrouped lifters = map (L.sortBy (cmpLifterPlacing)) $
 
 getTableR :: Handler TypedContent
 getTableR = do
-  input <- liftIO getLatexTemplate
+  templateName <- appSettings <$> getYesod
+  input <- liftIO $ getLatexTemplate templateName
   let contentText = getContentText input
   let lifterText = getLifterText input
   let mkClass = composeClass contentText

@@ -7,6 +7,8 @@ port:           "_env:PORT:3000" # NB: The port `yesod devel` uses is distinct f
 ip-from-header: "_env:IP_FROM_HEADER:false"
 client-session-key: "config/client_session_key.aes"
 
+latex-template-name: "fullkdk.tex"
+
 # Uncomment for tls and recompile
 # tls-settings: ["path_to_certfile", "path"]
 

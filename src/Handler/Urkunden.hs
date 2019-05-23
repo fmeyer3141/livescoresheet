@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Handler.Urkunden where
 
@@ -12,7 +13,7 @@ import qualified Data.Text as T
 import qualified Prelude as P
 import Ageclass
 import PackedHandler
-import Scoresheetlogic (showTotal)
+import Scoresheetlogic (showTotal, getTotalLifter)
 
 getUrkundenR :: Handler TypedContent
 getUrkundenR = do
@@ -20,9 +21,9 @@ getUrkundenR = do
   let lifters = liftersWithPlacings liftersFromDB
   let lifterCSV =  (++) identifiers $ T.concat $ P.map (T.concat .
                    map
-                   (\(pl,l) -> T.intercalate "," [lifterName l, lifterClub l, printPrettyAgeclass $ lifterAgeclass l,
-                               pack (show $ lifterWeightclass l), showPlacing l pl,
-                               showTotal l, calcWilks l, pack $ show $ lifterRaw l, pack $ show $ lifterSex l] ++ "\n"))
+                   (\(pl,l@Lifter {..}) -> T.intercalate "," [ lifterName, lifterClub, printPrettyAgeclass $ lifterAgeclass, pack $ show lifterWeightclass
+                                                             , showPlacing l pl, showTotal l, showWilks lifterSex (getTotalLifter l) lifterWeight
+                                                             , pack $ show lifterRaw, pack $ show lifterSex] ++ "\n"))
                    lifters -- :: Text
   return $ TypedContent "text/csv" $ toContent lifterCSV--(T.pack $ show $ lifterCSV)
 

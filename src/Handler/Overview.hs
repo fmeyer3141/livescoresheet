@@ -16,6 +16,7 @@ getOverviewR = defaultLayout $
     <p><a href=@{JuryR PLeft}> Seitenkampfrichter Links
     <p><a href=@{JuryR PMain}> Hauptkampfrichter
     <p><a href=@{JuryR PRight}> Seitenkampfrichter Rechts
-    <p><a href=@{LivestreaminfoR}> Livestreaminfo 
-    <p><a href=@{ShowallR}> Showall |]
+    <p><a href=@{LivestreaminfoR}> Livestreaminfo
+    <p><a href=@{ShowallR}> Showall
+    <p><a href=@{TableR}> Table.tex|]
 

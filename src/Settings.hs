@@ -61,6 +61,8 @@ data AppSettings = AppSettings
     -- ^ Indicate if auth dummy login should be enabled.
     , appTLSSettings            :: Maybe TLSSettings
     , clientSessionKey          :: String
+    -- latex template name
+    , appLatexTemplateName      :: String
     }
 
 data MeetSettings = MeetSettings { meetTypeStr :: [Text] }
@@ -97,6 +99,7 @@ instance FromJSON AppSettings where
         let appTLSSettings = uncurry tlsSettings <$> tlsSettingsTuple
 
         clientSessionKey          <- o .: "client-session-key"
+        appLatexTemplateName      <- o .: "latex-template-name"
 
         return AppSettings {..}
 
