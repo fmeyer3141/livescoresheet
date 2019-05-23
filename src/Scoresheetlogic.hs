@@ -173,3 +173,6 @@ showTotal :: Lifter -> Text
 showTotal l = case getTotalLifter l of
                 Just t -> pack $ show t
                 Nothing -> "D.Q."
+
+getClasses :: [Lifter] -> [Class]
+getClasses = map unsafeHead . group . sort . map getClass

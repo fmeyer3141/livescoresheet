@@ -22,6 +22,6 @@
 /frontend/#Bool       FrontendR       GET
 /stecker              SteckerR        GET
 /table.tex            TableR          GET
-/urkunden.csv         UrkundenR       GET
+/urkunden.csv         UrkundenR       GET POST
 /livestreaminfo       LivestreaminfoR GET
 /showall              ShowallR        GET

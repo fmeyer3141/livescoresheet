@@ -328,7 +328,7 @@ createLifter inp l@(Lifter {..}) pl = F.foldl' (flip ($)) inp actions
 escapeForLatex :: Text -> Text
 escapeForLatex = T.replace "&" "\\&"
 
-showPlacing :: Lifter -> Int -> Text -- Check if bombout
+showPlacing :: Lifter -> Int -> Text
 showPlacing l pl = case getTotalLifter l of
                      Just _ -> pack $ show $ pl
                      Nothing -> ""
