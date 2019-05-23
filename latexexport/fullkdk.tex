@@ -1,9 +1,10 @@
 \documentclass[]{scrartcl}
-\usepackage[a4paper, left=0.5cm, right=5cm, top=0.5cm,landscape]{geometry}
+\usepackage[a4paper, left=0.5cm, right=0.5cm, top=0.5cm,landscape]{geometry}
 \usepackage{fontspec}
 \usepackage{polyglossia}
 \usepackage[dvipsnames,table]{xcolor}
 \usepackage{booktabs}
+\usepackage{longtable}
 \usepackage{ulem}
 \definecolor{failred}{RGB}{255,60,60}
 
@@ -36,16 +37,17 @@ WEBSTART
 
 CONTENTSTART
 \subsection*{KLASSE}
-\begin{tabular}{lp{4cm}p{4cm}llcccccccccrr}
+\begin{longtable}{lp{3cm}p{3cm}llp{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}rr}
+   & & & & & \multicolumn{3}{c}{\large Kniebeuge} & \multicolumn{3}{c}{\large Bankdrücken} & \multicolumn{3}{c}{\large Kreuzheben}\\
   \midrule
   \textbf{Pl.} & \textbf{Name} & \textbf{Verein} & \textbf{Alter} & \textbf{Gewicht} &
-  \textbf{1.} & \textbf{2.} & \textbf{3.} &
-  \textbf{1.} & \textbf{2.} & \textbf{3.} &
-  \textbf{1.} & \textbf{2.} & \textbf{3.} &
+  \centering{\textbf{1.}} & \centering{\textbf{2.}} & \centering{\textbf{3.}} &
+  \centering{\textbf{1.}} & \centering{\textbf{2.}} & \centering{\textbf{3.}} &
+  \centering{\textbf{1.}} & \centering{\textbf{2.}} & \centering{\textbf{3.}} &
   \textbf{Total} & \textbf{Punkte} \\
   \midrule
 LIFTERS
-\end{tabular}
+\end{longtable}
 CONTENTEND
 
 LIFTERSTART
