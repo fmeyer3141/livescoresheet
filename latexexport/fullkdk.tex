@@ -1,5 +1,5 @@
 \documentclass[]{scrartcl}
-\usepackage[a4paper, left=0.5cm, right=0.5cm, top=0.5cm,landscape]{geometry}
+\usepackage[a4paper, left=0.5cm, right=0.5cm, top=1.0cm,landscape]{geometry}
 \usepackage{fontspec}
 \usepackage{polyglossia}
 \usepackage[dvipsnames,table]{xcolor}
@@ -8,6 +8,9 @@
 \usepackage{ulem}
 \definecolor{failred}{RGB}{255,60,60}
 
+\usepackage{titlesec}
+\titleformat*{\section}{\Huge\bfseries}
+
 \newcommand{\renderliftcell}[2]{
   \ifnum #1>0
     \cellcolor{green} #2
@@ -15,7 +18,7 @@
     \ifnum #1<0
       \cellcolor{failred} \sout{#2}
     \else
-      ---
+      \centering{---}
     \fi
   \fi
 }
@@ -32,13 +35,13 @@
 }
 
 \begin{document}
-\section*{LM KDK NRW}
+\section*{LM KDK NRW 01./02.06.2019 Classic/Equipped in Aachen}
 WEBSTART
 
 CONTENTSTART
 \subsection*{KLASSE}
 \begin{longtable}{lp{3cm}p{3cm}llp{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}p{1cm}rr}
-   & & & & & \multicolumn{3}{c}{\large Kniebeuge} & \multicolumn{3}{c}{\large Bankdrücken} & \multicolumn{3}{c}{\large Kreuzheben}\\
+   & & & & & \multicolumn{3}{c}{\Large Kniebeuge} & \multicolumn{3}{c}{\Large Bankdrücken} & \multicolumn{3}{c}{\Large Kreuzheben}\\
   \midrule
   \textbf{Pl.} & \textbf{Name} & \textbf{Verein} & \textbf{Alter} & \textbf{Gewicht} &
   \centering{\textbf{1.}} & \centering{\textbf{2.}} & \centering{\textbf{3.}} &
