@@ -23,6 +23,7 @@ var verdictItems =
                 "Scheibenstecker haben unterstützt",
                 "Auf Oberschenkeln abgestützt",
                 "Hantel fallengelassen",
+                "Kein vollständiger Versuch",
                 "Sonstige Fehler"],
   },
   "Bench" : {
@@ -36,6 +37,7 @@ var verdictItems =
                 "Scheibenstecker haben unterstützt",
                 "Füße haben Bankkontakt",
                 "Hantelständer zur Unterstützung genutzt",
+                "Kein vollständiger Versuch",
                 "Sonstige Fehler"],
   },
   "Deadlift" : {
@@ -46,6 +48,7 @@ var verdictItems =
     "Yellow" : ["Signale nicht beachtet",
                 "Hantel fallengelassen",
                 "Fußbewegung",
+                "Kein vollständiger Versuch",
                 "Sonstige Fehler"],
   },
 }
