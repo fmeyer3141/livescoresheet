@@ -11,12 +11,18 @@ data Weightclass = Minusclass Int | Plusclass Int
     deriving (Eq,Ord)
 derivePersistField "Weightclass"
 
+weightclassFromInt :: Int -> Weightclass
+weightclassFromInt w = if w >= 0 then Plusclass w else Minusclass (-w)
+
 weightclassFromDB :: Int -> Weightclass
-weightclassFromDB w = if w >= 0 then Plusclass w else Minusclass (-w)
+weightclassFromDB = weightclassFromInt
+
+weightclassToInt :: Weightclass -> Int
+weightclassToInt (Minusclass w) = -w
+weightclassToInt (Plusclass  w) =  w
 
 weightclassToDB :: Weightclass -> Int
-weightclassToDB (Minusclass w) = -w
-weightclassToDB (Plusclass  w) = w
+weightclassToDB = weightclassToInt
 
 instance Show Weightclass where
   show (Minusclass x) = "-" ++ show x

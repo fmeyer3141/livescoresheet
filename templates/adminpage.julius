@@ -78,6 +78,14 @@ function showSelectedDisciplines () {
     checkboxChecked ? $discHeads.show() : $discHeads.hide();
     checkboxChecked ? $discCells.show() : $discCells.hide();
   });
+  if ($("#additionalChangesCheckbox").prop("checked")) {
+    $(".additionalChangesHead").show();
+    $(".additionalChangesCell").show();
+  }
+  else {
+    $(".additionalChangesHead").hide();
+    $(".additionalChangesCell").hide();
+  }
 }
 
 showSelectedDisciplines ();

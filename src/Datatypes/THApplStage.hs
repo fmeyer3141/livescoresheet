@@ -129,14 +129,21 @@ dbLifterConvFunctions = do
   let toLifterBackup'Body = NormalB $ AppE applResults'' (VarE lClub)
   let toLifterBackup'Clause = [Clause [toLifterBackup'Pattern] toLifterBackup'Body []]
 
-  let updateLifter'LIdV = mkName "lId"
-  let updateLifter'WeightV = mkName "lWeight"
-  let updateLifter'ResV = mkName "lResults"
-  let updateLifter'Vars = [updateLifter'LIdV, updateLifter'WeightV, updateLifter'ResV]
+  let updateLifter'LIdV         = mkName "lId"
+  let updateLifter'GroupV       = mkName "lGroup"
+  let updateLifter'WeightV      = mkName "lWeight"
+  let updateLifter'OOCV         = mkName "lOOC"
+  let updateLifter'WeightclassV = mkName "lWeightclass"
+  let updateLifter'ResV         = mkName "lResults"
+  let updateLifter'Vars         = [ updateLifter'LIdV, updateLifter'GroupV, updateLifter'WeightV, updateLifter'OOCV
+                                  , updateLifter'WeightclassV, updateLifter'ResV]
   let updateLifter'Pattern = VarP <$> updateLifter'Vars
-  let updateLifter'Weight = applPersistAss "Lifter'Weight" (VarE updateLifter'WeightV)
+  let updateLifter'AddArgs = [ applPersistAss "Lifter'Weightclass" (AppE (VarE $ mkName "weightclassToDB") $ VarE updateLifter'WeightclassV)
+                             , applPersistAss "Lifter'OutOfCompetition" (VarE updateLifter'OOCV)
+                             , applPersistAss "Lifter'Group" (VarE updateLifter'GroupV)
+                             , applPersistAss "Lifter'Weight" (VarE updateLifter'WeightV) ]
   updateLifter'UpdateOps <- createAllLetsAndUpdateOps (VarE updateLifter'ResV)
-                              >>= (pure . createFinalUpdateExp [updateLifter'Weight])
+                              >>= (pure . createFinalUpdateExp updateLifter'AddArgs)
   let updateLifter'Body = NormalB $ AppE (AppE (VarE $ mkName "updateWhere")
                             (ListE [InfixE (Just $ ConE $ mkName "Lifter'Id")
                                       (VarE $ mkName "==.") (Just $ VarE updateLifter'LIdV)]))
@@ -144,17 +151,20 @@ dbLifterConvFunctions = do
   let updateLifter'Clause = [Clause updateLifter'Pattern updateLifter'Body []]
 
   let funType n l r = SigD (mkName n) (AppT (AppT ArrowT (ConT $ mkName l)) (ConT $ mkName r))
-  -- updateLifter'Type :: Key Lifter' -> GroupNr -> Results -> ReaderT SqlBackend (HandlerFor App) ()
+  -- updateLifter'Type :: Key Lifter' -> GroupNr -> Double -> Bool -> Weightclass -> Results -> ReaderT SqlBackend (HandlerFor App) ()
   let keyLifter'Type = AppT (ConT $ mkName "Key") (ConT $ mkName "Lifter'")
   let monadIOmType = ForallT [] [AppT (ConT $ mkName "MonadIO") (VarT $ mkName "m")]
   let readerTSqlBackendHandlerType = AppT (AppT (AppT (ConT $ mkName "ReaderT") (ConT $ mkName "SqlBackend"))
                                        (VarT $ mkName "m")) (TupleT 0)
+
   let updateLifter'Type = SigD (mkName "updateLifter'") $ monadIOmType $
                             AppT (AppT ArrowT keyLifter'Type)
-                                 (AppT (AppT ArrowT (ConT $ mkName "Double"))
-                                       (AppT
-                                          (AppT ArrowT (ConT $ mkName "Results"))
-                                          (readerTSqlBackendHandlerType) ))
+                                 (AppT (AppT ArrowT (ConT $ mkName "Int"))
+                                       (AppT (AppT ArrowT (ConT $ mkName "Double"))
+                                             (AppT (AppT ArrowT (ConT $ mkName "Bool"))
+                                                   (AppT (AppT ArrowT (ConT $ mkName "Weightclass"))
+                                                         (AppT (AppT ArrowT (ConT $ mkName "Results"))
+                                                         (readerTSqlBackendHandlerType) )))))
 
   pure
     [ updateLifter'Type

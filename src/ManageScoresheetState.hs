@@ -15,7 +15,6 @@ module ManageScoresheetState ( getDataFromDB
                              , getGroupNrsFromDB
                              , resetDB
                              , updateLiftersInDB
-                             , updateLiftersInDBWithGroupNr
                              , restoreBackup
                              , initialSetupDB
                              , updateMeetState) where
@@ -88,9 +87,6 @@ getDataFromDB :: PackedHandler (MeetState, [(Key Lifter', Lifter)])
 getDataFromDB =
   (,) <$> getCurrMeetStateFromDB <*> getELiftersFromDB
 
-updateLiftersInDBWithGroupNr :: GroupNr -> [(Key Lifter', Lifter)] -> PackedHandler ()
-updateLiftersInDBWithGroupNr groupNr = updateLiftersInDB . filter ((==) groupNr . lifterGroup . snd)
-
 updateLiftersInDB :: [(Key Lifter', Lifter)] -> PackedHandler ()
 updateLiftersInDB args = do -- perform backup
   toBackup <- getLiftersFromDB
@@ -124,7 +120,8 @@ updateLiftersInDB args = do -- perform backup
     updateLifterInDB :: AttemptTime -> ((Key Lifter', Lifter), Lifter) -> PackedHandler ()
     updateLifterInDB t ((lId, l), l') = do
       runDB $
-        updateLifter' lId (lifterWeight l') $ updateLifterRes t (lifterRes l) (lifterRes l')
+        updateLifter' lId (lifterGroup l') (lifterWeight l') (lifterOutOfCompetition l') (lifterWeightclass l') $
+          updateLifterRes t (lifterRes l) (lifterRes l')
     -- store/keep the newest entry in the DB
     updateLifterRes :: AttemptTime -> Results -> Results -> Results
     updateLifterRes t res = execState $

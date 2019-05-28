@@ -147,19 +147,28 @@ lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
   (weightRes, weightView) <- mreq doubleField fieldFormat $ Just lifterWeight
   (resRes, resView) <- resForm lifterRes
-  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass lifterWeightclass lifterOutOfCompetition
-                               <$> weightRes <*> pure lifterRaw <*> pure lifterGroup
-                               <*> resRes    <*> pure lifterClub
+  (groupRes, groupView) <- mreq intField fieldFormatAdditional $ Just lifterGroup
+  (oocRes, oocView) <- mreq checkBoxField fieldFormatAdditional $ Just lifterOutOfCompetition
+  (weightclassRes, weightclassView) <- mreq intField fieldFormatAdditional $
+                                         Just (weightclassToInt lifterWeightclass)
+  let lifterResulting = Lifter lifterName lifterLot lifterAge lifterSex lifterAgeclass
+                               <$> (weightclassFromInt <$> weightclassRes) <*> oocRes   <*> weightRes
+                               <*> pure lifterRaw                          <*> groupRes <*> resRes
+                               <*> pure lifterClub
   let widget = [whamlet|
          <div class="lifterRow">
            <span class="lifterName"> #{lifterName}
            ^{fvInput idView}
            ^{fvInput weightView}
            ^{resView}
+           ^{fvInput oocView}
+           ^{fvInput groupView}
+           ^{fvInput weightclassView}
   |]
   return ((,) <$> idRes <*> lifterResulting, widget)
   where
-      fieldFormat = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
+    fieldFormat           = FieldSettings "" Nothing Nothing Nothing [("class", "tableText")]
+    fieldFormatAdditional = FieldSettings "" Nothing Nothing Nothing [("class", "additionalChangesCell tableText")]
 
 
 liftersForm :: MeetState -> [(Key Lifter', Lifter)] -> Html -> MForm Handler (FormResult [(Key Lifter', Lifter)], Widget)
@@ -184,6 +193,9 @@ liftersForm meetState eLifterList extra = do
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 1
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 2
                       <span .lifterAttemptHeaderEnd .lifterFormHeader .discHead#{d}> #{d} 3
+                    <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> OOC
+                    <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> Gruppe
+                    <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> Gew. Klasse
                   ^{combinedWidgets}
               |])
   pure (sequenceA $ fst <$> list, framedForm)
@@ -230,7 +242,7 @@ postLifterFormR = do
   ((res,_),_) <- runFormPost $ liftersForm meetState lifters
   case res of
       FormSuccess lifterList ->
-          atomicallyUnpackHandler (updateLiftersInDBWithGroupNr groupNr lifterList) *> redirect AdminR
+          atomicallyUnpackHandler (updateLiftersInDB lifterList) *> redirect AdminR
       FormFailure fs -> invalidArgs fs
       _ -> invalidArgs ["Lifter-Form is missing"]
 

@@ -41,5 +41,9 @@
             <label .form-check-label for=check#{d}>
               #{d}
 
+          <input .form-check-input type=checkbox #additionalChangesCheckbox>
+          <label .form-check-label for=additionalChangesCheckbox>
+            Mehr Möglichkeiten
+
       ^{lifterformWidget}
 
