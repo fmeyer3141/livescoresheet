@@ -145,7 +145,7 @@ resForm res =
 lifterForm :: (Key Lifter', Lifter) -> MForm Handler (FormResult (Key Lifter', Lifter), Widget)
 lifterForm (lId, Lifter {..}) = do
   (idRes,idView) <- mreq hiddenField fieldFormat $ Just lId
-  (weightRes, weightView) <- mreq doubleField fieldFormat $ Just lifterWeight
+  (weightRes, weightView) <- mreq doubleField fieldFormatAdditional $ Just lifterWeight
   (resRes, resView) <- resForm lifterRes
   (groupRes, groupView) <- mreq intField fieldFormatAdditional $ Just lifterGroup
   (oocRes, oocView) <- mreq checkBoxField fieldFormatAdditional $ Just lifterOutOfCompetition
@@ -188,7 +188,7 @@ liftersForm meetState eLifterList extra = do
                 <div #lifterForm>
                   <div #lifterFormHeaderRow>
                     <span #lifterNameHeader .lifterFormHeader> Name
-                    <span #lifterGroupHeader .lifterFormHeader> Gewicht
+                    <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> Gewicht
                     $forall d <- map fst meetType
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 1
                       <span .lifterAttemptHeader .lifterFormHeader .discHead#{d}> #{d} 2
