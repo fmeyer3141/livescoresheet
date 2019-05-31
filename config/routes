@@ -25,3 +25,4 @@
 /urkunden.csv         UrkundenR       GET POST
 /livestreaminfo       LivestreaminfoR GET
 /showall              ShowallR        GET
+/liftersbylot         LiftersByLotR   GET

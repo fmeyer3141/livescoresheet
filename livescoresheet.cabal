@@ -92,6 +92,7 @@ library
       Handler.Stecker
       Handler.Overview
       Handler.Urkunden
+      Handler.LiftersByLot
       Handler.Showall
       Import
       Import.NoFoundation

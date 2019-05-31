@@ -50,6 +50,7 @@ import Handler.Overview
 import Handler.Stecker
 import Handler.Jury
 import Handler.Urkunden
+import Handler.LiftersByLot
 import Handler.Showall
 
 -- This line actually creates our YesodDispatch instance. It is the second half

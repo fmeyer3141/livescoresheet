@@ -19,5 +19,6 @@ getOverviewR = defaultLayout $
     <p><a href=@{LivestreaminfoR}> Livestreaminfo
     <p><a href=@{ShowallR}> Showall
     <p><a href=@{TableR}> Table.tex
-    <p><a href=@{UrkundenR}> Urkunden.csv|]
+    <p><a href=@{UrkundenR}> Urkunden.csv
+    <p><a href=@{LiftersByLotR}> lifters_by_lot.csv|]
 
