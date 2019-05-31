@@ -38,6 +38,7 @@
 
 .lifterRow{
   padding: 0.3em;
+  min-height: 5em;
   width : 78%;
 }
 
