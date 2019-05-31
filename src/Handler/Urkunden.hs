@@ -5,13 +5,14 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Handler.Urkunden where
+module Handler.Urkunden (getUrkundenR, postUrkundenR) where
 
 import Import
 import Handler.Admin
 import ManageScoresheetState
 import qualified Data.Text as T
 import qualified Prelude as P
+import Weightclass
 import Ageclass
 import PackedHandler
 import Scoresheetlogic
@@ -44,9 +45,16 @@ getPlacingStr :: Lifter -> Int -> Text
 getPlacingStr l@Lifter{..} pl =
   case (lifterOutOfCompetition, getTotalLifter l) of
     (True, _)        -> "a.K." -- a.K.
-    (False, Just _)  -> pack $ show pl
+    (False, Just _)  -> (pack $ show pl) `T.append` ". Platz"
     (False, Nothing) -> "DQ" --DQ
 
+showLifterRawUrkunde :: Lifter -> Text
+showLifterRawUrkunde l = if lifterRaw l then "Raw" else "Equipped"
+
+showLifterWeightclassUrkunde :: Lifter -> Text
+showLifterWeightclassUrkunde l = case lifterWeightclass l of
+  Plusclass  w -> "über " `T.append` (T.pack $ show w) `T.append` "Kg"
+  Minusclass w -> "bis "  `T.append` (T.pack $ show w) `T.append` "Kg"
 
 postUrkundenR :: Handler TypedContent
 postUrkundenR = do
@@ -60,9 +68,9 @@ postUrkundenR = do
       let liftersFiltered = liftersWithPlacings $ filter ((flip elem) cls . getClass) lifters
       let lifterCSV =  (++) identifiers $ T.concat $ P.map (T.concat .
                        map
-                       (\(pl,l@Lifter {..}) -> T.intercalate "," [ lifterName, lifterClub, printPrettyAgeclass $ lifterAgeclass, pack $ show lifterWeightclass
+                       (\(pl,l@Lifter {..}) -> T.intercalate "," [ lifterName, lifterClub, printPrettyAgeclass $ lifterAgeclass, showLifterWeightclassUrkunde l
                                                                  , getPlacingStr l pl, showTotal l, showWilks lifterSex (getTotalLifter l) lifterWeight
-                                                                 , pack $ show lifterRaw, pack $ show lifterSex] ++ "\n"))
+                                                                 , showLifterRawUrkunde l, pack $ show lifterSex] ++ "\n"))
                        liftersFiltered -- :: Text
       return $ TypedContent "text/csv" $ toContent lifterCSV
 
