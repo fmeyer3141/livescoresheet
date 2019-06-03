@@ -66,7 +66,7 @@ getOPLEntriesR = do
 
   where
     csvHeader = "Name,Sex,Equipment,BodyweightKg,WeightClassKg,BirthYear,Division"
-            ++ ",Squat1Kg,Squat2Kg,Squat3Kg,Best3SquatKg" ++ "Bench1Kg,Bench2Kg,Bench3Kg,Best3BenchKg"
+            ++ ",Squat1Kg,Squat2Kg,Squat3Kg,Best3SquatKg" ++ ",Bench1Kg,Bench2Kg,Bench3Kg,Best3BenchKg"
             ++ ",Deadlift1Kg,Deadlift2Kg,Deadlift3Kg,Best3DeadliftKg"
             ++ ",TotalKg,Place,Event\n"
     lifterToCSV :: (Int,Lifter) -> Text
