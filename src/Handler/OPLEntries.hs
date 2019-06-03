@@ -20,7 +20,7 @@ showSex Female = "F"
 
 showRaw :: Bool -> Text
 showRaw True  = "Raw"
-showRaw False = "Single-Ply"
+showRaw False = "Single-ply"
 
 showWeightclass :: Weightclass -> Text
 showWeightclass (Minusclass w) = T.pack $ show w
