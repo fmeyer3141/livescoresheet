@@ -53,9 +53,9 @@ showBestAttempt d = case getBestAttempt d of
 showPlacing :: Lifter -> Int -> Text
 showPlacing l@Lifter{..} pl =
   case (lifterOutOfCompetition, getTotalLifter l) of
-    (True, _)        -> "a.K." -- a.K.
+    (True, _)        -> "G" -- a.K.
     (False, Just _)  -> pack $ show pl
-    (False, Nothing) -> "G" --DQ
+    (False, Nothing) -> "DQ" --DQ
 
 getOPLEntriesR :: Handler TypedContent
 getOPLEntriesR = do
