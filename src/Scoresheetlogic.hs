@@ -29,6 +29,9 @@ getTotalLifter lifter@(Lifter {..}) =
     True -> Nothing
     False -> Just . sum . map (fromMaybe 0.0 . getBestAttempt) $ resultList lifterRes
 
+lifterPending :: Lifter -> Bool
+lifterPending Lifter {..} = or $ disciplinePending <$> (resultList lifterRes)
+
 nextAttemptNr :: MeetState -> Lifter -> Maybe AttemptNr
 nextAttemptNr s l
   | (attemptPending $ att1 d)  = Just Attempt1

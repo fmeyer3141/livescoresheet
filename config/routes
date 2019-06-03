@@ -26,3 +26,4 @@
 /livestreaminfo       LivestreaminfoR GET
 /showall              ShowallR        GET
 /liftersbylot         LiftersByLotR   GET
+oplentries OPLEntriesR GET

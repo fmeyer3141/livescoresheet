@@ -98,6 +98,9 @@ attemptPending (Attempt Unset    _) = True
 attemptPending (Attempt (Todo _) _) = True
 attemptPending _                    = False
 
+disciplinePending :: Discipline -> Bool
+disciplinePending (Discipline a1 a2 a3) = or $ attemptPending <$> [a1,a2,a3]
+
 readMeetSettings :: FilePath -> IO MeetSettings
 readMeetSettings fp = loadYamlSettings [fp] [] useEnv
 

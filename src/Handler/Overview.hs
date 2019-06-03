@@ -20,5 +20,6 @@ getOverviewR = defaultLayout $
     <p><a href=@{ShowallR}> Showall
     <p><a href=@{TableR}> Table.tex
     <p><a href=@{UrkundenR}> Urkunden.csv
-    <p><a href=@{LiftersByLotR}> lifters_by_lot.csv|]
+    <p><a href=@{LiftersByLotR}> lifters_by_lot.csv
+    <p><a href=@{OPLEntriesR}> entries.csv for OpenPowerlifting|]
 
