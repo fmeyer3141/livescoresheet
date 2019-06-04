@@ -56,6 +56,8 @@ function min (arg1, arg2) {
 }
 
 function max (arg1, arg2) {
+  arg1 = Number(arg1);
+  arg2 = Number(arg2);
   return (arg1 > arg2 ? arg1 : arg2);
 }
 
