@@ -1,0 +1,13 @@
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      -build_project
+
+version: 2
+jobs:
+  build_project:
+    machine: true
+    steps:
+      - checkout
+      - run: echo "Hello"
