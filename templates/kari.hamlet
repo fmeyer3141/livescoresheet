@@ -1,6 +1,12 @@
-<div #divLogOut>
-  <button #btnLogOut aonClick=logout()>
-    Abmelden
+<div #divHeader>
+  $if isMainReferee p
+    <div #divTimerContainer>
+      <button #btnStartTimer onClick=startTimer()>
+        Start 
+      <div #divTimer> 01:00
+  <div #divLogOut>
+    <button #btnLogOut onClick=logout()>
+      Abmelden
 <h1> #{prettyPrintPos p}
 <p #attemptInfo>
 <p #lifterInfo>

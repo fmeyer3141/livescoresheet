@@ -136,3 +136,7 @@ getResetKariR = do
   ioRef <- appRefereeState <$> getYesod
   atomicallyUnpackHandler . packHandler $ atomicModifyIORef' ioRef $ const (emptyRefereeResult, ())
   redirect AdminR
+
+isMainReferee :: RefereePlaces -> Bool
+isMainReferee PMain = True 
+isMainReferee _ = False

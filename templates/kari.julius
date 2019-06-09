@@ -147,5 +147,36 @@ function logout () {
   }
 }
 
+
+//Timer-Logik
+var time = 60;
+var t = null;
+var $timer;
+
+/**
+ * Startet den Countdown oder setzt ihn auf eine Minute zurueck.
+ */
+function startTimer() {
+  $timer = $("#divTimer");
+  if (t != null) 
+  {
+    clearTimeout(t);
+    time = 60; 
+    $timer.text(" 01:00");
+  }
+  t = setTimeout(timerWorker, 1000);
+}
+
+/** Zaehlt den Coutdown sekundenweise runter */
+function timerWorker() {
+  time--;
+  $timer.text(" 00:" + (time < 10 ? "0" : "") + time);
+  if (time != 0) {
+    t = setTimeout(timerWorker, 1000);
+  }
+}
+
 init();
+
+
 
