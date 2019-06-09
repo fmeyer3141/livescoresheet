@@ -28,7 +28,7 @@ colorForm = renderDivs $
                   <*> areq checkBoxField blueFormat Nothing
                   <*> areq checkBoxField yellowFormat Nothing
   where
-    redFormat    = FieldSettings ""  Nothing (Just "cbRedCard")    Nothing [("class", "cbJuryCard")]
+    redFormat    = FieldSettings ""  Nothing (Just "cbRedCard")   Nothing [("class", "cbJuryCard")]
     blueFormat   = FieldSettings "" Nothing (Just "cbBlueCard")   Nothing [("class", "cbJuryCard")]
     yellowFormat = FieldSettings "" Nothing (Just "cbYellowCard") Nothing [("class", "cbJuryCard")]
 

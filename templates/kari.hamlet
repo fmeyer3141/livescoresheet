@@ -1,3 +1,6 @@
+<div #divLogOut>
+  <button #btnLogOut aonClick=logout()>
+    Abmelden
 <h1> #{prettyPrintPos p}
 <p #attemptInfo>
 <p #lifterInfo>
@@ -10,9 +13,3 @@
     Wertung
   <p #pWertung>
   <ul #ulWertungListe>
-
-<div #spacing>
-
-<div #logOut>
-  <button onClick=logout()>
-    Logout!
