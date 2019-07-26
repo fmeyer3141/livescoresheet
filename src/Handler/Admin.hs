@@ -88,7 +88,7 @@ csvForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 attemptForm :: Text -> Attempt -> MForm Handler (FormResult Attempt, Widget)
 attemptForm dDescr att = do
-  (timeRes,timeView)      <- mreq (hiddenFieldDouble) fieldFormat $ Just (attGetChangedTime att)
+  (timeRes,timeView)      <- mreq hiddenFieldDouble fieldFormat $ Just (attGetChangedTime att)
   (weightRes, weightView) <- mopt doubleField fieldFormat (Just $ attemptWeight att)
   (succRes, succView)     <- mreq (selectFieldList succType) "" (Just $ attemptToModifier att)
   let attRes = createAttempt <$> weightRes <*> succRes <*> timeRes
@@ -131,8 +131,8 @@ resForm res =
     let widgets = fmap snd discForms
 
     let discWidgets = F.foldl' (>>) [whamlet| |] widgets
-    let resChanges =  (zipWith resChangesf (fst <$> discForms) meetType)
-    let resRes = F.foldl' (\r f -> f r) (Just $ res) resChanges
+    let resChanges =  zipWith resChangesf (fst <$> discForms) meetType
+    let resRes = F.foldl' (\r f -> f r) (Just res) resChanges
     return $ case resRes of
       Just r -> (pure r, discWidgets)
       _      -> (FormFailure ["Error parsing results form"], discWidgets)
@@ -178,12 +178,12 @@ liftersForm meetState eLifterList extra = do
   -- Combine Widgets and Lifters and then group by liftergroups
   let liftersAndWidgets = L.groupBy ((==) `on` (lifterGroup . fst)) $
                             zip (snd <$> sortedList) (snd <$> list)
-  let combineWidgets1 l = ([whamlet|
+  let combineWidgets1 l = [whamlet|
                             <div .gruppenBezeichner>
                               Gruppe #{lifterGroup $ fst $ unsafeHead l}
-                          |]) *> (F.sequenceA_ (snd <$> l)) :: Widget --Gruppe ausgeben
+                          |] *> F.sequenceA_ (snd <$> l) :: Widget --Gruppe ausgeben
   let combinedWidgets = F.sequenceA_ (map combineWidgets1 liftersAndWidgets) :: Widget
-  let framedForm = ([whamlet|
+  let framedForm = [whamlet|
                 #{extra}
                 <div #lifterForm>
                   <div #lifterFormHeaderRow>
@@ -197,7 +197,7 @@ liftersForm meetState eLifterList extra = do
                     <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> Gruppe
                     <span #lifterGroupHeader .lifterFormHeader .additionalChangesHead> Gew. Klasse
                   ^{combinedWidgets}
-              |])
+              |]
   pure (sequenceA $ fst <$> list, framedForm)
 
 postCSVFormR :: Handler Html
@@ -215,7 +215,7 @@ postCSVFormR = do
         time <- realToFrac <$> liftIO getPOSIXTime
         case fromNullable csv of
           Just csvNonEmpty ->
-            let dataSet = sequenceA $ (lifterParse time) <$> tail csvNonEmpty in
+            let dataSet = sequenceA $ lifterParse time <$> tail csvNonEmpty in
             case dataSet of
               (ARight datas) ->
                 do
@@ -232,11 +232,11 @@ postCSVFormR = do
 
           _ -> invalidArgs ["CSV-Form is missing"]
 
-      |otherwise       = defaultLayout $ [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
+      |otherwise       = defaultLayout [whamlet| Please supply a correct CSV File! Your file was #{typ}|]
 
 postLifterFormR :: Handler Html
 postLifterFormR = do
-  meetState <- atomicallyUnpackHandler $ getCurrMeetStateFromDB
+  meetState <- atomicallyUnpackHandler getCurrMeetStateFromDB
   let groupNr = meetStateCurrGroupNr meetState
   lifters <- atomicallyUnpackHandler $ getELiftersInGroupFromDB groupNr
   ((res,_),_) <- runFormPost $ liftersForm meetState lifters
@@ -274,13 +274,13 @@ lifterParse time r@[name,age,sex,aclass,wclass,weight,raw,flight,club,outOfCompe
     safeRead s = case P.reads $ T.unpack s of
                    [(t, "")] -> pure t
                    t         -> ALeft . pure $ "Error reading " ++ s ++ " in str " ++ T.intercalate ", " r
-                                            ++ " result: "  ++ (T.pack $ show t)
+                                            ++ " result: "  ++ T.pack (show t)
 
 lifterParse _ input = error ("Wrong number of entries in: " ++ show input)
 
 getUndoR :: Handler Html
 getUndoR = do
-             atomicallyUnpackHandler $ restoreBackup
+             atomicallyUnpackHandler restoreBackup
              redirect AdminR
 
 
@@ -308,20 +308,20 @@ getLifterText = getInnerText "LIFTERSTART" "LIFTEREND"
 
 -- Lifter -> lifterText -> place -> output
 createLifter :: Text -> Lifter -> Int -> Text
-createLifter inp l@(Lifter {..}) pl = F.foldl' (flip ($)) inp actions
+createLifter inp l@Lifter {..} pl = F.foldl' (flip ($)) inp actions
   where
     actions :: [Text -> Text]
     actions = [ \src -> replaceAllCaptures TOP replWeight $ src *=~ attemptRegex
               , \src -> replaceAllCaptures TOP replGood $ src *=~ goodRegex] ++
-              (map (\(a,b) -> T.replace a b)
-                [("NAME", lifterName )
-                ,("AGE", pack $ show lifterAge )
-                ,("BW", pack $ show lifterWeight )
-                ,("WILKS", showWilks lifterSex (getTotalLifter l) lifterWeight)
-                ,("PLACINGINFO", showPlacingInfo l)
-                ,("PLACE", showPlacing l pl)
-                ,("CLUB", escapeForLatex $ lifterClub )
-                ,("TOTAL", showTotal l)])
+                  map (uncurry T.replace)
+                    [("NAME", lifterName )
+                    ,("AGE", pack $ show lifterAge )
+                    ,("BW", pack $ show lifterWeight )
+                    ,("WILKS", showWilks lifterSex (getTotalLifter l) lifterWeight)
+                    ,("PLACINGINFO", showPlacingInfo l)
+                    ,("PLACE", showPlacing l pl)
+                    ,("CLUB", escapeForLatex lifterClub)
+                    ,("TOTAL", showTotal l)]
     attemptRegex                   = [re|ATTEMPT_${d}([A-Za-z0-9]*)_${n}([1-3]{1})|]
     goodRegex                      = [re|GOOD_${d}([A-Za-z0-9]*)_${n}([1-3]{1})|]
     captureID                      = IsCaptureName . CaptureName
@@ -342,7 +342,7 @@ escapeForLatex = T.replace "&" "\\&"
 
 showPlacing :: Lifter -> Int -> Text
 showPlacing l pl = case getTotalLifter l of
-                     Just _ -> pack $ show $ pl
+                     Just _ -> pack (show pl)
                      Nothing -> ""
 
 displ :: Weight -> Text
@@ -405,9 +405,7 @@ showWilks sex (Just total) bodyweight = pack $ show $ ((flip (/)) 1000 :: Double
 createKlasse :: (Bool, Sex, Ageclass, Weightclass) -> Text
 createKlasse (raw,sex,aclass,wclass) = T.intercalate ", " [showRaw,showSex,printPrettyAgeclass aclass, pack $ show wclass]
   where
-    showRaw = case raw of
-                True -> "ohne Ausrüstung"
-                False -> "mit Ausrüstung"
+    showRaw = if raw then "ohne Ausrüstung" else "mit Ausrüstung"
     showSex = case sex of
                 Male -> "Männlich"
                 Female -> "Weiblich"
@@ -422,7 +420,7 @@ liftersWithPlacings :: [Lifter] -> [[(Int,Lifter)]]
 liftersWithPlacings lifters = map (zip [1..]) (liftersGrouped lifters)
 
 liftersGrouped :: [Lifter] -> [[Lifter]]
-liftersGrouped lifters = map (L.sortBy (cmpLifterPlacing)) $
+liftersGrouped lifters = map (L.sortBy cmpLifterPlacing) $
                              L.groupBy (\l1 l2 -> (lifterRaw l1, lifterSex l1, lifterAgeclass l1, lifterWeightclass l1) ==
                         (lifterRaw l2, lifterSex l2, lifterAgeclass l2, lifterWeightclass l2)) liftersSorted
   where
