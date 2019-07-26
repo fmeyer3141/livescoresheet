@@ -26,4 +26,5 @@
 /livestreaminfo       LivestreaminfoR GET
 /showall              ShowallR        GET
 /liftersbylot         LiftersByLotR   GET
-oplentries OPLEntriesR GET
+/bvdkexport           BVDKExportR     GET POST
+/oplentries OPLEntriesR GET

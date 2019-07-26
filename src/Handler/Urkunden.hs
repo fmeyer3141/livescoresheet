@@ -8,7 +8,7 @@
 module Handler.Urkunden (getUrkundenR, postUrkundenR) where
 
 import Import
-import Handler.Admin
+import Common
 import ManageScoresheetState
 import qualified Data.Text as T
 import qualified Prelude as P

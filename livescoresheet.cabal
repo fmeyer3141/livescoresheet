@@ -85,8 +85,10 @@ library
       Ageclass
       ApplEither
       Application
+      Common
       Foundation
       Handler.Admin
+      Handler.BVDKExport
       Handler.Common
       Handler.Frontend
       Handler.Jury

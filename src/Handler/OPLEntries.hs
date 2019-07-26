@@ -5,6 +5,7 @@
 module Handler.OPLEntries (getOPLEntriesR) where
 
 import Import
+import Common
 import qualified Data.Text as T
 import PackedHandler
 import ManageScoresheetState
@@ -12,7 +13,6 @@ import Scoresheetlogic (getTotalLifter, lifterPending)
 import Sex
 import Weightclass
 import Ageclass
-import Handler.Admin (liftersWithPlacings)
 
 showSex :: Sex -> Text
 showSex Male   = "M"
@@ -35,16 +35,6 @@ showAgeclass Master2   = "Masters 2"
 showAgeclass Master3   = "Masters 3"
 showAgeclass Master4   = "Masters 4"
 
-showAttempt :: Attempt -> Text
-showAttempt (Attempt (Success w) _) = T.pack $ show w
-showAttempt (Attempt (Fail    w) _) = "-" ++ T.pack (show w)
-showAttempt _                       = ""
-
-showTotal :: Lifter -> Text
-showTotal l = case getTotalLifter l of
-  Just t  -> T.pack $ show t
-  Nothing -> ""
-
 showBestAttempt :: Discipline -> Text
 showBestAttempt d = case getBestAttempt d of
   Just a  -> T.pack $ show a
@@ -56,6 +46,11 @@ showPlacing l@Lifter{..} pl =
     (True, _)        -> "G" -- a.K.
     (False, Just _)  -> pack $ show pl
     (False, Nothing) -> "DQ" --DQ
+
+showTotal :: Lifter -> Text
+showTotal l = case getTotalLifter l of
+  Just t  -> T.pack $ show t
+  Nothing -> ""
 
 getOPLEntriesR :: Handler TypedContent
 getOPLEntriesR = do
