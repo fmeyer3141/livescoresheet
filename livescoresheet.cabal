@@ -82,34 +82,34 @@ library
     ghc-options: -Wall -fwarn-tabs -O2 -fexpose-all-unfoldings -fspecialise-aggressively
     default-extensions: ApplicativeDo
   exposed-modules:
+      Ageclass
+      ApplEither
       Application
       Foundation
-      Handler.Common
       Handler.Admin
-      Handler.Livestreaminfo
+      Handler.Common
       Handler.Frontend
       Handler.Jury
-      Handler.Stecker
-      Handler.Overview
-      Handler.Urkunden
       Handler.LiftersByLot
-      Handler.Showall
+      Handler.Livestreaminfo
       Handler.OPLEntries
+      Handler.Overview
+      Handler.Showall
+      Handler.Stecker
+      Handler.Urkunden
       Import
       Import.NoFoundation
+      ManageScoresheetState
       MeetTypesTH
-      THApplStage
-      Model
       Misc
+      Model
+      PackedHandler
+      Scoresheetlogic
       Settings
       Settings.StaticFiles
       Sex
-      Scoresheetlogic
       SocketHelper
-      PackedHandler
-      ManageScoresheetState
-      Ageclass
-      ApplEither
+      THApplStage
       Weightclass
   other-modules:
       Paths_livescoresheet
