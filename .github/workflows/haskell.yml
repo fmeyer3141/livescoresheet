@@ -16,3 +16,6 @@ jobs:
     - name: Build
       run: |
         stack build
+    - name: Deploy
+      run: |
+        echo todo
