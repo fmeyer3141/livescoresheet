@@ -23,7 +23,6 @@ import qualified Data.Text as T
 
 import Data.CSV.Conduit
 import Scoresheetlogic
-import Data.Text (Text)
 import qualified Data.List as L
 import qualified Data.Foldable as F
 import qualified Prelude as P
