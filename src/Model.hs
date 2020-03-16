@@ -1,4 +1,6 @@
 {-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
