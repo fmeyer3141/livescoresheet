@@ -17,5 +17,8 @@ jobs:
       run: |
         stack build
     - name: Deploy
+      # We should only deploy when pushed to master
+      # so we will probably need a seperate workflow
+      # for pushes and pull_requests respectively
       run: |
         echo todo
